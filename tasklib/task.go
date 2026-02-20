@@ -7,16 +7,11 @@ import (
 	"strings"
 )
 
-type TaskResult struct {
-	Success    bool
-	StatusCode int
-	Result     any
-}
 
 type NoTaskBody struct{}
 
 type TaskFn = func(request *RequestInfo, container *Container) *TaskResult
-type TypedTaskFn[T any] = func(data T, container *Container) TaskResult
+type TypedTaskFn[T any] = func(data T, container *Container) *TaskResult
 
 type Task struct {
 	Name     string
@@ -56,7 +51,7 @@ func buildTask[T any](fn TypedTaskFn[T], validation TaskFn) Task {
 			parseQuery(request.Query, request.Headers, &decodedBody)
 
 			res := fn(decodedBody, container)
-			return &res
+			return res
 		},
 	}
 }

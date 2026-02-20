@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
+
+	"github.com/jacksonzamorano/tasks/tasklib/component"
 )
 
 type RequestInfo struct {
@@ -15,12 +18,12 @@ type RequestInfo struct {
 }
 
 type AppServer struct {
-	state    *AppState
-	srv      *http.Server
-	listener *http.ServeMux
+	state      *AppState
+	srv        *http.Server
+	listener   *http.ServeMux
 }
 
-func NewAppServer(tasks []Task) AppServer {
+func NewAppServer(tasks []Task, cNames []string) AppServer {
 	appState := newAppState()
 	mux := http.NewServeMux()
 
@@ -28,6 +31,23 @@ func NewAppServer(tasks []Task) AppServer {
 		url := fmt.Sprintf("/tasks/%s", tasks[idx].Name)
 		mux.HandleFunc(url, appState.handler(tasks[idx]))
 		appState.Logger.Info("Registered task '%s'", url)
+	}
+
+	for idx := range cNames {
+		nameIdx := strings.LastIndex(cNames[idx], "/")
+		name := cNames[idx][nameIdx+1:]
+		runner, err := RegisterComponent(cNames[idx])
+		if err != nil {
+			appState.Logger.Info("Failed to register component '%s': '%s'", name, err.Error())
+			continue
+		}
+		appState.components[name] = runner
+		msg := runner.transport.Read()
+		if msg.Type == component.ComponentMessageTypeReady {
+			appState.Logger.Info("Registed '%s': '%s'", name, msg.Payload)
+		} else {
+			appState.Logger.Info("Failed to register component '%s', component sent invalid message.", name)
+		}
 	}
 
 	port := os.Getenv("PORT")
@@ -43,7 +63,7 @@ func NewAppServer(tasks []Task) AppServer {
 			Handler:           mux,
 			ReadHeaderTimeout: 5 * time.Second,
 		},
-		listener: mux,
+		listener:   mux,
 	}
 	return as
 }

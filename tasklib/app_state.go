@@ -29,6 +29,7 @@ type AppState struct {
 	Logger   AppServerLogger
 	storage  *AppStorage
 	database *sql.DB
+	components map[string]*ComponentRunner
 }
 
 func newAppState() AppState {
@@ -63,6 +64,7 @@ func newAppState() AppState {
 			db: db,
 		},
 		database: db,
+		components: map[string]*ComponentRunner{},
 	}
 
 	if e {

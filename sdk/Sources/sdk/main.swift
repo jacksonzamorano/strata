@@ -10,10 +10,15 @@ let goConfig = GoConfiguration { cfg in
     cfg.packageName = "tasklib"
 }
 
+let componentGoConfig = GoConfiguration { cfg in
+    cfg.packageName = "component"
+}
+
 try! Schema("schema") {
     TaskRun.self
     StorageRow.self
     StorageRowKeyNames.self
+    EntityRow.self
     Authorization.self
 } routes: {
     
@@ -27,4 +32,20 @@ try! Schema("schema") {
     )
 }
 .sql(sql, rootDirectory: tasklibRoot)
+.build()
+
+try! Schema("plugin") {
+    ComponentMessageType.self
+    ComponentReadyMessage.self
+} routes: {
+    
+}
+.output(Go(sqlBuilder: sql, config: componentGoConfig)) {
+    CodeBuilderConfiguration(
+        root: tasklibRoot.appending(path: "component"),
+        fileStrategy: .monolithic,
+        generateRecords: .none,
+        generateModels: true
+    )
+}
 .build()

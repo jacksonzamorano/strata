@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	cex "github.com/jacksonzamorano/tasks/componentexample/types"
 	"github.com/jacksonzamorano/tasks/tasklib"
 )
 
@@ -14,7 +15,12 @@ type SayHelloRespose struct {
 	Count   int
 }
 
-func sayHello(data SayHelloData, container *tasklib.Container) tasklib.TaskResult {
+type Visitor struct {
+	Name        string
+	CountAtTime int
+}
+
+func sayHello(data SayHelloData, container *tasklib.Container) *tasklib.TaskResult {
 	oldName := container.Storage.GetString("username")
 	container.Storage.SetString("username", data.Name)
 
@@ -22,28 +28,44 @@ func sayHello(data SayHelloData, container *tasklib.Container) tasklib.TaskResul
 	count += 1
 	container.Storage.SetInt("count", count)
 
-	return tasklib.TaskResult{
-		Success: true,
-		Result: SayHelloRespose{
-			Message: fmt.Sprintf("Hello, %s, bye %s", data.Name, oldName),
-			Count:   count,
-		},
+	entityContainer := tasklib.NewEntityStorage[Visitor](container.Storage)
+	entityContainer.Insert(Visitor{
+		Name:        data.Name,
+		CountAtTime: count,
+	})
+
+	msg, err := tasklib.ExecuteFunction[cex.SayResponse](container, "component-example", "say", cex.SayRequest{
+		Name: data.Name,
+	})
+	if err != nil {
+		return tasklib.Error(err.Error())
 	}
+
+	return tasklib.Done(SayHelloRespose{
+		Message: fmt.Sprintf("Got '%s', old '%s'", msg.Said, oldName),
+		Count:   count,
+	})
 }
 
-func reset(data tasklib.NoTaskBody, container *tasklib.Container) tasklib.TaskResult {
+func getVisitorLog(data tasklib.NoTaskBody, container *tasklib.Container) *tasklib.TaskResult {
+	entityContainer := tasklib.NewEntityStorage[Visitor](container.Storage)
+	allNonEmpty := entityContainer.Find(func(v Visitor) bool { return len(v.Name) > 0 })
+	return tasklib.Done(allNonEmpty)
+}
+
+func reset(data tasklib.NoTaskBody, container *tasklib.Container) *tasklib.TaskResult {
 	container.Storage.SetInt("count", 0)
 	container.Storage.SetString("username", "")
-	return tasklib.TaskResult{
-		Success: true,
-		Result:  "Reset",
-	}
+	return tasklib.Done("Reset.")
 }
 
 func main() {
 	as := tasklib.NewAppServer([]tasklib.Task{
 		tasklib.UsePublicTask(sayHello),
+		tasklib.UseTask(getVisitorLog),
 		tasklib.UseTask(reset),
+	}, []string{
+		"/Users/jacksonzamorano/Documents/tasks/component-example/component-example",
 	})
 	e := as.Start()
 	panic(e)

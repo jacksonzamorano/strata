@@ -7,13 +7,6 @@ import (
 	"net/http"
 	"time"
 )
-
-func (as *AppState) buildContainer(namespace string) *Container {
-	return &Container{
-		Storage: as.storage.Container(namespace),
-	}
-}
-
 func (as *AppState) handle(r *http.Request, task Task) (*RequestInfo, *TaskResult) {
 	requestInfo := RequestInfo{
 		HasBody: false,
