@@ -35,7 +35,7 @@ func Result(r any) *ComponentResultPayload {
 }
 func Error(e string) *ComponentResultPayload {
 	return &ComponentResultPayload{
-		Success: true,
+		Success: false,
 		Error:   e,
 	}
 }
@@ -127,7 +127,7 @@ func (c *Component) Start() {
 		}
 	}()
 
-	c.Send(ComponentMessageTypeReady, ComponentReadyMessage{
+	c.Send(ComponentMessageTypeReady, ComponentMessageReady{
 		Name:    c.Name,
 		Version: c.Version,
 	})

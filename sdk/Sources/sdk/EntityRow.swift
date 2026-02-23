@@ -5,8 +5,8 @@ import Foundation
 struct EntityRow {
     let id = Field(.int64, .primaryKey)
     
-    let createdDate = Field(.datetime, .defaultValue("CURRENT_DATETIME"))
-    let modifiedDate = Field(.datetime, .defaultValue("CURRENT_DATETIME"))
+    let createdDate = Field(.datetime, .defaultValue("CURRENT_TIMESTAMP"))
+    let modifiedDate = Field(.datetime, .defaultValue("CURRENT_TIMESTAMP"))
 
     let namespace = Field(.string)
     let kind = Field(.string)

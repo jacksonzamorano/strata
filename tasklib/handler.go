@@ -19,7 +19,7 @@ func (as *AppState) handle(r *http.Request, task Task) (*RequestInfo, *TaskResul
 		authorization = as.getAuthorization(authSec[0])
 	}
 
-	container := as.buildContainer("userspace")
+	container := as.buildContainer("task")
 	container.Authorization = authorization
 
 	if r.Body != nil && r.Body != http.NoBody {

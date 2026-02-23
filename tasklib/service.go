@@ -1,6 +1,7 @@
 package tasklib
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -18,9 +19,9 @@ type RequestInfo struct {
 }
 
 type AppServer struct {
-	state      *AppState
-	srv        *http.Server
-	listener   *http.ServeMux
+	state    *AppState
+	srv      *http.Server
+	listener *http.ServeMux
 }
 
 func NewAppServer(tasks []Task, cNames []string) AppServer {
@@ -30,13 +31,17 @@ func NewAppServer(tasks []Task, cNames []string) AppServer {
 	for idx := range tasks {
 		url := fmt.Sprintf("/tasks/%s", tasks[idx].Name)
 		mux.HandleFunc(url, appState.handler(tasks[idx]))
-		appState.Logger.Info("Registered task '%s'", url)
+		appState.Logger.Event(EventKindTaskRegistered, EventTaskRegisterPayload{
+			Name: tasks[idx].Name,
+			Url:  url,
+		})
 	}
 
 	for idx := range cNames {
 		nameIdx := strings.LastIndex(cNames[idx], "/")
 		name := cNames[idx][nameIdx+1:]
-		runner, err := RegisterComponent(cNames[idx])
+		cnt := appState.buildContainer(name)
+		runner, err := RegisterComponent(cNames[idx], cnt)
 		if err != nil {
 			appState.Logger.Info("Failed to register component '%s': '%s'", name, err.Error())
 			continue
@@ -44,7 +49,13 @@ func NewAppServer(tasks []Task, cNames []string) AppServer {
 		appState.components[name] = runner
 		msg := runner.transport.Read()
 		if msg.Type == component.ComponentMessageTypeReady {
-			appState.Logger.Info("Registed '%s': '%s'", name, msg.Payload)
+			var rdy component.ComponentMessageReady
+			_ = json.Unmarshal(msg.Payload, &rdy)
+			appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
+				Suceeded: true,
+				Name:     rdy.Name,
+				Version:  rdy.Version,
+			})
 		} else {
 			appState.Logger.Info("Failed to register component '%s', component sent invalid message.", name)
 		}
@@ -54,19 +65,22 @@ func NewAppServer(tasks []Task, cNames []string) AppServer {
 	if len(port) == 0 {
 		port = "8080"
 	}
-	addr := os.Getenv("ADDRESS")
+	ns := os.Getenv("ADDRESS")
+
+	addr := fmt.Sprintf("%s:%s", ns, port)
 
 	as := AppServer{
 		state: &appState,
 		srv: &http.Server{
-			Addr:              fmt.Sprintf("%s:%s", addr, port),
+			Addr:              addr,
 			Handler:           mux,
 			ReadHeaderTimeout: 5 * time.Second,
 		},
-		listener:   mux,
+		listener: mux,
 	}
 	return as
 }
 func (as *AppServer) Start() error {
+	as.state.Logger.Info("Listening on %s", as.srv.Addr)
 	return as.srv.ListenAndServe()
 }

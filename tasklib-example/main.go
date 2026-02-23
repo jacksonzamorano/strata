@@ -34,7 +34,7 @@ func sayHello(data SayHelloData, container *tasklib.Container) *tasklib.TaskResu
 		CountAtTime: count,
 	})
 
-	msg, err := tasklib.ExecuteFunction[cex.SayResponse](container, "component-example", "say", cex.SayRequest{
+	msg, err := tasklib.ExecuteFunction[cex.SayResponse](container, "componentexample", "say", cex.SayRequest{
 		Name: data.Name,
 	})
 	if err != nil {
@@ -65,7 +65,7 @@ func main() {
 		tasklib.UseTask(getVisitorLog),
 		tasklib.UseTask(reset),
 	}, []string{
-		"/Users/jacksonzamorano/Documents/tasks/component-example/component-example",
+		"/Users/jackson/Developer/tasklib/component-example/componentexample",
 	})
 	e := as.Start()
 	panic(e)

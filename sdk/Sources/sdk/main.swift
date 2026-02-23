@@ -20,6 +20,9 @@ try! Schema("schema") {
     StorageRowKeyNames.self
     EntityRow.self
     Authorization.self
+    EventKind.self
+    EventTaskRegisterPayload.self
+    EventComponentRegisteredPayload.self
 } routes: {
     
 }
@@ -34,9 +37,8 @@ try! Schema("schema") {
 .sql(sql, rootDirectory: tasklibRoot)
 .build()
 
-try! Schema("plugin") {
+try! Schema("messagetypes") {
     ComponentMessageType.self
-    ComponentReadyMessage.self
 } routes: {
     
 }

@@ -9,9 +9,10 @@ import (
 
 type ComponentRunner struct {
 	transport component.StdioTransport
+	container *Container
 }
 
-func RegisterComponent(path string) (*ComponentRunner, error) {
+func RegisterComponent(path string, container *Container) (*ComponentRunner, error) {
 	cmd := exec.Command(path)
 	in, err := cmd.StdinPipe()
 	if err != nil {
@@ -31,18 +32,19 @@ func RegisterComponent(path string) (*ComponentRunner, error) {
 
 	return &ComponentRunner{
 		transport,
+		container,
 	}, nil
 }
 
 func (cr *ComponentRunner) Send(ev component.ComponentMessageType, nm string, args any) {
 	encoded, _ := json.Marshal(args)
 	v := component.ComponentMessage{
-		Type: ev,
-		Name: nm,
+		Type:    ev,
+		Name:    nm,
 		Payload: encoded,
 	}
 	cr.transport.Send(v)
-} 
+}
 
 func (cr *ComponentRunner) Execute(fname string, args any) *component.ComponentResultPayload {
 	cr.Send(component.ComponentMessageTypeExecute, fname, args)
