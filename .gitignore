@@ -1,2 +1,4 @@
 sdk/.build
 tasklib-example/tasklib-example
+tasklib-example/tasklib.db
+component-example/componentexample
