@@ -1,6 +1,7 @@
 package component
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/signal"
@@ -11,6 +12,8 @@ type Component struct {
 	name      string
 	version   string
 	functions map[string]ComponentFunctionFn
+	ctx       context.Context
+	cancel    context.CancelFunc
 	setupFn   ComponentSetupFn
 	ioChannel *ComponentIO
 }
@@ -94,7 +97,8 @@ func (c *Component) buildContext() *ComponentContext {
 }
 
 func (c *Component) Start() {
-	c.ioChannel = NewComponentIO(os.Stdin, os.Stdout)
+	c.ctx, c.cancel = context.WithCancel(context.Background())
+	c.ioChannel = NewComponentIO(c.ctx, c.cancel, os.Stdin, os.Stdout)
 
 	thread := c.ioChannel.NewThread()
 	_, _ = SendAndReceive[struct{}](thread, ComponentMessageTypeHello, ComponentMessageHello{

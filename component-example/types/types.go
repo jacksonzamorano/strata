@@ -6,4 +6,6 @@ type SayRequest struct {
 type SayResponse struct {
 	CurrentValue string
 	LastValue    string
+	TenXValue    int
 }
+type EmptyRequest struct {}

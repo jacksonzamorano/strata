@@ -67,19 +67,24 @@ func SendAndReceive[T any](t *Thread, sendType ComponentMessageType, sendPayload
 	t.Send(sendType, sendPayload)
 
 	for {
-		msg := <-c
+		select {
+		case msg := <-c:
 
-		t.lock.Lock()
-		delete(t.outgoing, recvType)
-		t.lock.Unlock()
+			t.lock.Lock()
+			delete(t.outgoing, recvType)
+			t.lock.Unlock()
 
-		var payload T
-		e := json.Unmarshal(msg.Payload, &payload)
-		if e != nil {
-			continue
+			var payload T
+			e := json.Unmarshal(msg.Payload, &payload)
+			if e != nil {
+				continue
+			}
+
+			return payload, msg
+		case <-t.io.transport.ctx.Done():
+			var payload T
+			return payload, ComponentMessage{}
 		}
-
-		return payload, msg
 	}
 }
 

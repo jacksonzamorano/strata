@@ -1,5 +1,7 @@
 package component
 
+import "strconv"
+
 type ComponentStorage struct {
 	io *ComponentIO
 }
@@ -29,4 +31,16 @@ func (c *ComponentStorage) GetString(k string) string {
 }
 func (c *ComponentStorage) SetString(k, v string) {
 	c.setValue(k, v)
+}
+
+func (c *ComponentStorage) GetInt(k string) int {
+	val := c.GetString(k)
+	i, e := strconv.Atoi(val)
+	if e != nil {
+		return 0
+	}
+	return i
+}
+func (c *ComponentStorage) SetInt(k string, v int) {
+	c.SetString(k, strconv.Itoa(v))
 }

@@ -37,7 +37,7 @@ func sayHello(data SayHelloData, container *tasklib.Container) *tasklib.TaskResu
 		CountAtTime: count,
 	})
 
-	msg, err := tasklib.ExecuteFunction[cex.SayResponse](container, "componentexample", "say", cex.SayRequest{
+	msg, err := tasklib.ExecuteFunction[cex.SayResponse](container, "example", "say", cex.SayRequest{
 		Name: data.Name,
 	})
 	if err != nil {
@@ -61,6 +61,7 @@ func getVisitorLog(data tasklib.NoTaskBody, container *tasklib.Container) *taskl
 func reset(data tasklib.NoTaskBody, container *tasklib.Container) *tasklib.TaskResult {
 	container.Storage.SetInt("count", 0)
 	container.Storage.SetString("username", "")
+	tasklib.ExecuteFunction[tasklib.NoTaskBody](container, "example", "reset", tasklib.NoTaskBody{})
 	return tasklib.Done("Reset.")
 }
 
@@ -72,7 +73,7 @@ func main() {
 		tasklib.UseTask(reset),
 	}, []tasklib.AppDependancy{
 		// tasklib.Binary(path.Join(path.Dir(cd), "component-example", "main.go")),
-		tasklib.LocalProject(path.Join(path.Dir(cd), "sdk")),
+		tasklib.LocalProject(path.Join(path.Dir(cd), "component-example")),
 	})
 	e := as.Start()
 	panic(e)

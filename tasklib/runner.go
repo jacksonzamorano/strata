@@ -1,6 +1,7 @@
 package tasklib
 
 import (
+	"context"
 	"encoding/json"
 	"os/exec"
 
@@ -11,6 +12,8 @@ type ComponentRunner struct {
 	transport *component.ComponentIO
 	container *Container
 	available bool
+	Context   context.Context
+	Cancel    context.CancelFunc
 }
 
 func RegisterComponent(dep AppDependancy, container *Container) (*ComponentRunner, error) {
@@ -27,23 +30,28 @@ func RegisterComponent(dep AppDependancy, container *Container) (*ComponentRunne
 		args = []string{"run", "."}
 	}
 
-	cmd := exec.Command(cmd_path, args...)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	cmd := exec.CommandContext(ctx, cmd_path, args...)
 	if len(cwd_path) > 0 {
 		cmd.Dir = cwd_path
 	}
 	in, err := cmd.StdinPipe()
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 	out, err := cmd.StdoutPipe()
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 
-	transport := component.NewComponentIO(out, in)
+	transport := component.NewComponentIO(ctx, cancel, out, in)
 
 	err = cmd.Start()
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 
@@ -51,6 +59,8 @@ func RegisterComponent(dep AppDependancy, container *Container) (*ComponentRunne
 		transport: transport,
 		container: container,
 		available: false,
+		Context:   ctx,
+		Cancel:    cancel,
 	}
 
 	runner.ListenForStorage()
@@ -85,6 +95,8 @@ func (cr *ComponentRunner) ListenForStorage() {
 				})
 			case ev := <-setVal:
 				cr.container.Storage.SetString(ev.Payload.Key, ev.Payload.Value)
+			case <-cr.Context.Done():
+				return
 			}
 		}
 	}()

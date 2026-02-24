@@ -73,7 +73,14 @@ func NewAppServer(tasks []Task, depenancies []AppDependancy) AppServer {
 		}
 
 		ev := component.RecieveOnce[component.ComponentMessageHello](runner.transport, component.ComponentMessageTypeHello)
-
+		if ev.Error == true {
+			appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
+				Suceeded: false,
+				Name:     name,
+				Error:    new("Component didn't connect."),
+			})
+			continue
+		}
 		hello := ev.Payload
 		appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
 			Suceeded: true,

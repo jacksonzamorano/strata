@@ -1,6 +1,7 @@
 package component
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -27,9 +28,9 @@ type ComponentIO struct {
 	globalWaiters map[ComponentMessageType]chan ComponentMessage
 }
 
-func NewComponentIO(read io.ReadCloser, write io.Writer) *ComponentIO {
+func NewComponentIO(ctx context.Context, cancel context.CancelFunc, read io.ReadCloser, write io.Writer) *ComponentIO {
 	cio := ComponentIO{
-		transport:     StartStdioTransport(read, write),
+		transport:     StartStdioTransport(ctx, cancel, read, write),
 		threadWaiters: map[string]*Thread{},
 		globalWaiters: map[ComponentMessageType]chan ComponentMessage{},
 	}
@@ -70,6 +71,7 @@ type RecievedEvent[T any] struct {
 	Payload T
 	Message ComponentMessage
 	Thread  *Thread
+	Error   bool
 }
 
 func Recieve[T any](c *ComponentIO, rcvTyp ComponentMessageType) chan RecievedEvent[T] {
@@ -81,24 +83,29 @@ func Recieve[T any](c *ComponentIO, rcvTyp ComponentMessageType) chan RecievedEv
 	output := make(chan RecievedEvent[T])
 
 	go func() {
-		for ev := range cn {
-			c.mu.Lock()
+		for {
+			select {
+			case ev := <-cn:
+				c.mu.Lock()
 
-			t := NewThread(ev.Id, c)
-			c.threadWaiters[t.id] = t
+				t := NewThread(ev.Id, c)
+				c.threadWaiters[t.id] = t
 
-			c.mu.Unlock()
+				c.mu.Unlock()
 
-			var msg T
-			err := json.Unmarshal(ev.Payload, &msg)
-			if err != nil {
-				continue
-			}
+				var msg T
+				err := json.Unmarshal(ev.Payload, &msg)
+				if err != nil {
+					continue
+				}
 
-			output <- RecievedEvent[T]{
-				Payload: msg,
-				Message: ev,
-				Thread:  t,
+				output <- RecievedEvent[T]{
+					Payload: msg,
+					Message: ev,
+					Thread:  t,
+				}
+			case <-c.transport.ctx.Done():
+				output <- RecievedEvent[T]{Error: true}
 			}
 		}
 	}()
@@ -112,26 +119,29 @@ func RecieveOnce[T any](c *ComponentIO, rcvTyp ComponentMessageType) RecievedEve
 	c.globalWaiters[rcvTyp] = cn
 	c.mu.Unlock()
 
-	for ev := range cn {
-		c.mu.Lock()
+	for {
+		select {
+		case ev := <-cn:
+			c.mu.Lock()
 
-		t := NewThread(ev.Id, c)
-		c.threadWaiters[t.id] = t
+			t := NewThread(ev.Id, c)
+			c.threadWaiters[t.id] = t
 
-		c.mu.Unlock()
+			c.mu.Unlock()
 
-		var msg T
-		err := json.Unmarshal(ev.Payload, &msg)
-		if err != nil {
-			continue
-		}
+			var msg T
+			err := json.Unmarshal(ev.Payload, &msg)
+			if err != nil {
+				continue
+			}
 
-		return RecievedEvent[T]{
-			Payload: msg,
-			Message: ev,
-			Thread:  t,
+			return RecievedEvent[T]{
+				Payload: msg,
+				Message: ev,
+				Thread:  t,
+			}
+		case <-c.transport.ctx.Done():
+			return RecievedEvent[T]{Error: true}
 		}
 	}
-
-	return RecievedEvent[T]{}
 }

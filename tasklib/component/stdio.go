@@ -15,10 +15,7 @@ type StdioTransport struct {
 	cancel context.CancelFunc
 }
 
-func StartStdioTransport(in io.ReadCloser, out io.Writer) StdioTransport {
-
-	ctx, cancel := context.WithCancel(context.Background())
-
+func StartStdioTransport(ctx context.Context, cancel context.CancelFunc, in io.ReadCloser, out io.Writer) StdioTransport {
 	read := make(chan ComponentMessage, 64)
 	write := make(chan ComponentMessage, 64)
 
@@ -58,6 +55,7 @@ func (st *StdioTransport) reader(in io.ReadCloser) {
 	for {
 		bytes, err := br.ReadBytes(0)
 		if errors.Is(err, io.EOF) {
+			st.cancel()
 			return
 		}
 		if len(bytes) == 0 {
@@ -74,7 +72,4 @@ func (st *StdioTransport) reader(in io.ReadCloser) {
 
 func (st *StdioTransport) Send(msg ComponentMessage) {
 	st.Write <- msg
-}
-func (st *StdioTransport) Cancel() {
-	st.cancel()
 }
