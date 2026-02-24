@@ -28,10 +28,13 @@ type AppDependancyType int
 const (
 	AppDependancyTypeBinary AppDependancyType = iota
 	AppDependancyTypeLocalProject
+	AppDependancyTypeGit
 )
 
 type AppDependancy struct {
 	url      string
+	branch   string
+	subdir   string
 	dep_type AppDependancyType
 }
 
@@ -47,8 +50,26 @@ func LocalProject(url string) AppDependancy {
 		dep_type: AppDependancyTypeLocalProject,
 	}
 }
+func Git(url string, branch string) AppDependancy {
+	return AppDependancy{
+		url:      url,
+		branch:   branch,
+		dep_type: AppDependancyTypeGit,
+	}
+}
+func GitSubdirectory(url string, branch string, subdir string) AppDependancy {
+	return AppDependancy{
+		url:      url,
+		branch:   branch,
+		subdir:   subdir,
+		dep_type: AppDependancyTypeGit,
+	}
+}
+func Import(deps ...AppDependancy) []AppDependancy {
+	return deps
+}
 
-func NewAppServer(tasks []Task, depenancies []AppDependancy) AppServer {
+func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
 	appState := newAppState()
 	mux := http.NewServeMux()
 
@@ -61,18 +82,18 @@ func NewAppServer(tasks []Task, depenancies []AppDependancy) AppServer {
 		})
 	}
 
-	for idx := range depenancies {
-		nameIdx := strings.LastIndex(depenancies[idx].url, "/")
-		name := depenancies[idx].url[nameIdx+1:]
+	for idx := range deps {
+		nameIdx := strings.LastIndex(deps[idx].url, "/")
+		name := deps[idx].url[nameIdx+1:]
 		cnt := appState.buildContainer(name)
 
-		runner, err := RegisterComponent(depenancies[idx], cnt)
+		runner, err := RegisterComponent(deps[idx], cnt)
 		if err != nil {
 			appState.Logger.Info("Failed to register component '%s': '%s'", name, err.Error())
 			continue
 		}
 
-		ev := component.RecieveOnce[component.ComponentMessageHello](runner.transport, 5 * time.Second, component.ComponentMessageTypeHello)
+		ev := component.RecieveOnce[component.ComponentMessageHello](runner.transport, 5*time.Second, component.ComponentMessageTypeHello)
 		if ev.Error == true {
 			appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
 				Suceeded: false,

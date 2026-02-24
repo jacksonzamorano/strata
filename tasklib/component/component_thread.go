@@ -1,6 +1,7 @@
 package component
 
 import (
+	"context"
 	"encoding/json"
 	"sync"
 	"time"
@@ -21,7 +22,7 @@ func NewThread(id string, io *ComponentIO) *Thread {
 	t := &Thread{
 		id:       id,
 		io:       io,
-		timeout:  time.Second * 20,
+		timeout:  time.Minute * 2,
 		incoming: make(chan ComponentMessage),
 		outgoing: map[ComponentMessageType]chan ComponentMessage{},
 	}
@@ -62,6 +63,8 @@ func (t *Thread) Send(typ ComponentMessageType, payload any) {
 }
 
 func SendAndReceive[T any](t *Thread, sendType ComponentMessageType, sendPayload any, recvType ComponentMessageType) (T, ComponentMessage) {
+	child, cancel := context.WithTimeout(t.io.transport.ctx, t.timeout)
+	defer cancel()
 	c := t.loadChannel(recvType)
 
 	t.Send(sendType, sendPayload)
@@ -81,7 +84,7 @@ func SendAndReceive[T any](t *Thread, sendType ComponentMessageType, sendPayload
 			}
 
 			return payload, msg
-		case <-t.io.transport.ctx.Done():
+		case <-child.Done():
 			var payload T
 			return payload, ComponentMessage{}
 		}

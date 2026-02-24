@@ -71,10 +71,11 @@ func main() {
 		tasklib.UsePublicTask(sayHello),
 		tasklib.UseTask(getVisitorLog),
 		tasklib.UseTask(reset),
-	}, []tasklib.AppDependancy{
-		tasklib.Binary("component-example"),
+	}, tasklib.Import(
+		// tasklib.Binary("component-example"),
 		// tasklib.LocalProject(path.Join(path.Dir(cd), "component-example")),
-	})
+		tasklib.GitSubdirectory("git@github.com:jacksonzamorano/tasklib.git", "main", "component-example"),
+	))
 	e := as.Start()
 	panic(e)
 }
