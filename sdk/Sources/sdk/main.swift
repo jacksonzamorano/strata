@@ -23,6 +23,11 @@ try! Schema("schema") {
     EventKind.self
     EventTaskRegisterPayload.self
     EventComponentRegisteredPayload.self
+    EventComponentReadyPayload.self
+    EventTaskStartedPayload.self
+    EventTaskFinishedPayload.self
+    EventComponentFunctionStartedPayload.self
+    EventComponentFunctionFinishedPayload.self
 } routes: {
     
 }

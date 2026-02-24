@@ -8,15 +8,16 @@ import (
 )
 
 type Component struct {
-	Name      string
-	Version   string
-	Functions map[string]ComponentFunctionFn
-	transport StdioTransport
+	name      string
+	version   string
+	functions map[string]ComponentFunctionFn
+	setupFn   ComponentSetupFn
+	ioChannel *ComponentIO
 }
 
 type ComponentMessage struct {
+	Id      string               `json:"id"`
 	Type    ComponentMessageType `json:"type"`
-	Name    string               `json:"name"`
 	Payload json.RawMessage      `json:"payload"`
 }
 
@@ -51,19 +52,21 @@ type ComponentFunction struct {
 
 type ComponentFunctionFn = func(body []byte, ctx *ComponentContext) *ComponentResultPayload
 type ComponentFunctionTypedFn[T any] = func(body T, ctx *ComponentContext) *ComponentResultPayload
+type ComponentSetupFn = func(ctx *ComponentContext) string
 
 type ComponentContext struct {
+	Storage *ComponentStorage
 }
 
 func CreateComponent(name string, version string, fns ...ComponentFunction) *Component {
 	cmp := &Component{
-		Name:      name,
-		Version:   version,
-		Functions: map[string]ComponentFunctionFn{},
+		name:      name,
+		version:   version,
+		functions: map[string]ComponentFunctionFn{},
 	}
 
 	for i := range fns {
-		cmp.Functions[fns[i].Name] = fns[i].Execute
+		cmp.functions[fns[i].Name] = fns[i].Execute
 	}
 
 	return cmp
@@ -84,55 +87,59 @@ func CreateFunction[T any](name string, fn ComponentFunctionTypedFn[T]) Componen
 	}
 }
 
-func (c *Component) DispatchEvent(ev ComponentMessage) {
-	switch ev.Type {
-	case ComponentMessageTypeExecute:
-		if handler, ok := c.Functions[ev.Name]; ok {
-			ret := handler([]byte(ev.Payload), &ComponentContext{})
-			c.Send(ComponentMessageTypeRet, ret)
-		} else {
-			c.SendError("Function not found.")
-		}
+func (c *Component) buildContext() *ComponentContext {
+	return &ComponentContext{
+		Storage: newComponentStorage(c.ioChannel),
 	}
-}
-
-func (c *Component) Send(typ ComponentMessageType, payload any) {
-	var data []byte
-
-	if s, ok := payload.(string); ok {
-		data = []byte(s)
-	} else if p, ok := payload.([]byte); ok {
-		data = p
-	} else {
-		var err error
-		data, err = json.Marshal(payload)
-		if err != nil {
-			return
-		}
-	}
-
-	c.transport.Send(ComponentMessage{Type: typ, Payload: data})
-}
-
-func (c *Component) SendError(err string) {
-	c.Send(ComponentMessageTypeError, err)
 }
 
 func (c *Component) Start() {
-	c.transport = StartStdioTransport(os.Stdin, os.Stdout)
+	c.ioChannel = NewComponentIO(os.Stdin, os.Stdout)
+
+	thread := c.ioChannel.NewThread()
+	_, _ = SendAndReceive[struct{}](thread, ComponentMessageTypeHello, ComponentMessageHello{
+		Name:    c.name,
+		Version: c.version,
+	}, ComponentMessageTypeSetup)
+
+	var err string
+	if c.setupFn != nil {
+		err = c.setupFn(c.buildContext())
+	}
+	thread.Send(ComponentMessageTypeReady, ComponentMessageReady{
+		Error: err,
+	})
 
 	go func() {
-		for event := range c.transport.read {
-			c.DispatchEvent(event)
+		cn := Recieve[ComponentMessageExecute](c.ioChannel, ComponentMessageTypeExecute)
+		for ev := range cn {
+			d := ev.Payload
+			if handler, ok := c.functions[d.Name]; ok {
+				ret := handler([]byte(d.Arguments), c.buildContext())
+				ev.Thread.Send(ComponentMessageTypeRet, ret)
+			} else {
+				ev.Thread.Send(ComponentMessageTypeRet, ComponentResultPayload{
+					Error: "Function not found.",
+				})
+			}
 		}
 	}()
-
-	c.Send(ComponentMessageTypeReady, ComponentMessageReady{
-		Name:    c.Name,
-		Version: c.Version,
-	})
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
+}
+
+func (c *Component) StartWithSetup(setup ComponentSetupFn) {
+	c.setupFn = setup
+	c.Start()
+}
+
+func DecodePayload[T any](msg *ComponentMessage) T {
+	var v T
+	err := json.Unmarshal(msg.Payload, &v)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }

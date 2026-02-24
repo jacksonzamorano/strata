@@ -3,6 +3,7 @@ package tasklib
 import (
 	"encoding/json"
 	"errors"
+	"time"
 )
 
 type Container struct {
@@ -13,29 +14,60 @@ type Container struct {
 	appState      *AppState
 }
 
-func ExecuteFunction[T any](c *Container, cname, fname string, args any) (*T, error) {
-	c.Logger.Info("Dispatching %s.%s", cname, fname)
+func wrapExecuteFunction[T any](c *Container, cname, fname string, args any) (*T, []byte, error) {
 	if cmp, ok := c.components[cname]; ok {
 		res := cmp.Execute(fname, args)
 		if res == nil {
-			return nil, errors.New("Could not read response.")
+			return nil, nil, errors.New("Could not read response.")
 		}
 		if res.Success {
 			var v T
 			err := json.Unmarshal(res.Response, &v)
 			if err != nil {
-				c.Logger.Info("Could not decode %s.%s: '%s'", cname, fname, err.Error())
-				return nil, err
+				return nil, res.Response, err
 			}
-			c.Logger.Info("Executed %s.%s", cname, fname)
-			return &v, nil
+			return &v, res.Response, nil
 		} else {
-			c.Logger.Info("Could not call %s.%s: '%s'", cname, fname, res.Error)
-			return nil, errors.New(res.Error)
+			return nil, nil, errors.New(res.Error)
 		}
 	}
-	c.Logger.Info("Could not call %s.%s: Module not found", cname, fname)
-	return nil, errors.New("Module not found.")
+	return nil, nil, errors.New("Module not found.")
+}
+
+func ExecuteFunction[T any](c *Container, cname, fname string, args any) (*T, error) {
+	id := makeId()
+	start := time.Now()
+	c.Logger.Event(EventKindComponentFunctionStarted, EventComponentFunctionStartedPayload{
+		Id:        id,
+		Component: cname,
+		Function:  fname,
+		Date:      start,
+	})
+	res, bytes, err := wrapExecuteFunction[T](c, cname, fname, args)
+	end := time.Now()
+	if err != nil {
+		c.Logger.Event(EventKindComponentFunctionFinished, EventComponentFunctionFinishedPayload{
+			Id:        id,
+			Component: cname,
+			Function:  fname,
+			Date:      end,
+			Duration:  end.Sub(start).Seconds(),
+			Succeeded: false,
+			Value:     string(bytes),
+			Error:     new(err.Error()),
+		})
+	} else {
+		c.Logger.Event(EventKindComponentFunctionFinished, EventComponentFunctionFinishedPayload{
+			Id:        id,
+			Component: cname,
+			Function:  fname,
+			Date:      end,
+			Duration:  end.Sub(start).Seconds(),
+			Succeeded: true,
+			Value:     string(bytes),
+		})
+	}
+	return res, err
 }
 
 func (as *AppState) buildContainer(namespace string) *Container {

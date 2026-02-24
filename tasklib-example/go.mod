@@ -1,6 +1,6 @@
 module github.com/jacksonzamorano/tasklib-example
 
-go 1.25.6
+go 1.26.0
 
 require github.com/jacksonzamorano/tasks/tasklib v0.0.0
 

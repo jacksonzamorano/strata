@@ -3,5 +3,13 @@ import Foundation
 
 @Enum
 enum ComponentMessageType: String {
-    case ready, initialize, execute, ret, error, log
+    case hello,
+         setup,
+         ready,
+         execute,
+         ret,
+         storeValueRequest,
+         storeValueResponse,
+         getValueRequest,
+         getValueResponse
 }

@@ -1,7 +1,6 @@
 package tasklib
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -47,18 +46,37 @@ func NewAppServer(tasks []Task, cNames []string) AppServer {
 			continue
 		}
 		appState.components[name] = runner
-		msg := runner.transport.Read()
-		if msg.Type == component.ComponentMessageTypeReady {
-			var rdy component.ComponentMessageReady
-			_ = json.Unmarshal(msg.Payload, &rdy)
-			appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
-				Suceeded: true,
-				Name:     rdy.Name,
-				Version:  rdy.Version,
-			})
-		} else {
-			appState.Logger.Info("Failed to register component '%s', component sent invalid message.", name)
+
+		ev := component.RecieveOnce[component.ComponentMessageHello](runner.transport, component.ComponentMessageTypeHello)
+
+		hello := ev.Payload
+		appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
+			Suceeded: true,
+			Name:     hello.Name,
+			Version:  hello.Version,
+		})
+
+		rdy, _ := component.SendAndReceive[component.ComponentMessageReady](ev.Thread, component.ComponentMessageTypeSetup, struct{}{}, component.ComponentMessageTypeReady)
+		var err_msg_ptr *string = nil
+		if len(rdy.Error) > 0 {
+			err_msg_ptr = &rdy.Error
 		}
+
+		appState.Logger.Event(EventKindComponentReady, EventComponentReadyPayload{
+			Name:      hello.Name,
+			Succeeded: err_msg_ptr == nil,
+			Error:     err_msg_ptr,
+		})
+		if err_msg_ptr == nil {
+			appState.components[name].available = true
+			continue
+		}
+
+		appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
+			Suceeded: false,
+			Name:     name,
+			Error:    new("Component sent invalid message."),
+		})
 	}
 
 	port := os.Getenv("PORT")

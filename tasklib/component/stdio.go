@@ -9,8 +9,8 @@ import (
 )
 
 type StdioTransport struct {
-	read   chan ComponentMessage
-	write  chan ComponentMessage
+	Read   chan ComponentMessage
+	Write  chan ComponentMessage
 	ctx    context.Context
 	cancel context.CancelFunc
 }
@@ -41,7 +41,7 @@ func (st *StdioTransport) writer(out io.Writer) {
 		select {
 		case <-st.ctx.Done():
 			return
-		case l := <-st.write:
+		case l := <-st.Write:
 			msg_bytes, _ := json.Marshal(l)
 			bw.Write(msg_bytes)
 			bw.WriteByte(0)
@@ -65,15 +65,12 @@ func (st *StdioTransport) reader(in io.ReadCloser) {
 		if err != nil {
 			continue
 		}
-		st.read <- msg
+		st.Read <- msg
 	}
 }
 
 func (st *StdioTransport) Send(msg ComponentMessage) {
-	st.write <- msg
-}
-func (st *StdioTransport) Read() ComponentMessage {
-	return <- st.read
+	st.Write <- msg
 }
 func (st *StdioTransport) Cancel() {
 	st.cancel()

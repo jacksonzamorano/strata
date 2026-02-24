@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path"
 
 	cex "github.com/jacksonzamorano/tasks/componentexample/types"
 	"github.com/jacksonzamorano/tasks/tasklib"
@@ -42,7 +44,7 @@ func sayHello(data SayHelloData, container *tasklib.Container) *tasklib.TaskResu
 	}
 
 	return tasklib.Done(SayHelloRespose{
-		Message: fmt.Sprintf("Got '%s', old '%s'", msg.Said, oldName),
+		Message: fmt.Sprintf("Current: '%s', Past: '%s'", msg.Said, oldName),
 		Count:   count,
 	})
 }
@@ -60,12 +62,13 @@ func reset(data tasklib.NoTaskBody, container *tasklib.Container) *tasklib.TaskR
 }
 
 func main() {
+	cd, _ := os.Getwd()
 	as := tasklib.NewAppServer([]tasklib.Task{
 		tasklib.UsePublicTask(sayHello),
 		tasklib.UseTask(getVisitorLog),
 		tasklib.UseTask(reset),
 	}, []string{
-		"/Users/jackson/Developer/tasklib/component-example/componentexample",
+		path.Join(path.Dir(cd), "component-example", "componentexample"),
 	})
 	e := as.Start()
 	panic(e)

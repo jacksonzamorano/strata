@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 )
+
 func (as *AppState) handle(r *http.Request, task Task) (*RequestInfo, *TaskResult) {
 	requestInfo := RequestInfo{
 		HasBody: false,
@@ -42,7 +43,12 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		start := time.Now()
-		as.Logger.Info("[%s] Recieved request.", ar.Name)
+		id := makeId()
+		as.Logger.Event(EventKindTaskStarted, EventTaskStartedPayload{
+			Id:   id,
+			Name: ar.Name,
+			Date: start,
+		})
 
 		// Build request & dispatch
 		requestInfo, response := as.handle(r, ar)
@@ -99,6 +105,12 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 			start,
 			end,
 		)
+		as.Logger.Event(EventKindTaskFinished, EventTaskFinishedPayload{
+			Id:       id,
+			Name:     ar.Name,
+			Date:     end,
+			Duration: end.Sub(start).Seconds(),
+		})
 		if err != nil {
 			panic(err)
 		}
