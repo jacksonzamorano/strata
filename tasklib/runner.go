@@ -3,11 +3,11 @@ package tasklib
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path"
-	"time"
 
 	"github.com/jacksonzamorano/tasks/tasklib/component"
 )
@@ -16,28 +16,41 @@ type ComponentRunner struct {
 	transport *component.ComponentIO
 	container *Container
 	available bool
-	Context   context.Context
-	Cancel    context.CancelFunc
+	path      string
+	context   context.Context
+	cancel    context.CancelFunc
 }
 
 func runGit(p string, args ...string) error {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = p
-	_, err := cmd.Output()
+	txt, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %s", err.Error(), string(txt))
 	}
 	return nil
 }
 
 func checkoutGit(url, ref, subdir string) (string, error) {
-	tmp := os.TempDir()
-	checkout := path.Join(tmp, fmt.Sprintf("%d", time.Now().UnixNano()))
-
-	err := runGit(tmp, "checkout", url, checkout)
+	tmp, err := os.UserCacheDir()
 	if err != nil {
-		return checkout, err
+		return "", err
 	}
+	checkout := path.Join(tmp, "com.jacksonzamorano.tasks", path.Base(url))
+
+	_, err = os.Stat(checkout)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			err := runGit(tmp, "clone", url, checkout)
+			if err != nil {
+				return checkout, err
+			}
+		} else {
+			return checkout, err
+		}
+	}
+
+	runGit(checkout, "pull")
 
 	if len(ref) == 0 {
 		err = runGit(checkout, "switch", ref)
@@ -53,19 +66,23 @@ func RegisterComponent(dep AppDependancy, container *Container) (*ComponentRunne
 	var cmd_path string
 	var args []string
 	var cwd_path string
+	var display_path string
 
 	switch dep.dep_type {
 	case AppDependancyTypeBinary:
 		cmd_path = dep.url
+		display_path = dep.url
 	case AppDependancyTypeLocalProject:
 		cmd_path = "go"
 		cwd_path = dep.url
 		args = []string{"run", "."}
+		display_path = cwd_path
 	case AppDependancyTypeGit:
 		p, err := checkoutGit(dep.url, dep.branch, dep.subdir)
 		if err != nil {
 			return nil, err
 		}
+		display_path = p
 		cmd_path = "go"
 		cwd_path = p
 		args = []string{"run", "."}
@@ -100,8 +117,9 @@ func RegisterComponent(dep AppDependancy, container *Container) (*ComponentRunne
 		transport: transport,
 		container: container,
 		available: false,
-		Context:   ctx,
-		Cancel:    cancel,
+		path:      display_path,
+		context:   ctx,
+		cancel:    cancel,
 	}
 
 	runner.ListenForStorage()
@@ -136,7 +154,7 @@ func (cr *ComponentRunner) ListenForStorage() {
 				})
 			case ev := <-setVal:
 				cr.container.Storage.SetString(ev.Payload.Key, ev.Payload.Value)
-			case <-cr.Context.Done():
+			case <-cr.context.Done():
 				return
 			}
 		}

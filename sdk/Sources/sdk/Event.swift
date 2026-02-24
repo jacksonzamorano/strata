@@ -23,6 +23,7 @@ struct EventComponentRegisteredPayload {
     let name = Field(.string)
     let version = Field(.string)
     let suceeded = Field(.bool)
+    let path = Field(.string)
     let error = Field(.optional(.string))
 }
 

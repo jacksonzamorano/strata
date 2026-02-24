@@ -98,6 +98,7 @@ func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
 			appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
 				Suceeded: false,
 				Name:     name,
+				Path:     runner.path,
 				Error:    new("Component didn't connect."),
 			})
 			continue
@@ -107,6 +108,7 @@ func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
 			Suceeded: true,
 			Name:     hello.Name,
 			Version:  hello.Version,
+			Path:     runner.path,
 		})
 		name = hello.Name
 		appState.components[name] = runner
