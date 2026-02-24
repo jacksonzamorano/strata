@@ -1,8 +1,8 @@
 package main
 
 import (
-	"os"
-	"path"
+	// "os"
+	// "path"
 
 	cex "github.com/jacksonzamorano/tasks/componentexample/types"
 	"github.com/jacksonzamorano/tasks/tasklib"
@@ -66,14 +66,14 @@ func reset(data tasklib.NoTaskBody, container *tasklib.Container) *tasklib.TaskR
 }
 
 func main() {
-	cd, _ := os.Getwd()
+	// cd, _ := os.Getwd()
 	as := tasklib.NewAppServer([]tasklib.Task{
 		tasklib.UsePublicTask(sayHello),
 		tasklib.UseTask(getVisitorLog),
 		tasklib.UseTask(reset),
 	}, []tasklib.AppDependancy{
-		// tasklib.Binary(path.Join(path.Dir(cd), "component-example", "main.go")),
-		tasklib.LocalProject(path.Join(path.Dir(cd), "component-example")),
+		tasklib.Binary("component-example"),
+		// tasklib.LocalProject(path.Join(path.Dir(cd), "component-example")),
 	})
 	e := as.Start()
 	panic(e)

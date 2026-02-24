@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"sync"
+	"time"
 )
 
 var ErrConcurrentInboundWait = errors.New("concurrent inbound wait is not supported")
@@ -113,7 +114,10 @@ func Recieve[T any](c *ComponentIO, rcvTyp ComponentMessageType) chan RecievedEv
 	return output
 }
 
-func RecieveOnce[T any](c *ComponentIO, rcvTyp ComponentMessageType) RecievedEvent[T] {
+func RecieveOnce[T any](c *ComponentIO, timeout time.Duration, rcvTyp ComponentMessageType) RecievedEvent[T] {
+	child, cancel := context.WithTimeout(c.transport.ctx, timeout)
+	defer cancel()
+
 	c.mu.Lock()
 	cn := make(chan ComponentMessage)
 	c.globalWaiters[rcvTyp] = cn
@@ -140,7 +144,7 @@ func RecieveOnce[T any](c *ComponentIO, rcvTyp ComponentMessageType) RecievedEve
 				Message: ev,
 				Thread:  t,
 			}
-		case <-c.transport.ctx.Done():
+		case <-child.Done():
 			return RecievedEvent[T]{Error: true}
 		}
 	}

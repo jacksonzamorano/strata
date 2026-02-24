@@ -72,7 +72,7 @@ func NewAppServer(tasks []Task, depenancies []AppDependancy) AppServer {
 			continue
 		}
 
-		ev := component.RecieveOnce[component.ComponentMessageHello](runner.transport, component.ComponentMessageTypeHello)
+		ev := component.RecieveOnce[component.ComponentMessageHello](runner.transport, 5 * time.Second, component.ComponentMessageTypeHello)
 		if ev.Error == true {
 			appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
 				Suceeded: false,
