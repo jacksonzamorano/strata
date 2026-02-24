@@ -122,7 +122,7 @@ func RegisterComponent(dep AppDependancy, container *Container) (*ComponentRunne
 		cancel:    cancel,
 	}
 
-	runner.ListenForStorage()
+	runner.HandleAPIRequests()
 
 	return runner, nil
 }
@@ -142,10 +142,11 @@ func (cr *ComponentRunner) Execute(fname string, args any) *component.ComponentR
 	return &payload
 }
 
-func (cr *ComponentRunner) ListenForStorage() {
+func (cr *ComponentRunner) HandleAPIRequests() {
 	go func() {
 		getVal := component.Recieve[component.ComponentMessageGetValueRequest](cr.transport, component.ComponentMessageTypeGetValueRequest)
 		setVal := component.Recieve[component.ComponentMessageSetValueRequest](cr.transport, component.ComponentMessageTypeStoreValueRequest)
+		log := component.Recieve[component.ComponentMessageLog](cr.transport, component.ComponentMessageTypeLog)
 		for {
 			select {
 			case ev := <-getVal:
@@ -154,6 +155,8 @@ func (cr *ComponentRunner) ListenForStorage() {
 				})
 			case ev := <-setVal:
 				cr.container.Storage.SetString(ev.Payload.Key, ev.Payload.Value)
+			case ev := <-log:
+				cr.container.Logger.Info("Component: '%s'", ev.Payload.Message)
 			case <-cr.context.Done():
 				return
 			}

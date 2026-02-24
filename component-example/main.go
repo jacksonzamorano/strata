@@ -23,6 +23,7 @@ func sayFeature(r types.SayRequest, ctx *component.ComponentContext) *component.
 func reset(r types.EmptyRequest, ctx *component.ComponentContext) *component.ComponentResultPayload {
 	ctx.Storage.SetString("last", "")
 	ctx.Storage.SetInt("tenx", 0)
+	ctx.Logger.Log("Reset!")
 	return component.Result("Done")
 }
 

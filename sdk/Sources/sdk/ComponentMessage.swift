@@ -11,5 +11,6 @@ enum ComponentMessageType: String {
          storeValueRequest,
          storeValueResponse,
          getValueRequest,
-         getValueResponse
+         getValueResponse,
+         log
 }

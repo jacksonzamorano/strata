@@ -23,3 +23,6 @@ type ComponentMessageExecute struct {
 	Name      string          `json:"name"`
 	Arguments json.RawMessage `json:"arguments"`
 }
+type ComponentMessageLog struct {
+	Message string `json:"message"`
+}

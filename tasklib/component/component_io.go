@@ -51,12 +51,13 @@ func (c *ComponentIO) readLoop() {
 	for event := range c.transport.Read {
 		c.mu.Lock()
 		if wait, ok := c.threadWaiters[event.Id]; ok {
+			c.mu.Unlock()
 			wait.incoming <- event
 		}
 		if typ, ok := c.globalWaiters[event.Type]; ok {
+			c.mu.Unlock()
 			typ <- event
 		}
-		c.mu.Unlock()
 	}
 }
 

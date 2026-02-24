@@ -59,6 +59,7 @@ type ComponentSetupFn = func(ctx *ComponentContext) string
 
 type ComponentContext struct {
 	Storage *ComponentStorage
+	Logger  *ComponentLogger
 }
 
 func CreateComponent(name string, version string, fns ...ComponentFunction) *Component {
@@ -93,6 +94,7 @@ func CreateFunction[T any](name string, fn ComponentFunctionTypedFn[T]) Componen
 func (c *Component) buildContext() *ComponentContext {
 	return &ComponentContext{
 		Storage: newComponentStorage(c.ioChannel),
+		Logger:  newComponentLogger(c.ioChannel),
 	}
 }
 
