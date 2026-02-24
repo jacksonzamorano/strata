@@ -23,7 +23,32 @@ type AppServer struct {
 	listener *http.ServeMux
 }
 
-func NewAppServer(tasks []Task, cNames []string) AppServer {
+type AppDependancyType int
+
+const (
+	AppDependancyTypeBinary AppDependancyType = iota
+	AppDependancyTypeLocalProject
+)
+
+type AppDependancy struct {
+	url      string
+	dep_type AppDependancyType
+}
+
+func Binary(url string) AppDependancy {
+	return AppDependancy{
+		url:      url,
+		dep_type: AppDependancyTypeBinary,
+	}
+}
+func LocalProject(url string) AppDependancy {
+	return AppDependancy{
+		url:      url,
+		dep_type: AppDependancyTypeLocalProject,
+	}
+}
+
+func NewAppServer(tasks []Task, depenancies []AppDependancy) AppServer {
 	appState := newAppState()
 	mux := http.NewServeMux()
 
@@ -36,16 +61,16 @@ func NewAppServer(tasks []Task, cNames []string) AppServer {
 		})
 	}
 
-	for idx := range cNames {
-		nameIdx := strings.LastIndex(cNames[idx], "/")
-		name := cNames[idx][nameIdx+1:]
+	for idx := range depenancies {
+		nameIdx := strings.LastIndex(depenancies[idx].url, "/")
+		name := depenancies[idx].url[nameIdx+1:]
 		cnt := appState.buildContainer(name)
-		runner, err := RegisterComponent(cNames[idx], cnt)
+
+		runner, err := RegisterComponent(depenancies[idx], cnt)
 		if err != nil {
 			appState.Logger.Info("Failed to register component '%s': '%s'", name, err.Error())
 			continue
 		}
-		appState.components[name] = runner
 
 		ev := component.RecieveOnce[component.ComponentMessageHello](runner.transport, component.ComponentMessageTypeHello)
 
@@ -55,6 +80,8 @@ func NewAppServer(tasks []Task, cNames []string) AppServer {
 			Name:     hello.Name,
 			Version:  hello.Version,
 		})
+		name = hello.Name
+		appState.components[name] = runner
 
 		rdy, _ := component.SendAndReceive[component.ComponentMessageReady](ev.Thread, component.ComponentMessageTypeSetup, struct{}{}, component.ComponentMessageTypeReady)
 		var err_msg_ptr *string = nil

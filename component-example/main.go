@@ -1,24 +1,22 @@
 package main
 
 import (
-	"fmt"
-
+	"github.com/jacksonzamorano/tasks/componentexample/types"
 	"github.com/jacksonzamorano/tasks/tasklib/component"
 )
 
-type SayRequest struct {
-	Name string
-}
-type SayResponse struct {
-	Said string
-}
+func sayFeature(r types.SayRequest, ctx *component.ComponentContext) *component.ComponentResultPayload {
+	last := ctx.Storage.GetString("last")
+	ctx.Storage.SetString("last", r.Name)
 
-func sayFeature(r SayRequest, ctx *component.ComponentContext) *component.ComponentResultPayload {
-	return component.Result(SayResponse{Said: fmt.Sprintf("Said %s", r.Name)})
+	return component.Result(types.SayResponse{
+		CurrentValue: r.Name,
+		LastValue:    last,
+	})
 }
 
 func main() {
-	component.CreateComponent("example", "1.0.0",
+	component.CreateComponent("example", "1.0.1",
 		component.CreateFunction("say", sayFeature),
 	).Start()
 }

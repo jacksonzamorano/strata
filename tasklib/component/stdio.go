@@ -60,6 +60,9 @@ func (st *StdioTransport) reader(in io.ReadCloser) {
 		if errors.Is(err, io.EOF) {
 			return
 		}
+		if len(bytes) == 0 {
+			continue
+		}
 		var msg ComponentMessage
 		err = json.Unmarshal(bytes[:len(bytes)-1], &msg)
 		if err != nil {

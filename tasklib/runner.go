@@ -13,8 +13,24 @@ type ComponentRunner struct {
 	available bool
 }
 
-func RegisterComponent(path string, container *Container) (*ComponentRunner, error) {
-	cmd := exec.Command(path)
+func RegisterComponent(dep AppDependancy, container *Container) (*ComponentRunner, error) {
+	var cmd_path string
+	var args []string
+	var cwd_path string
+
+	switch dep.dep_type {
+	case AppDependancyTypeBinary:
+		cmd_path = dep.url
+	case AppDependancyTypeLocalProject:
+		cmd_path = "go"
+		cwd_path = dep.url
+		args = []string{"run", "."}
+	}
+
+	cmd := exec.Command(cmd_path, args...)
+	if len(cwd_path) > 0 {
+		cmd.Dir = cwd_path
+	}
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -60,7 +76,7 @@ func (cr *ComponentRunner) Execute(fname string, args any) *component.ComponentR
 func (cr *ComponentRunner) ListenForStorage() {
 	go func() {
 		getVal := component.Recieve[component.ComponentMessageGetValueRequest](cr.transport, component.ComponentMessageTypeGetValueRequest)
-		setVal := component.Recieve[component.ComponentMessageSetValueRequest](cr.transport, component.ComponentMessageTypeGetValueRequest)
+		setVal := component.Recieve[component.ComponentMessageSetValueRequest](cr.transport, component.ComponentMessageTypeStoreValueRequest)
 		for {
 			select {
 			case ev := <-getVal:

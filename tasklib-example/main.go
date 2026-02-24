@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path"
 
@@ -12,9 +11,11 @@ import (
 type SayHelloData struct {
 	Name string `query:"name"`
 }
-type SayHelloRespose struct {
-	Message string
-	Count   int
+type SayHelloResponse struct {
+	Name          string
+	OldName       string
+	ComponentData cex.SayResponse
+	Counter       int
 }
 
 type Visitor struct {
@@ -43,9 +44,11 @@ func sayHello(data SayHelloData, container *tasklib.Container) *tasklib.TaskResu
 		return tasklib.Error(err.Error())
 	}
 
-	return tasklib.Done(SayHelloRespose{
-		Message: fmt.Sprintf("Current: '%s', Past: '%s'", msg.Said, oldName),
-		Count:   count,
+	return tasklib.Done(SayHelloResponse{
+		Name:          data.Name,
+		OldName:       oldName,
+		ComponentData: *msg,
+		Counter:       count,
 	})
 }
 
@@ -67,8 +70,9 @@ func main() {
 		tasklib.UsePublicTask(sayHello),
 		tasklib.UseTask(getVisitorLog),
 		tasklib.UseTask(reset),
-	}, []string{
-		path.Join(path.Dir(cd), "component-example", "componentexample"),
+	}, []tasklib.AppDependancy{
+		// tasklib.Binary(path.Join(path.Dir(cd), "component-example", "main.go")),
+		tasklib.LocalProject(path.Join(path.Dir(cd), "sdk")),
 	})
 	e := as.Start()
 	panic(e)
