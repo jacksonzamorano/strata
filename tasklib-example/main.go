@@ -1,9 +1,6 @@
 package main
 
 import (
-	// "os"
-	// "path"
-
 	"os"
 	"path"
 
@@ -17,6 +14,7 @@ type SayHelloData struct {
 type SayHelloResponse struct {
 	Name          string
 	OldName       string
+	KeychainName  string
 	ComponentData cex.SayResponse
 	Counter       int
 }
@@ -29,6 +27,9 @@ type Visitor struct {
 func sayHello(data SayHelloData, container *tasklib.Container) *tasklib.TaskResult {
 	oldName := container.Storage.GetString("username")
 	container.Storage.SetString("username", data.Name)
+	keychainName := container.Keychain.Get("username")
+	container.Keychain.Set("old_username", oldName)
+	container.Keychain.Set("username", data.Name)
 
 	count := container.Storage.GetInt("count")
 	count += 1
@@ -49,6 +50,7 @@ func sayHello(data SayHelloData, container *tasklib.Container) *tasklib.TaskResu
 
 	return tasklib.Done(SayHelloResponse{
 		Name:          data.Name,
+		KeychainName:  keychainName,
 		OldName:       oldName,
 		ComponentData: *msg,
 		Counter:       count,

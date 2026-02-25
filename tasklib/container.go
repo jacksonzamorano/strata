@@ -9,6 +9,7 @@ import (
 type Container struct {
 	Storage       *ContainerStorage
 	Logger        ContainerLogger
+	Keychain      ContainerKeychainProvider
 	Authorization *Authorization
 	components    map[string]*ComponentRunner
 	appState      *AppState
@@ -74,6 +75,7 @@ func (as *AppState) buildContainer(namespace string) *Container {
 	return &Container{
 		Storage:    as.storage.Container(namespace),
 		Logger:     as.Logger.Container(namespace),
+		Keychain:   newPlatformKeychain().Container(namespace),
 		components: as.components,
 	}
 }
