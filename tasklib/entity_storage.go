@@ -3,23 +3,12 @@ package tasklib
 import (
 	"database/sql"
 	"encoding/json"
-	"reflect"
 )
 
 type ContainerEntityStorage[T any] struct {
 	db        *sql.DB
 	namespace string
 	kind      string
-}
-
-func NewEntityStorage[T any](f *ContainerStorage) *ContainerEntityStorage[T] {
-	var zero T
-	t := reflect.TypeOf(zero)
-	return &ContainerEntityStorage[T]{
-		db:        f.db,
-		namespace: f.namespace,
-		kind:      t.String(),
-	}
 }
 
 type FilterFn[T any] = func(v T) bool

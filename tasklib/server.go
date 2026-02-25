@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jacksonzamorano/tasks/tasklib/component"
+	"github.com/jacksonzamorano/tasks/tasklib/internal/componentipc"
 )
 
 type RequestInfo struct {
@@ -22,6 +22,7 @@ type AppServer struct {
 	srv      *http.Server
 	listener *http.ServeMux
 }
+
 func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
 	appState := newAppState()
 	mux := http.NewServeMux()
@@ -46,8 +47,8 @@ func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
 			continue
 		}
 
-		ev := component.RecieveOnce[component.ComponentMessageHello](runner.transport, 5*time.Second, component.ComponentMessageTypeHello)
-		if ev.Error == true {
+		ev := componentipc.ReceiveOnce[componentipc.ComponentMessageHello](runner.transport, 5*time.Second, componentipc.MessageTypeHello)
+		if ev.Error {
 			appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
 				Suceeded: false,
 				Name:     name,
@@ -66,8 +67,8 @@ func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
 		name = hello.Name
 		appState.components[name] = runner
 
-		rdy, _ := component.SendAndReceive[component.ComponentMessageReady](ev.Thread, component.ComponentMessageTypeSetup, struct{}{}, component.ComponentMessageTypeReady)
-		var err_msg_ptr *string = nil
+		rdy, _ := componentipc.SendAndReceive[componentipc.ComponentMessageReady](ev.Thread, componentipc.MessageTypeSetup, struct{}{}, componentipc.MessageTypeReady)
+		var err_msg_ptr *string
 		if len(rdy.Error) > 0 {
 			err_msg_ptr = &rdy.Error
 		}
@@ -108,6 +109,7 @@ func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
 	}
 	return as
 }
+
 func (as *AppServer) Start() error {
 	as.state.Logger.Info("Listening on %s", as.srv.Addr)
 	return as.srv.ListenAndServe()

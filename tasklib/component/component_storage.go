@@ -1,26 +1,33 @@
 package component
 
-import "strconv"
+import (
+	"strconv"
+	"time"
+
+	"github.com/jacksonzamorano/tasks/tasklib/internal/componentipc"
+)
 
 type ComponentStorage struct {
-	io *ComponentIO
+	io *componentipc.IO
 }
 
-func newComponentStorage(io *ComponentIO) *ComponentStorage {
-	return &ComponentStorage{
-		io,
-	}
+func newComponentStorage(io *componentipc.IO) *ComponentStorage {
+	return &ComponentStorage{io: io}
 }
 
 func (c *ComponentStorage) getValue(k string) string {
 	thread := c.io.NewThread()
-	payload, _ := SendAndReceive[ComponentMessageGetValueResponse](thread, ComponentMessageTypeGetValueRequest, ComponentMessageGetValueRequest{
-		Key: k,
-	}, ComponentMessageTypeGetValueResponse)
+	payload, _ := componentipc.SendAndReceive[componentipc.ComponentMessageGetValueResponse](
+		thread,
+		componentipc.MessageTypeGetValueRequest,
+		componentipc.ComponentMessageGetValueRequest{Key: k},
+		componentipc.MessageTypeGetValueResponse,
+	)
 	return payload.Value
 }
+
 func (c *ComponentStorage) setValue(k, v string) {
-	c.io.NewThread().Send(ComponentMessageTypeStoreValueRequest, ComponentMessageSetValueRequest{
+	c.io.NewThread().Send(componentipc.MessageTypeStoreValueRequest, componentipc.ComponentMessageSetValueRequest{
 		Key:   k,
 		Value: v,
 	})
@@ -29,8 +36,10 @@ func (c *ComponentStorage) setValue(k, v string) {
 func (c *ComponentStorage) GetString(k string) string {
 	return c.getValue(k)
 }
-func (c *ComponentStorage) SetString(k, v string) {
+
+func (c *ComponentStorage) SetString(k, v string) error {
 	c.setValue(k, v)
+	return nil
 }
 
 func (c *ComponentStorage) GetInt(k string) int {
@@ -41,6 +50,34 @@ func (c *ComponentStorage) GetInt(k string) int {
 	}
 	return i
 }
-func (c *ComponentStorage) SetInt(k string, v int) {
-	c.SetString(k, strconv.Itoa(v))
+
+func (c *ComponentStorage) SetInt(k string, v int) error {
+	return c.SetString(k, strconv.Itoa(v))
+}
+
+func (c *ComponentStorage) GetFloat(k string) float64 {
+	val := c.GetString(k)
+	f, e := strconv.ParseFloat(val, 64)
+	if e != nil {
+		return 0
+	}
+	return f
+}
+
+func (c *ComponentStorage) GetBool(k string) bool {
+	val := c.GetString(k)
+	b, e := strconv.ParseBool(val)
+	if e != nil {
+		return false
+	}
+	return b
+}
+
+func (c *ComponentStorage) GetDate(k string) time.Time {
+	val := c.GetString(k)
+	t, e := time.Parse(time.RFC3339, val)
+	if e != nil {
+		return time.Time{}
+	}
+	return t
 }

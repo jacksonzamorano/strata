@@ -2,15 +2,17 @@ import Passport
 import Foundation
 
 @Enum
-enum ComponentMessageType: String {
+enum MessageType: String {
     case hello,
          setup,
          ready,
          execute,
          ret,
          storeValueRequest,
-         storeValueResponse,
          getValueRequest,
          getValueResponse,
+         storeKeychainRequest,
+         getKeychainRequest,
+         getKeychainResponse,
          log
 }

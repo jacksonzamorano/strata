@@ -10,8 +10,8 @@ let goConfig = GoConfiguration { cfg in
     cfg.packageName = "tasklib"
 }
 
-let componentGoConfig = GoConfiguration { cfg in
-    cfg.packageName = "component"
+let ipcGoConfig = GoConfiguration { cfg in
+    cfg.packageName = "componentipc"
 }
 
 try! Schema("schema") {
@@ -29,7 +29,7 @@ try! Schema("schema") {
     EventComponentFunctionStartedPayload.self
     EventComponentFunctionFinishedPayload.self
 } routes: {
-    
+
 }
 .output(Go(sqlBuilder: sql, config: goConfig)) {
     CodeBuilderConfiguration(
@@ -43,13 +43,13 @@ try! Schema("schema") {
 .build()
 
 try! Schema("messagetypes") {
-    ComponentMessageType.self
+    MessageType.self
 } routes: {
-    
+
 }
-.output(Go(sqlBuilder: sql, config: componentGoConfig)) {
+.output(Go(sqlBuilder: sql, config: ipcGoConfig)) {
     CodeBuilderConfiguration(
-        root: tasklibRoot.appending(path: "component"),
+        root: tasklibRoot.appending(path: "internal/componentipc"),
         fileStrategy: .monolithic,
         generateRecords: .none,
         generateModels: true

@@ -35,30 +35,27 @@ func sayHello(data SayHelloData, container *tasklib.Container) *tasklib.TaskResu
 	count += 1
 	container.Storage.SetInt("count", count)
 
-	entityContainer := tasklib.NewEntityStorage[Visitor](container.Storage)
+	entityContainer := tasklib.NewEntityStorage[Visitor](container)
 	entityContainer.Insert(Visitor{
 		Name:        data.Name,
 		CountAtTime: count,
 	})
 
-	msg, err := tasklib.ExecuteFunction[cex.SayResponse](container, "example", "say", cex.SayRequest{
+	msg, _ := cex.SayFeature.Execute("example", container, cex.SayRequest{
 		Name: data.Name,
 	})
-	if err != nil {
-		return tasklib.Error(err.Error())
-	}
 
 	return tasklib.Done(SayHelloResponse{
 		Name:          data.Name,
 		KeychainName:  keychainName,
 		OldName:       oldName,
-		ComponentData: *msg,
+		ComponentData: msg,
 		Counter:       count,
 	})
 }
 
 func getVisitorLog(data tasklib.NoTaskBody, container *tasklib.Container) *tasklib.TaskResult {
-	entityContainer := tasklib.NewEntityStorage[Visitor](container.Storage)
+	entityContainer := tasklib.NewEntityStorage[Visitor](container)
 	allNonEmpty := entityContainer.Find(func(v Visitor) bool { return len(v.Name) > 0 })
 	return tasklib.Done(allNonEmpty)
 }
@@ -66,7 +63,7 @@ func getVisitorLog(data tasklib.NoTaskBody, container *tasklib.Container) *taskl
 func reset(data tasklib.NoTaskBody, container *tasklib.Container) *tasklib.TaskResult {
 	container.Storage.SetInt("count", 0)
 	container.Storage.SetString("username", "")
-	tasklib.ExecuteFunction[tasklib.NoTaskBody](container, "example", "reset", tasklib.NoTaskBody{})
+	cex.Reset.Execute("example", container, cex.EmptyRequest{})
 	return tasklib.Done("Reset.")
 }
 

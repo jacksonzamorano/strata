@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+
+	"github.com/jacksonzamorano/tasks/tasklib/core"
 )
 
 type ConsoleLogger struct{}
@@ -26,7 +28,7 @@ type ContainerConsoleLogger struct {
 	namespace string
 }
 
-func (cl *ContainerConsoleLogger) Info(v string, args ...any) {
+func (cl *ContainerConsoleLogger) Log(v string, args ...any) {
 	log.Printf("[%s]: %s", cl.namespace, fmt.Sprintf(v, args...))
 }
 func (cl *ContainerConsoleLogger) Event(ev EventKind, payload any) {
@@ -35,7 +37,8 @@ func (cl *ContainerConsoleLogger) Event(ev EventKind, payload any) {
 }
 
 type ContainerLogger interface {
-	Info(v string, args ...any)
+	core.Logger
+	Log(v string, args ...any)
 	Event(ev EventKind, payload any)
 }
 

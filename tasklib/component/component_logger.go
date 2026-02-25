@@ -1,19 +1,27 @@
 package component
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/jacksonzamorano/tasks/tasklib/internal/componentipc"
+)
 
 type ComponentLogger struct {
-	io *ComponentIO
+	io *componentipc.IO
 }
 
-func newComponentLogger(io *ComponentIO) *ComponentLogger {
-	return &ComponentLogger{
-		io,
-	}
+func newComponentLogger(io *componentipc.IO) *ComponentLogger {
+	return &ComponentLogger{io: io}
 }
 
 func (cl *ComponentLogger) Log(v string, args ...any) {
-	cl.io.NewThread().Send(ComponentMessageTypeLog, ComponentMessageLog{
+	cl.io.NewThread().Send(componentipc.MessageTypeLog, componentipc.ComponentMessageLog{
 		Message: fmt.Sprintf(v, args...),
 	})
+}
+
+func (cl *ComponentLogger) Event(ev string, payload any) {
+	encoded, _ := json.Marshal(payload)
+	cl.Log("(%s): %s", ev, string(encoded))
 }

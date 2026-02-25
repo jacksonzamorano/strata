@@ -6,128 +6,88 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/jacksonzamorano/tasks/tasklib/core"
+	"github.com/jacksonzamorano/tasks/tasklib/internal/componentipc"
 )
 
 type Component struct {
 	name      string
 	version   string
-	functions map[string]ComponentFunctionFn
+	functions map[string]ComponentMountable
 	ctx       context.Context
 	cancel    context.CancelFunc
 	setupFn   ComponentSetupFn
-	ioChannel *ComponentIO
+	ioChannel *componentipc.IO
 }
 
-type ComponentMessage struct {
-	Id      string               `json:"id"`
-	Type    ComponentMessageType `json:"type"`
-	Payload json.RawMessage      `json:"payload"`
-}
-
-type ComponentResultPayload struct {
-	Success  bool
-	Response json.RawMessage
-	Error    string
-}
-
-func Result(r any) *ComponentResultPayload {
-	b, _ := json.Marshal(r)
-	return &ComponentResultPayload{
-		Success:  true,
-		Response: b,
-	}
-}
-func Error(e string) *ComponentResultPayload {
-	return &ComponentResultPayload{
-		Success: false,
-		Error:   e,
-	}
-}
-
-type ComponentResultError struct {
-	ErrorMessage string
-}
-
-type ComponentFunction struct {
-	Name    string
-	Execute ComponentFunctionFn
-}
-
-type ComponentFunctionFn = func(body []byte, ctx *ComponentContext) *ComponentResultPayload
-type ComponentFunctionTypedFn[T any] = func(body T, ctx *ComponentContext) *ComponentResultPayload
-type ComponentSetupFn = func(ctx *ComponentContext) string
-
-type ComponentContext struct {
-	Storage *ComponentStorage
-	Logger  *ComponentLogger
-}
-
-func CreateComponent(name string, version string, fns ...ComponentFunction) *Component {
+func CreateComponent(name string, version string, fns ...ComponentMountable) *Component {
 	cmp := &Component{
 		name:      name,
 		version:   version,
-		functions: map[string]ComponentFunctionFn{},
+		functions: map[string]ComponentMountable{},
 	}
 
 	for i := range fns {
-		cmp.functions[fns[i].Name] = fns[i].Execute
+		fn := fns[i]
+		fname := fn.getName()
+		cmp.functions[fname] = fn
 	}
 
 	return cmp
 }
 
-func CreateFunction[T any](name string, fn ComponentFunctionTypedFn[T]) ComponentFunction {
-	return ComponentFunction{
-		Name: name,
-		Execute: func(body []byte, ctx *ComponentContext) *ComponentResultPayload {
-			var v T
-			err := json.Unmarshal(body, &v)
-			if err != nil {
-				return Error(err.Error())
-			}
+type ComponentResultPayload = componentipc.ComponentResultPayload
 
-			return fn(v, ctx)
-		},
-	}
+type ComponentFunctionFn = func(body []byte, ctx *ComponentContext) *ComponentResultPayload
+type ComponentSetupFn = func(ctx *ComponentContext) string
+
+type ComponentContext struct {
+	Storage  core.Storage
+	Keychain core.Keychain
+	Logger   core.Logger
 }
 
 func (c *Component) buildContext() *ComponentContext {
 	return &ComponentContext{
-		Storage: newComponentStorage(c.ioChannel),
-		Logger:  newComponentLogger(c.ioChannel),
+		Storage:  newComponentStorage(c.ioChannel),
+		Keychain: newComponentKeychain(c.ioChannel),
+		Logger:   newComponentLogger(c.ioChannel),
 	}
 }
 
 func (c *Component) Start() {
 	c.ctx, c.cancel = context.WithCancel(context.Background())
-	c.ioChannel = NewComponentIO(c.ctx, c.cancel, os.Stdin, os.Stdout)
+	c.ioChannel = componentipc.NewIO(c.ctx, c.cancel, os.Stdin, os.Stdout)
 
 	thread := c.ioChannel.NewThread()
-	_, _ = SendAndReceive[struct{}](thread, ComponentMessageTypeHello, ComponentMessageHello{
-		Name:    c.name,
-		Version: c.version,
-	}, ComponentMessageTypeSetup)
+	_, _ = componentipc.SendAndReceive[struct{}](
+		thread,
+		componentipc.MessageTypeHello,
+		componentipc.ComponentMessageHello{Name: c.name, Version: c.version},
+		componentipc.MessageTypeSetup,
+	)
 
 	var err string
 	if c.setupFn != nil {
 		err = c.setupFn(c.buildContext())
 	}
-	thread.Send(ComponentMessageTypeReady, ComponentMessageReady{
-		Error: err,
-	})
+	thread.Send(componentipc.MessageTypeReady, componentipc.ComponentMessageReady{Error: err})
 
 	go func() {
-		cn := Recieve[ComponentMessageExecute](c.ioChannel, ComponentMessageTypeExecute)
-		for ev := range cn {
+		cn := componentipc.Receive[componentipc.ComponentMessageExecute](c.ioChannel, componentipc.MessageTypeExecute)
+		for {
+			ev := <-cn
+			if ev.Error {
+				return
+			}
 			d := ev.Payload
 			if handler, ok := c.functions[d.Name]; ok {
-				ret := handler([]byte(d.Arguments), c.buildContext())
-				ev.Thread.Send(ComponentMessageTypeRet, ret)
-			} else {
-				ev.Thread.Send(ComponentMessageTypeRet, ComponentResultPayload{
-					Error: "Function not found.",
-				})
+				ret := handler.Execute([]byte(d.Arguments), c.buildContext())
+				ev.Thread.Send(componentipc.MessageTypeRet, ret)
+				continue
 			}
+			ev.Thread.Send(componentipc.MessageTypeRet, componentipc.ComponentResultPayload{Error: "Function not found."})
 		}
 	}()
 
@@ -141,11 +101,99 @@ func (c *Component) StartWithSetup(setup ComponentSetupFn) {
 	c.Start()
 }
 
-func DecodePayload[T any](msg *ComponentMessage) T {
-	var v T
-	err := json.Unmarshal(msg.Payload, &v)
+type ComponentMountable interface {
+	getName() string
+	Execute(args []byte, context *ComponentContext) *ComponentResultPayload
+}
+
+type ComponentMountableFn[I any, O any] = func(input *ComponentInput[I, O], ctx *ComponentContext) *ComponentReturn[O]
+
+type ComponentDefinition[I any, O any] struct {
+	Name string
+}
+type ComponentMount[I any, O any] struct {
+	Definition *ComponentDefinition[I, O]
+	Function   ComponentMountableFn[I, O]
+}
+
+func (m *ComponentMount[I, O]) getName() string {
+	return m.Definition.Name
+}
+func (m *ComponentMount[I, O]) Execute(args []byte, ctx *ComponentContext) *ComponentResultPayload {
+	var inputB I
+	ctx.Logger.Log("Recieve '%s'", string(args))
+	err := json.Unmarshal(args, &inputB)
 	if err != nil {
-		panic(err)
+		return &ComponentResultPayload{
+			Success: false,
+			Error:   err.Error(),
+		}
 	}
-	return v
+	input := &ComponentInput[I, O]{
+		Body: inputB,
+	}
+	res := m.Function(input, ctx)
+	if res.Succeeded {
+		by, _ := json.Marshal(res.Result)
+		ctx.Logger.Log("Send success '%s'", string(by))
+		return &ComponentResultPayload{
+			Success:  true,
+			Response: by,
+		}
+	} else {
+		ctx.Logger.Log("Send error '%s'", res.Error)
+		return &ComponentResultPayload{
+			Success: false,
+			Error:   res.Error,
+		}
+	}
+}
+
+type ComponentInput[I any, O any] struct {
+	Body I
+}
+
+func (c *ComponentInput[I, O]) Return(ret O) *ComponentReturn[O] {
+	return &ComponentReturn[O]{
+		Result:    ret,
+		Succeeded: true,
+	}
+}
+func (c *ComponentInput[I, O]) Error(msg string) *ComponentReturn[O] {
+	return &ComponentReturn[O]{
+		Error:     msg,
+		Succeeded: false,
+	}
+}
+
+func Define[I any, O any](name string) *ComponentDefinition[I, O] {
+	return &ComponentDefinition[I, O]{
+		Name: name,
+	}
+}
+
+func Mount[I any, O any](definition *ComponentDefinition[I, O], fn ComponentMountableFn[I, O]) *ComponentMount[I, O] {
+	return &ComponentMount[I, O]{
+		Definition: definition,
+		Function:   fn,
+	}
+}
+
+type ComponentReturn[O any] struct {
+	Result    O
+	Error     string
+	Succeeded bool
+}
+
+func (c *ComponentDefinition[I, O]) Execute(module string, mod core.ForeignComponent, input I) (O, bool) {
+	var output O
+	dec, err := mod.ExecuteFunction(module, c.Name, input)
+	if err != nil {
+		return output, false
+	}
+	err = json.Unmarshal(dec, &output)
+	if err != nil {
+		return output, false
+	}
+	return output, true
 }

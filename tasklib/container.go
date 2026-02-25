@@ -1,41 +1,48 @@
 package tasklib
 
 import (
-	"encoding/json"
 	"errors"
+	"reflect"
 	"time"
+
+	"github.com/jacksonzamorano/tasks/tasklib/core"
 )
 
 type Container struct {
-	Storage       *ContainerStorage
+	Storage       core.Storage
 	Logger        ContainerLogger
-	Keychain      ContainerKeychainProvider
+	Keychain      core.Keychain
 	Authorization *Authorization
 	components    map[string]*ComponentRunner
 	appState      *AppState
+	namespace     string
 }
 
-func wrapExecuteFunction[T any](c *Container, cname, fname string, args any) (*T, []byte, error) {
+func NewEntityStorage[T any](c *Container) *ContainerEntityStorage[T] {
+	var zero T
+	t := reflect.TypeOf(zero)
+	return &ContainerEntityStorage[T]{
+		db:        c.appState.database,
+		namespace: c.namespace,
+		kind:      t.String(),
+	}
+}
+
+func wrapExecuteFunction(c *Container, cname, fname string, args any) ([]byte, error) {
 	if cmp, ok := c.components[cname]; ok {
 		res := cmp.Execute(fname, args)
 		if res == nil {
-			return nil, nil, errors.New("Could not read response.")
+			return nil, errors.New("Could not read response.")
 		}
 		if res.Success {
-			var v T
-			err := json.Unmarshal(res.Response, &v)
-			if err != nil {
-				return nil, res.Response, err
-			}
-			return &v, res.Response, nil
-		} else {
-			return nil, nil, errors.New(res.Error)
+			return res.Response, nil
 		}
+		return nil, errors.New(res.Error)
 	}
-	return nil, nil, errors.New("Module not found.")
+	return nil, errors.New("Module not found.")
 }
 
-func ExecuteFunction[T any](c *Container, cname, fname string, args any) (*T, error) {
+func (c *Container) ExecuteFunction(cname, fname string, args any) ([]byte, error) {
 	id := makeId()
 	start := time.Now()
 	c.Logger.Event(EventKindComponentFunctionStarted, EventComponentFunctionStartedPayload{
@@ -44,7 +51,7 @@ func ExecuteFunction[T any](c *Container, cname, fname string, args any) (*T, er
 		Function:  fname,
 		Date:      start,
 	})
-	res, bytes, err := wrapExecuteFunction[T](c, cname, fname, args)
+	bytes, err := wrapExecuteFunction(c, cname, fname, args)
 	end := time.Now()
 	if err != nil {
 		c.Logger.Event(EventKindComponentFunctionFinished, EventComponentFunctionFinishedPayload{
@@ -68,14 +75,16 @@ func ExecuteFunction[T any](c *Container, cname, fname string, args any) (*T, er
 			Value:     string(bytes),
 		})
 	}
-	return res, err
+	return bytes, err
 }
 
 func (as *AppState) buildContainer(namespace string) *Container {
+	storage := as.storage.Container(namespace)
 	return &Container{
-		Storage:    as.storage.Container(namespace),
+		Storage:    storage,
 		Logger:     as.Logger.Container(namespace),
 		Keychain:   newPlatformKeychain().Container(namespace),
 		components: as.components,
+		namespace:  namespace,
 	}
 }

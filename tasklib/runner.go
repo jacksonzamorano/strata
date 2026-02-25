@@ -10,10 +10,11 @@ import (
 	"path"
 
 	"github.com/jacksonzamorano/tasks/tasklib/component"
+	"github.com/jacksonzamorano/tasks/tasklib/internal/componentipc"
 )
 
 type ComponentRunner struct {
-	transport *component.ComponentIO
+	transport *componentipc.IO
 	container *Container
 	available bool
 	path      string
@@ -105,7 +106,7 @@ func RegisterComponent(dep AppDependancy, container *Container) (*ComponentRunne
 		return nil, err
 	}
 
-	transport := component.NewComponentIO(ctx, cancel, out, in)
+	transport := componentipc.NewIO(ctx, cancel, out, in)
 
 	err = cmd.Start()
 	if err != nil {
@@ -127,36 +128,57 @@ func RegisterComponent(dep AppDependancy, container *Container) (*ComponentRunne
 	return runner, nil
 }
 
-func (cr *ComponentRunner) Send(ev component.ComponentMessageType, nm string, args any) {
-	cr.transport.NewThread().Send(ev, args)
-}
-
 func (cr *ComponentRunner) Execute(fname string, args any) *component.ComponentResultPayload {
 	thread := cr.transport.NewThread()
 	enc, _ := json.Marshal(args)
-	payload, _ := component.SendAndReceive[component.ComponentResultPayload](thread, component.ComponentMessageTypeExecute, component.ComponentMessageExecute{
-		Name:      fname,
-		Arguments: enc,
-	}, component.ComponentMessageTypeRet)
+	payload, _ := componentipc.SendAndReceive[component.ComponentResultPayload](
+		thread,
+		componentipc.MessageTypeExecute,
+		componentipc.ComponentMessageExecute{Name: fname, Arguments: enc},
+		componentipc.MessageTypeRet,
+	)
 
 	return &payload
 }
 
 func (cr *ComponentRunner) HandleAPIRequests() {
 	go func() {
-		getVal := component.Recieve[component.ComponentMessageGetValueRequest](cr.transport, component.ComponentMessageTypeGetValueRequest)
-		setVal := component.Recieve[component.ComponentMessageSetValueRequest](cr.transport, component.ComponentMessageTypeStoreValueRequest)
-		log := component.Recieve[component.ComponentMessageLog](cr.transport, component.ComponentMessageTypeLog)
+		getVal := componentipc.Receive[componentipc.ComponentMessageGetValueRequest](cr.transport, componentipc.MessageTypeGetValueRequest)
+		setVal := componentipc.Receive[componentipc.ComponentMessageSetValueRequest](cr.transport, componentipc.MessageTypeStoreValueRequest)
+		getKeychain := componentipc.Receive[componentipc.ComponentMessageGetKeychainRequest](cr.transport, componentipc.MessageTypeGetKeychainRequest)
+		setKeychain := componentipc.Receive[componentipc.ComponentMessageSetKeychainRequest](cr.transport, componentipc.MessageTypeStoreKeychainRequest)
+		log := componentipc.Receive[componentipc.ComponentMessageLog](cr.transport, componentipc.MessageTypeLog)
 		for {
 			select {
 			case ev := <-getVal:
-				ev.Thread.Send(component.ComponentMessageTypeGetValueResponse, component.ComponentMessageGetValueResponse{
+				if ev.Error {
+					return
+				}
+				ev.Thread.Send(componentipc.MessageTypeGetValueResponse, componentipc.ComponentMessageGetValueResponse{
 					Value: cr.container.Storage.GetString(ev.Payload.Key),
 				})
 			case ev := <-setVal:
+				if ev.Error {
+					return
+				}
 				cr.container.Storage.SetString(ev.Payload.Key, ev.Payload.Value)
+			case ev := <-getKeychain:
+				if ev.Error {
+					return
+				}
+				ev.Thread.Send(componentipc.MessageTypeGetKeychainResponse, componentipc.ComponentMessageGetKeychainResponse{
+					Value: cr.container.Keychain.Get(ev.Payload.Key),
+				})
+			case ev := <-setKeychain:
+				if ev.Error {
+					return
+				}
+				cr.container.Keychain.Set(ev.Payload.Key, ev.Payload.Value)
 			case ev := <-log:
-				cr.container.Logger.Info("Component: '%s'", ev.Payload.Message)
+				if ev.Error {
+					return
+				}
+				cr.container.Logger.Log("Component: '%s'", ev.Payload.Message)
 			case <-cr.context.Done():
 				return
 			}
