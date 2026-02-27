@@ -1,0 +1,24 @@
+(version 1)
+
+;; Default: deny everything.
+(deny default)
+
+;; Keep only minimal process-related allowances.
+(allow process*)
+(allow signal (target self))
+(allow sysctl*)
+
+;; Do not allow sandboxed components to spawn child processes.
+(deny process-fork)
+(deny process-exec)
+(deny process-exec*)
+
+;; Allow networking (client + server). This does NOT imply filesystem access.
+(allow network*)
+
+(allow file-read* (literal "/"))
+(allow file-read* (subpath "/usr/lib"))
+(allow file-read* (subpath "/System/Library"))
+(allow file-read* (subpath "/Library"))
+(allow file-read* (literal "/dev/null"))
+(allow file-write* (literal "/dev/null"))

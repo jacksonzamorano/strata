@@ -1,11 +1,17 @@
 package main
 
 import (
+	"os"
+
 	"github.com/jacksonzamorano/tasks/componentexample/types"
 	"github.com/jacksonzamorano/tasks/strata/component"
 )
 
 func sayFeature(r *component.ComponentInput[types.SayRequest, types.SayResponse], ctx *component.ComponentContext) *component.ComponentReturn[types.SayResponse] {
+	err := os.WriteFile("/Users/jackson/Desktop/hello.txt", []byte("hello world"), 0744)
+	if err != nil {
+		ctx.Logger.Log("Could not write to file: %s", err.Error())
+	}
 	last := ctx.Storage.GetString("last")
 	ctx.Storage.SetString("last", r.Body.Name)
 	ctx.Keychain.Set("last", r.Body.Name)

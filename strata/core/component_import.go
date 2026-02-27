@@ -117,7 +117,7 @@ func checkoutGit(url, ref, subdir string) (string, error) {
 	}
 	directoryName := path.Base(url)
 	directoryName = strings.TrimSuffix(directoryName, ".git")
-	checkout := path.Join(tmp, "com.jacksonzamorano.tasks", directoryName)
+	checkout := path.Join(tmp, "com.strata.cache", directoryName)
 
 	_, err = os.Stat(checkout)
 	if err != nil {

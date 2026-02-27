@@ -3,7 +3,6 @@ package strata
 import (
 	"context"
 	"encoding/json"
-	"os/exec"
 
 	"github.com/jacksonzamorano/tasks/strata/component"
 	"github.com/jacksonzamorano/tasks/strata/core"
@@ -23,10 +22,12 @@ type ComponentRunner struct {
 func RegisterComponent(dep *core.ComponentExecuteCommand, container *Container) (*ComponentRunner, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	cmd := exec.CommandContext(ctx, dep.Command, dep.Args...)
-	if len(dep.WorkingDirectory) > 0 {
-		cmd.Dir = dep.WorkingDirectory
+	cmd, err := core.PlatformSandboxProvider().Execute(ctx, dep)
+	if err != nil {
+		cancel()
+		return nil, err
 	}
+
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		cancel()

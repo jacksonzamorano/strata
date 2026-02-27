@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path"
 
 	cex "github.com/jacksonzamorano/tasks/componentexample/types"
 	"github.com/jacksonzamorano/tasks/strata"
@@ -66,15 +68,15 @@ func reset(data strata.NoTaskBody, container *strata.Container) *strata.TaskResu
 }
 
 func main() {
-	// cd, _ := os.Getwd()
+	cd, _ := os.Getwd()
 	as := strata.NewAppServer([]strata.Task{
 		strata.UsePublicTask(sayHello),
 		strata.UseTask(getVisitorLog),
 		strata.UseTask(reset),
 	}, strata.Import(
 		// strata.Binary("component-example"),
-		// strata.Local(path.Join(path.Dir(cd), "component-example")),
-		strata.ImportGitSubdirectory("git@github.com:jacksonzamorano/strata.git", "component-example"),
+		strata.ImportLocal(path.Join(path.Dir(cd), "component-example")),
+		// strata.ImportGitSubdirectory("git@github.com:jacksonzamorano/strata.git", "component-example"),
 	))
 	e := as.Start()
 	panic(e)
