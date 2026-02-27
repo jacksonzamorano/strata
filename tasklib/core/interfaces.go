@@ -25,13 +25,25 @@ type KeychainProvider interface {
 	Container(namespace string) Keychain
 }
 
-type Logger interface {
-	Log(v string, args ...any)
+
+// This is owned by the application
+// and many channels will be created.
+type HostBus interface {
+	Initialize(storage *StorageProvider)
+	Channel() HostBusChannel
 }
 
-type LoggerProvider interface {
+// Must be async-safe.
+// Use a channel or other primitive.
+type HostBusChannel interface {
 	Info(v string, args ...any)
+	Event(ev EventKind, payload any)
 	Container(namespace string) Logger
+}
+
+// A containerized logger.
+type Logger interface {
+	Log(v string, args ...any)
 }
 
 type ForeignComponent interface {

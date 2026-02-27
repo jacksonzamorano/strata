@@ -3,6 +3,8 @@ package tasklib
 import (
 	"database/sql"
 	"encoding/json"
+
+	"github.com/jacksonzamorano/tasks/tasklib/core"
 )
 
 type ContainerEntityStorage[T any] struct {
@@ -14,7 +16,7 @@ type ContainerEntityStorage[T any] struct {
 type FilterFn[T any] = func(v T) bool
 
 func (s *ContainerEntityStorage[T]) Get(id int64) *T {
-	entity, err := GetEntityRow(s.db, s.namespace, s.kind, id)
+	entity, err := core.GetEntityRow(s.db, s.namespace, s.kind, id)
 	if err != nil {
 		panic(err)
 	}
@@ -30,7 +32,7 @@ func (s *ContainerEntityStorage[T]) Get(id int64) *T {
 }
 
 func (s *ContainerEntityStorage[T]) Find(filter FilterFn[T]) []T {
-	entities, err := GetInNamespace(s.db, s.namespace, s.kind)
+	entities, err := core.GetInNamespace(s.db, s.namespace, s.kind)
 	if err != nil {
 		panic(err)
 	}
@@ -54,7 +56,7 @@ func (s *ContainerEntityStorage[T]) Insert(record T) int64 {
 	if err != nil {
 		return 0
 	}
-	newVal, err := CreateEntityRow(s.db, s.namespace, s.kind, string(encoded))
+	newVal, err := core.CreateEntityRow(s.db, s.namespace, s.kind, string(encoded))
 	return newVal.Id
 }
 
@@ -63,21 +65,21 @@ func (s *ContainerEntityStorage[T]) Update(id int64, record T) {
 	if err != nil {
 		return
 	}
-	_, err = UpdateEntityRow(s.db, s.namespace, s.kind, id, string(encoded))
+	_, err = core.UpdateEntityRow(s.db, s.namespace, s.kind, id, string(encoded))
 	if err != nil {
 		panic(err)
 	}
 }
 
 func (s *ContainerEntityStorage[T]) Delete(id int64) {
-	DeleteEntityRow(s.db, s.namespace, s.kind, id)
+	core.DeleteEntityRow(s.db, s.namespace, s.kind, id)
 }
 
 func (s *ContainerEntityStorage[T]) DeleteWhere(filter FilterFn[T]) int {
 	if filter == nil {
 		return 0
 	}
-	entities, err := GetInNamespace(s.db, s.namespace, s.kind)
+	entities, err := core.GetInNamespace(s.db, s.namespace, s.kind)
 	if err != nil {
 		panic(err)
 	}
@@ -90,7 +92,7 @@ func (s *ContainerEntityStorage[T]) DeleteWhere(filter FilterFn[T]) int {
 			continue
 		}
 		if filter(newVal) {
-			DeleteEntityRow(s.db, s.namespace, s.kind, entities[e].Id)
+			core.DeleteEntityRow(s.db, s.namespace, s.kind, entities[e].Id)
 			count++
 		}
 	}

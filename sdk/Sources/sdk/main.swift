@@ -7,7 +7,7 @@ let projectRoot = URL.currentDirectory().deletingLastPathComponent()
 let tasklibRoot = projectRoot.appending(path: "tasklib")
 
 let goConfig = GoConfiguration { cfg in
-    cfg.packageName = "tasklib"
+    cfg.packageName = "core"
 }
 
 let ipcGoConfig = GoConfiguration { cfg in
@@ -33,7 +33,7 @@ try! Schema("schema") {
 }
 .output(Go(sqlBuilder: sql, config: goConfig)) {
     CodeBuilderConfiguration(
-        root: tasklibRoot,
+        root: tasklibRoot.appending(path: "core"),
         fileStrategy: .monolithic,
         generateRecords: .asRecords,
         generateModels: true

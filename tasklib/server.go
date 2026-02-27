@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jacksonzamorano/tasks/tasklib/core"
 	"github.com/jacksonzamorano/tasks/tasklib/internal/componentipc"
 )
 
@@ -18,19 +19,23 @@ type RequestInfo struct {
 }
 
 type AppServer struct {
+	bus      core.HostBus
+	channel  core.HostBusChannel
 	state    *AppState
 	srv      *http.Server
 	listener *http.ServeMux
 }
 
 func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
-	appState := newAppState()
+	bus := &ConsoleHost{}
+	appState := newAppState(bus)
+	channel := bus.Channel()
 	mux := http.NewServeMux()
 
 	for idx := range tasks {
 		url := fmt.Sprintf("/tasks/%s", tasks[idx].Name)
 		mux.HandleFunc(url, appState.handler(tasks[idx]))
-		appState.Logger.Event(EventKindTaskRegistered, EventTaskRegisterPayload{
+		channel.Event(core.EventKindTaskRegistered, core.EventTaskRegisterPayload{
 			Name: tasks[idx].Name,
 			Url:  url,
 		})
@@ -43,13 +48,13 @@ func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
 
 		runner, err := RegisterComponent(deps[idx], cnt)
 		if err != nil {
-			appState.Logger.Info("Failed to register component '%s': '%s'", name, err.Error())
+			channel.Info("Failed to register component '%s': '%s'", name, err.Error())
 			continue
 		}
 
 		ev := componentipc.ReceiveOnce[componentipc.ComponentMessageHello](runner.transport, 5*time.Second, componentipc.MessageTypeHello)
 		if ev.Error {
-			appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
+			channel.Event(core.EventKindComponentRegistered, core.EventComponentRegisteredPayload{
 				Suceeded: false,
 				Name:     name,
 				Path:     runner.path,
@@ -58,7 +63,7 @@ func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
 			continue
 		}
 		hello := ev.Payload
-		appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
+		channel.Event(core.EventKindComponentRegistered, core.EventComponentRegisteredPayload{
 			Suceeded: true,
 			Name:     hello.Name,
 			Version:  hello.Version,
@@ -73,7 +78,7 @@ func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
 			err_msg_ptr = &rdy.Error
 		}
 
-		appState.Logger.Event(EventKindComponentReady, EventComponentReadyPayload{
+		channel.Event(core.EventKindComponentReady, core.EventComponentReadyPayload{
 			Name:      hello.Name,
 			Succeeded: err_msg_ptr == nil,
 			Error:     err_msg_ptr,
@@ -83,7 +88,7 @@ func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
 			continue
 		}
 
-		appState.Logger.Event(EventKindComponentRegistered, EventComponentRegisteredPayload{
+		channel.Event(core.EventKindComponentRegistered, core.EventComponentRegisteredPayload{
 			Suceeded: false,
 			Name:     name,
 			Error:    new("Component sent invalid message."),
@@ -106,11 +111,13 @@ func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
 			ReadHeaderTimeout: 5 * time.Second,
 		},
 		listener: mux,
+		bus:      bus,
+		channel:  channel,
 	}
 	return as
 }
 
 func (as *AppServer) Start() error {
-	as.state.Logger.Info("Listening on %s", as.srv.Addr)
+	as.channel.Info("Listening on %s", as.srv.Addr)
 	return as.srv.ListenAndServe()
 }

@@ -3,6 +3,8 @@ package tasklib
 import (
 	"crypto/rand"
 	"encoding/base64"
+
+	"github.com/jacksonzamorano/tasks/tasklib/core"
 )
 
 func makeSecret() string {
@@ -13,17 +15,17 @@ func makeSecret() string {
 	return base64.StdEncoding.EncodeToString(b)
 }
 
-func (as *AppState) getAuthorization(sec string) *Authorization {
-	a, err := UseAuthorization(as.database, sec)
+func (as *AppState) getAuthorization(sec string) *core.Authorization {
+	a, err := core.UseAuthorization(as.database, sec)
 	if err != nil {
 		panic(err)
 	}
 	return a
 }
 
-func (as *AppState) createAuthorization(source string, nickname string) *Authorization {
+func (as *AppState) createAuthorization(source string, nickname string) *core.Authorization {
 	sec := makeSecret()
-	a, err := CreateAuthorization(as.database, &nickname, sec, source)
+	a, err := core.CreateAuthorization(as.database, &nickname, sec, source)
 	if err != nil {
 		panic(err)
 	}

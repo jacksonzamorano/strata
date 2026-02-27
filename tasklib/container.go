@@ -10,9 +10,10 @@ import (
 
 type Container struct {
 	Storage       core.Storage
-	Logger        ContainerLogger
+	Logger        core.Logger
 	Keychain      core.Keychain
-	Authorization *Authorization
+	Authorization *core.Authorization
+	busLogger     core.HostBusChannel
 	components    map[string]*ComponentRunner
 	appState      *AppState
 	namespace     string
@@ -45,7 +46,7 @@ func wrapExecuteFunction(c *Container, cname, fname string, args any) ([]byte, e
 func (c *Container) ExecuteFunction(cname, fname string, args any) ([]byte, error) {
 	id := makeId()
 	start := time.Now()
-	c.Logger.Event(EventKindComponentFunctionStarted, EventComponentFunctionStartedPayload{
+	c.busLogger.Event(core.EventKindComponentFunctionStarted, core.EventComponentFunctionStartedPayload{
 		Id:        id,
 		Component: cname,
 		Function:  fname,
@@ -54,7 +55,7 @@ func (c *Container) ExecuteFunction(cname, fname string, args any) ([]byte, erro
 	bytes, err := wrapExecuteFunction(c, cname, fname, args)
 	end := time.Now()
 	if err != nil {
-		c.Logger.Event(EventKindComponentFunctionFinished, EventComponentFunctionFinishedPayload{
+		c.busLogger.Event(core.EventKindComponentFunctionFinished, core.EventComponentFunctionFinishedPayload{
 			Id:        id,
 			Component: cname,
 			Function:  fname,
@@ -65,7 +66,7 @@ func (c *Container) ExecuteFunction(cname, fname string, args any) ([]byte, erro
 			Error:     new(err.Error()),
 		})
 	} else {
-		c.Logger.Event(EventKindComponentFunctionFinished, EventComponentFunctionFinishedPayload{
+		c.busLogger.Event(core.EventKindComponentFunctionFinished, core.EventComponentFunctionFinishedPayload{
 			Id:        id,
 			Component: cname,
 			Function:  fname,
@@ -82,9 +83,11 @@ func (as *AppState) buildContainer(namespace string) *Container {
 	storage := as.storage.Container(namespace)
 	return &Container{
 		Storage:    storage,
-		Logger:     as.Logger.Container(namespace),
+		Logger:     as.logger.Container(namespace),
 		Keychain:   newPlatformKeychain().Container(namespace),
 		components: as.components,
 		namespace:  namespace,
+		appState:   as,
+		busLogger:  as.logger,
 	}
 }

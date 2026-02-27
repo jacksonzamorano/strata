@@ -8,42 +8,30 @@ import (
 	"github.com/jacksonzamorano/tasks/tasklib/core"
 )
 
-type ConsoleLogger struct{}
+type ConsoleHost struct{}
+func (cl *ConsoleHost) Initialize(storage *core.StorageProvider) {}
+func (cl *ConsoleHost) Channel() core.HostBusChannel {
+	return &ConsoleLoggerTransport{}
+}
 
-func (cl *ConsoleLogger) Container(name string) ContainerLogger {
+type ConsoleLoggerTransport struct {}
+func (cl *ConsoleLoggerTransport) Info(v string, args ...any) {
+	log.Printf(v, args...)
+}
+func (cl *ConsoleLoggerTransport) Container(name string) core.Logger {
 	return &ContainerConsoleLogger{
 		namespace: name,
 	}
 }
-func (cl *ConsoleLogger) Event(ev EventKind, payload any) {
+func (cl *ConsoleLoggerTransport) Event(ev core.EventKind, payload any) {
 	encoded, _ := json.Marshal(payload)
 	log.Printf("(%s): %s", ev, string(encoded))
-}
-
-func (cl *ConsoleLogger) Info(v string, args ...any) {
-	log.Printf(v, args...)
 }
 
 type ContainerConsoleLogger struct {
 	namespace string
 }
-
 func (cl *ContainerConsoleLogger) Log(v string, args ...any) {
 	log.Printf("[%s]: %s", cl.namespace, fmt.Sprintf(v, args...))
 }
-func (cl *ContainerConsoleLogger) Event(ev EventKind, payload any) {
-	encoded, _ := json.Marshal(payload)
-	log.Printf("[%s] (%s): %s", cl.namespace, ev, string(encoded))
-}
 
-type ContainerLogger interface {
-	core.Logger
-	Log(v string, args ...any)
-	Event(ev EventKind, payload any)
-}
-
-type AppServerLogger interface {
-	Info(v string, args ...any)
-	Event(ev EventKind, payload any)
-	Container(name string) ContainerLogger
-}

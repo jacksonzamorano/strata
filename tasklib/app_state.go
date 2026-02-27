@@ -5,6 +5,8 @@ import (
 	"os"
 
 	_ "embed"
+
+	"github.com/jacksonzamorano/tasks/tasklib/core"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -26,15 +28,14 @@ func isDatabaseEmpty(db *sql.DB) (bool, error) {
 var initScript []byte
 
 type AppState struct {
-	Logger   AppServerLogger
-	storage  *AppStorage
-	database *sql.DB
+	storage    core.StorageProvider
+	database   *sql.DB
 	components map[string]*ComponentRunner
+	logger     core.HostBusChannel
 }
 
-func newAppState() AppState {
-	logger := ConsoleLogger{}
-
+func newAppState(bus core.HostBus) AppState {
+	logger := bus.Channel()
 	db_url := os.Getenv("DATABASE_URL")
 	if len(db_url) == 0 {
 		db_url = "./tasklib.db"
@@ -59,11 +60,9 @@ func newAppState() AppState {
 	}
 
 	as := AppState{
-		Logger: &logger,
-		storage: &AppStorage{
-			db: db,
-		},
-		database: db,
+		storage:    core.NewSQLiteStorage(db),
+		logger:     bus.Channel(),
+		database:   db,
 		components: map[string]*ComponentRunner{},
 	}
 

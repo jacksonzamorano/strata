@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/jacksonzamorano/tasks/tasklib/core"
 )
 
 func (as *AppState) handle(r *http.Request, task Task) (*RequestInfo, *TaskResult) {
@@ -15,7 +17,7 @@ func (as *AppState) handle(r *http.Request, task Task) (*RequestInfo, *TaskResul
 		Query:   r.URL.Query(),
 	}
 
-	var authorization *Authorization
+	var authorization *core.Authorization
 	if authSec, ok := r.Header["Authorization"]; ok && len(authSec) > 0 {
 		authorization = as.getAuthorization(authSec[0])
 	}
@@ -44,7 +46,7 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 
 		start := time.Now()
 		id := makeId()
-		as.Logger.Event(EventKindTaskStarted, EventTaskStartedPayload{
+		as.logger.Event(core.EventKindTaskStarted, core.EventTaskStartedPayload{
 			Id:   id,
 			Name: ar.Name,
 			Date: start,
@@ -96,7 +98,7 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 
 		// Save task run
 		end := time.Now()
-		_, err = CreateTaskRun(as.database,
+		_, err = core.CreateTaskRun(as.database,
 			response.Success,
 			string(outputBody),
 			string(encoded_query_params),
@@ -105,7 +107,7 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 			start,
 			end,
 		)
-		as.Logger.Event(EventKindTaskFinished, EventTaskFinishedPayload{
+		as.logger.Event(core.EventKindTaskFinished, core.EventTaskFinishedPayload{
 			Id:       id,
 			Name:     ar.Name,
 			Date:     end,
