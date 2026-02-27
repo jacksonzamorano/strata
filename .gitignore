@@ -1,3 +1,4 @@
+.DS_Store
 sdk/.build
 strata-example/strata-example
 strata-example/strata.db
