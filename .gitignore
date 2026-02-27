@@ -1,7 +1,6 @@
 sdk/.build
 strata-example/strata-example
 strata-example/strata.db
-strata-example/tasklib.db
 component-example/componentexample
 hosts/web/node_modules
 hosts/web/dist
