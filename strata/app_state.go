@@ -2,6 +2,7 @@ package strata
 
 import (
 	_ "embed"
+	"log"
 
 	"github.com/jacksonzamorano/tasks/strata/core"
 	_ "github.com/mattn/go-sqlite3"
@@ -24,6 +25,7 @@ func newAppState(bus core.HostBus) AppState {
 	if fresh {
 		auth := persistence.Authorization.NewAuthorization("core", "Master")
 		logger.Info("Created initial token '%s'", auth.Secret)
+		log.Printf("Initial token: %s", auth.Secret)
 	}
 
 	as := AppState{

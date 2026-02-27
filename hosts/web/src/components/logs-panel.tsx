@@ -38,6 +38,7 @@ const logColumns: readonly TableColumn<LogRecord>[] = [
   {
     key: "message",
     header: "Message",
+    class: "whitespace-pre-wrap [overflow-wrap:anywhere]",
     render: (row) => row.message,
   },
 ];
