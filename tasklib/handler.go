@@ -19,7 +19,7 @@ func (as *AppState) handle(r *http.Request, task Task) (*RequestInfo, *TaskResul
 
 	var authorization *core.Authorization
 	if authSec, ok := r.Header["Authorization"]; ok && len(authSec) > 0 {
-		authorization = as.getAuthorization(authSec[0])
+		authorization = as.persistence.Authorization.GetAuthorization(authSec[0])
 	}
 
 	container := as.buildContainer("task")
@@ -91,30 +91,22 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(response.StatusCode)
 		w.Write(outputBody)
 
-		// Encode metadata
-		encoded_query_params, _ := json.Marshal(requestInfo.Query)
-		encoded_header_params, _ := json.Marshal(requestInfo.Headers)
-		body_str := string(outputBody)
-
 		// Save task run
 		end := time.Now()
-		_, err = core.CreateTaskRun(as.database,
-			response.Success,
-			string(outputBody),
-			string(encoded_query_params),
-			string(encoded_header_params),
-			&body_str,
-			start,
-			end,
-		)
+		as.persistence.TaskHistoryStorage.SaveTaskRun(core.TaskHistoryEntry{
+			Successful:   response.Success,
+			Input:        requestInfo.Body,
+			Output:       outputBody,
+			QueryParams:  requestInfo.Query,
+			HeaderParams: requestInfo.Headers,
+			Start:        start,
+			End:          end,
+		})
 		as.logger.Event(core.EventKindTaskFinished, core.EventTaskFinishedPayload{
 			Id:       id,
 			Name:     ar.Name,
 			Date:     end,
 			Duration: end.Sub(start).Seconds(),
 		})
-		if err != nil {
-			panic(err)
-		}
 	}
 }

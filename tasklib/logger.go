@@ -9,7 +9,7 @@ import (
 )
 
 type ConsoleHost struct{}
-func (cl *ConsoleHost) Initialize(storage *core.StorageProvider) {}
+func (cl *ConsoleHost) Initialize(data core.PersistenceProvider) {}
 func (cl *ConsoleHost) Channel() core.HostBusChannel {
 	return &ConsoleLoggerTransport{}
 }

@@ -67,5 +67,5 @@ struct EventComponentFunctionFinishedPayload {
     let duration = Field(.double)
     let succeeded = Field(.bool)
     let value = Field(.string)
-    let error = Field(.optional(.string))
+    let error = Field(.string, Go.omitEmpty)
 }

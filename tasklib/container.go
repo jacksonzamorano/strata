@@ -13,9 +13,9 @@ type Container struct {
 	Logger        core.Logger
 	Keychain      core.Keychain
 	Authorization *core.Authorization
+	persistence   core.PersistenceProvider
 	busLogger     core.HostBusChannel
 	components    map[string]*ComponentRunner
-	appState      *AppState
 	namespace     string
 }
 
@@ -23,7 +23,7 @@ func NewEntityStorage[T any](c *Container) *ContainerEntityStorage[T] {
 	var zero T
 	t := reflect.TypeOf(zero)
 	return &ContainerEntityStorage[T]{
-		db:        c.appState.database,
+		storage:   c.persistence.EntityStorage,
 		namespace: c.namespace,
 		kind:      t.String(),
 	}
@@ -54,18 +54,7 @@ func (c *Container) ExecuteFunction(cname, fname string, args any) ([]byte, erro
 	})
 	bytes, err := wrapExecuteFunction(c, cname, fname, args)
 	end := time.Now()
-	if err != nil {
-		c.busLogger.Event(core.EventKindComponentFunctionFinished, core.EventComponentFunctionFinishedPayload{
-			Id:        id,
-			Component: cname,
-			Function:  fname,
-			Date:      end,
-			Duration:  end.Sub(start).Seconds(),
-			Succeeded: false,
-			Value:     string(bytes),
-			Error:     new(err.Error()),
-		})
-	} else {
+	if err == nil {
 		c.busLogger.Event(core.EventKindComponentFunctionFinished, core.EventComponentFunctionFinishedPayload{
 			Id:        id,
 			Component: cname,
@@ -75,19 +64,29 @@ func (c *Container) ExecuteFunction(cname, fname string, args any) ([]byte, erro
 			Succeeded: true,
 			Value:     string(bytes),
 		})
+	} else {
+		c.busLogger.Event(core.EventKindComponentFunctionFinished, core.EventComponentFunctionFinishedPayload{
+			Id:        id,
+			Component: cname,
+			Function:  fname,
+			Date:      end,
+			Duration:  end.Sub(start).Seconds(),
+			Succeeded: false,
+			Value:     string(bytes),
+			Error:     err.Error(),
+		})
 	}
 	return bytes, err
 }
 
 func (as *AppState) buildContainer(namespace string) *Container {
-	storage := as.storage.Container(namespace)
 	return &Container{
-		Storage:    storage,
-		Logger:     as.logger.Container(namespace),
-		Keychain:   newPlatformKeychain().Container(namespace),
-		components: as.components,
-		namespace:  namespace,
-		appState:   as,
-		busLogger:  as.logger,
+		Storage:     as.persistence.Storage.Container(namespace),
+		Logger:      as.logger.Container(namespace),
+		Keychain:    newPlatformKeychain().Container(namespace),
+		persistence: as.persistence,
+		components:  as.components,
+		namespace:   namespace,
+		busLogger:   as.logger,
 	}
 }

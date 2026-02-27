@@ -8,15 +8,19 @@ type SQLiteStorage struct {
 	db *sql.DB
 }
 
-func NewSQLiteStorage(db *sql.DB) StorageProvider {
+func NewSQLiteStorage(db *sql.DB) *SQLiteStorage {
 	return &SQLiteStorage{
 		db,
 	}
 }
 
+func (as *SQLiteStorage) database() *sql.DB {
+	return as.db
+}
+
 func (as *SQLiteStorage) Container(name string) Storage {
 	container := &ContainerStorage{
-		db:        as.db,
+		db:        as,
 		namespace: name,
 		keys:      map[string]struct{}{},
 	}

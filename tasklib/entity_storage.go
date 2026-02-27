@@ -1,14 +1,13 @@
 package tasklib
 
 import (
-	"database/sql"
 	"encoding/json"
 
 	"github.com/jacksonzamorano/tasks/tasklib/core"
 )
 
 type ContainerEntityStorage[T any] struct {
-	db        *sql.DB
+	storage   core.EntityStorageProvider
 	namespace string
 	kind      string
 }
@@ -16,7 +15,7 @@ type ContainerEntityStorage[T any] struct {
 type FilterFn[T any] = func(v T) bool
 
 func (s *ContainerEntityStorage[T]) Get(id int64) *T {
-	entity, err := core.GetEntityRow(s.db, s.namespace, s.kind, id)
+	entity, err := s.storage.Get(s.namespace, s.kind, id)
 	if err != nil {
 		panic(err)
 	}
@@ -32,7 +31,7 @@ func (s *ContainerEntityStorage[T]) Get(id int64) *T {
 }
 
 func (s *ContainerEntityStorage[T]) Find(filter FilterFn[T]) []T {
-	entities, err := core.GetInNamespace(s.db, s.namespace, s.kind)
+	entities, err := s.storage.All(s.namespace, s.kind)
 	if err != nil {
 		panic(err)
 	}
@@ -56,8 +55,8 @@ func (s *ContainerEntityStorage[T]) Insert(record T) int64 {
 	if err != nil {
 		return 0
 	}
-	newVal, err := core.CreateEntityRow(s.db, s.namespace, s.kind, string(encoded))
-	return newVal.Id
+	newVal, err := s.storage.Insert(s.namespace, s.kind, encoded)
+	return newVal
 }
 
 func (s *ContainerEntityStorage[T]) Update(id int64, record T) {
@@ -65,36 +64,30 @@ func (s *ContainerEntityStorage[T]) Update(id int64, record T) {
 	if err != nil {
 		return
 	}
-	_, err = core.UpdateEntityRow(s.db, s.namespace, s.kind, id, string(encoded))
+	err = s.storage.Update(s.namespace, s.kind, id, encoded)
 	if err != nil {
 		panic(err)
 	}
 }
 
 func (s *ContainerEntityStorage[T]) Delete(id int64) {
-	core.DeleteEntityRow(s.db, s.namespace, s.kind, id)
+	s.storage.Delete(s.namespace, s.kind, id)
 }
 
-func (s *ContainerEntityStorage[T]) DeleteWhere(filter FilterFn[T]) int {
-	if filter == nil {
-		return 0
-	}
-	entities, err := core.GetInNamespace(s.db, s.namespace, s.kind)
+func (s *ContainerEntityStorage[T]) DeleteWhere(filter FilterFn[T]) {
+	entities, err := s.storage.All(s.namespace, s.kind)
 	if err != nil {
 		panic(err)
 	}
 
-	count := 0
 	for e := range entities {
 		var newVal T
 		err := json.Unmarshal([]byte(entities[e].Value), &newVal)
 		if err != nil {
 			continue
 		}
-		if filter(newVal) {
-			core.DeleteEntityRow(s.db, s.namespace, s.kind, entities[e].Id)
-			count++
+		if filter != nil && filter(newVal) {
+			s.storage.Delete(s.namespace, s.kind, entities[e].Id)
 		}
 	}
-	return count
 }
