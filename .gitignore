@@ -3,5 +3,6 @@ sdk/.build
 strata-example/strata-example
 strata-example/strata.db
 component-example/componentexample
+component-example/component-example
 hosts/web/node_modules
 hosts/web/dist

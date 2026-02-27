@@ -1,36 +1,12 @@
 package strata
 
-func Binary(url string) AppDependency {
-	return AppDependency{
-		url:     url,
-		depType: AppDependencyTypeBinary,
-	}
-}
+import "github.com/jacksonzamorano/tasks/strata/core"
 
-func LocalProject(url string) AppDependency {
-	return AppDependency{
-		url:     url,
-		depType: AppDependencyTypeLocalProject,
-	}
-}
+var ImportLocal = core.ImportLocal
+var ImportBinary = core.ImportBinary
+var ImportGit = core.ImportGit
+var ImportGitSubdirectory = core.ImportGitSubdirectory
 
-func Git(url string, branch string) AppDependency {
-	return AppDependency{
-		url:     url,
-		branch:  branch,
-		depType: AppDependencyTypeGit,
-	}
-}
-
-func GitSubdirectory(url string, branch string, subdir string) AppDependency {
-	return AppDependency{
-		url:     url,
-		branch:  branch,
-		subdir:  subdir,
-		depType: AppDependencyTypeGit,
-	}
-}
-
-func Import(deps ...AppDependency) []AppDependency {
+func Import(deps ...core.ComponentImport) []core.ComponentImport {
 	return deps
 }

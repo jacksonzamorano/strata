@@ -3,13 +3,10 @@ package strata
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"os"
 	"os/exec"
-	"path"
 
 	"github.com/jacksonzamorano/tasks/strata/component"
+	"github.com/jacksonzamorano/tasks/strata/core"
 	"github.com/jacksonzamorano/tasks/strata/internal/componentipc"
 )
 
@@ -22,78 +19,13 @@ type ComponentRunner struct {
 	cancel    context.CancelFunc
 }
 
-func runGit(p string, args ...string) error {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = p
-	txt, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("%s: %s", err.Error(), string(txt))
-	}
-	return nil
-}
 
-func checkoutGit(url, ref, subdir string) (string, error) {
-	tmp, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
-	}
-	checkout := path.Join(tmp, "com.jacksonzamorano.tasks", path.Base(url))
-
-	_, err = os.Stat(checkout)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			err := runGit(tmp, "clone", url, checkout)
-			if err != nil {
-				return checkout, err
-			}
-		} else {
-			return checkout, err
-		}
-	}
-
-	runGit(checkout, "pull")
-
-	if len(ref) == 0 {
-		err = runGit(checkout, "switch", ref)
-		if err != nil {
-			return checkout, err
-		}
-	}
-
-	return path.Join(checkout, subdir), nil
-}
-
-func RegisterComponent(dep AppDependency, container *Container) (*ComponentRunner, error) {
-	var cmd_path string
-	var args []string
-	var cwd_path string
-	var display_path string
-
-	switch dep.depType {
-	case AppDependencyTypeBinary:
-		cmd_path = dep.url
-		display_path = dep.url
-	case AppDependencyTypeLocalProject:
-		cmd_path = "go"
-		cwd_path = dep.url
-		args = []string{"run", "."}
-		display_path = cwd_path
-	case AppDependencyTypeGit:
-		p, err := checkoutGit(dep.url, dep.branch, dep.subdir)
-		if err != nil {
-			return nil, err
-		}
-		display_path = p
-		cmd_path = "go"
-		cwd_path = p
-		args = []string{"run", "."}
-	}
-
+func RegisterComponent(dep *core.ComponentExecuteCommand, container *Container) (*ComponentRunner, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	cmd := exec.CommandContext(ctx, cmd_path, args...)
-	if len(cwd_path) > 0 {
-		cmd.Dir = cwd_path
+	cmd := exec.CommandContext(ctx, dep.Command, dep.Args...)
+	if len(dep.WorkingDirectory) > 0 {
+		cmd.Dir = dep.WorkingDirectory
 	}
 	in, err := cmd.StdinPipe()
 	if err != nil {
@@ -118,7 +50,7 @@ func RegisterComponent(dep AppDependency, container *Container) (*ComponentRunne
 		transport: transport,
 		container: container,
 		available: false,
-		path:      display_path,
+		path:      dep.CanonicalName,
 		context:   ctx,
 		cancel:    cancel,
 	}

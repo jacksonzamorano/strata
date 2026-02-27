@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/jacksonzamorano/tasks/strata/core"
@@ -26,7 +25,7 @@ type AppServer struct {
 	listener *http.ServeMux
 }
 
-func NewAppServer(tasks []Task, deps []AppDependency) AppServer {
+func NewAppServer(tasks []Task, deps []core.ComponentImport) AppServer {
 	bus := NewWebHost()
 	appState := newAppState(bus)
 	channel := bus.Channel()
@@ -42,11 +41,15 @@ func NewAppServer(tasks []Task, deps []AppDependency) AppServer {
 	}
 
 	for idx := range deps {
-		nameIdx := strings.LastIndex(deps[idx].url, "/")
-		name := deps[idx].url[nameIdx+1:]
-		cnt := appState.buildContainer(name)
+		cmd, err := deps[idx].Setup()
+		if err != nil {
+			channel.Info("Failed to register component at index %d: '%s'", idx, err.Error())
+			continue
+		}
+		name := cmd.CanonicalName
+		cnt := appState.buildContainer(cmd.CanonicalName)
 
-		runner, err := RegisterComponent(deps[idx], cnt)
+		runner, err := RegisterComponent(cmd, cnt)
 		if err != nil {
 			channel.Info("Failed to register component '%s': '%s'", name, err.Error())
 			continue
