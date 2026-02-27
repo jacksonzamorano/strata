@@ -45,7 +45,7 @@ const logColumns: readonly TableColumn<LogRecord>[] = [
 
 export function LogsPanel(props: LogsPanelProps) {
   return (
-    <Surface title="Logs" subtitle="All events recieved.">
+    <Surface title="Logs" subtitle="All events received.">
       <DataTable
         columns={logColumns}
         rows={props.logs}

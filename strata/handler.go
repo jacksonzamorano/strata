@@ -47,11 +47,9 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 		start := time.Now()
 		id := makeId()
 		as.logger.Event(core.EventKindTaskStarted, core.EventTaskStartedPayload{
-			Id:     id,
-			Name:   ar.Name,
-			Date:   start,
-			Method: r.Method,
-			Path:   r.URL.Path,
+			Id:   id,
+			Name: ar.Name,
+			Date: start,
 		})
 
 		// Build request & dispatch
@@ -105,14 +103,11 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 			End:          end,
 		})
 		as.logger.Event(core.EventKindTaskFinished, core.EventTaskFinishedPayload{
-			Id:         id,
-			Name:       ar.Name,
-			Date:       end,
-			Duration:   end.Sub(start).Seconds(),
-			Succeeded:  response.Success,
-			Method:     r.Method,
-			Path:       r.URL.Path,
-			StatusCode: response.StatusCode,
+			Id:        id,
+			Name:      ar.Name,
+			Date:      end,
+			Duration:  end.Sub(start).Seconds(),
+			Succeeded: response.Success,
 		})
 	}
 }

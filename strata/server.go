@@ -26,7 +26,7 @@ type AppServer struct {
 	listener *http.ServeMux
 }
 
-func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
+func NewAppServer(tasks []Task, deps []AppDependency) AppServer {
 	bus := NewWebHost()
 	appState := newAppState(bus)
 	channel := bus.Channel()

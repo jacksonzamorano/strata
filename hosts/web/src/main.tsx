@@ -2,7 +2,7 @@ import { Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { render } from "solid-js/web";
 import type {
   HostMessage,
-  HostMessageEventRecieved,
+  HostMessageEventReceived,
   HostMessagePayload,
   HostMessageType,
 } from "./generated";
@@ -40,7 +40,7 @@ const emptyPayload = (): HostMessagePayload => ({
   subscribe_logs_ack: undefined,
   authorization_create: undefined,
   authorization_created: undefined,
-  event_recieved: undefined,
+  event_received: undefined,
   error: undefined,
 });
 
@@ -225,7 +225,7 @@ function App() {
     });
   };
 
-  const processHostEvent = (incoming: HostMessageEventRecieved) => {
+  const processHostEvent = (incoming: HostMessageEventReceived) => {
     if (incoming.channel !== "event") {
       return;
     }
@@ -347,8 +347,8 @@ function App() {
         return;
       }
 
-      if (message.type === "eventRecieved" && message.payload.event_recieved) {
-        const incoming = message.payload.event_recieved as HostMessageEventRecieved;
+      if (message.type === "eventReceived" && message.payload.event_received) {
+        const incoming = message.payload.event_received as HostMessageEventReceived;
         const timestamp = new Date((incoming.date as unknown as string) || Date.now());
 
         pushLog({

@@ -1529,7 +1529,7 @@ const logColumns = [{
 function LogsPanel(props) {
   return createComponent(Surface, {
     title: "Logs",
-    subtitle: "All events recieved.",
+    subtitle: "All events received.",
     get children() {
       return createComponent(DataTable, {
         columns: logColumns,
@@ -1738,7 +1738,7 @@ const emptyPayload = () => ({
   subscribe_logs_ack: void 0,
   authorization_create: void 0,
   authorization_created: void 0,
-  event_recieved: void 0,
+  event_received: void 0,
   error: void 0
 });
 const nextMessageId = /* @__PURE__ */ (() => {
@@ -1999,8 +1999,8 @@ function App() {
       } catch {
         return;
       }
-      if (message.type === "eventRecieved" && message.payload.event_recieved) {
-        const incoming = message.payload.event_recieved;
+      if (message.type === "eventReceived" && message.payload.event_received) {
+        const incoming = message.payload.event_received;
         const timestamp = new Date(incoming.date || Date.now());
         pushLog({
           id: message.id,

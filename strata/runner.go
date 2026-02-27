@@ -63,22 +63,22 @@ func checkoutGit(url, ref, subdir string) (string, error) {
 	return path.Join(checkout, subdir), nil
 }
 
-func RegisterComponent(dep AppDependancy, container *Container) (*ComponentRunner, error) {
+func RegisterComponent(dep AppDependency, container *Container) (*ComponentRunner, error) {
 	var cmd_path string
 	var args []string
 	var cwd_path string
 	var display_path string
 
-	switch dep.dep_type {
-	case AppDependancyTypeBinary:
+	switch dep.depType {
+	case AppDependencyTypeBinary:
 		cmd_path = dep.url
 		display_path = dep.url
-	case AppDependancyTypeLocalProject:
+	case AppDependencyTypeLocalProject:
 		cmd_path = "go"
 		cwd_path = dep.url
 		args = []string{"run", "."}
 		display_path = cwd_path
-	case AppDependancyTypeGit:
+	case AppDependencyTypeGit:
 		p, err := checkoutGit(dep.url, dep.branch, dep.subdir)
 		if err != nil {
 			return nil, err

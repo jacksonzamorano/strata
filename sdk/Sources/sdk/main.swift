@@ -67,7 +67,7 @@ try! Schema("hostschema") {
     HostMessageSubscribeLogsAck.self
     HostMessageAuthorizationCreate.self
     HostMessageAuthorizationCreated.self
-    HostMessageEventRecieved.self
+    HostMessageEventReceived.self
     HostMessageError.self
 } routes: {
 

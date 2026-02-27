@@ -28,7 +28,7 @@ type WebHost struct {
 	clients    map[*webHostClient]struct{}
 
 	logLock sync.RWMutex
-	logs    []core.HostMessageEventRecieved
+	logs    []core.HostMessageEventReceived
 	maxLogs int
 
 	messageID atomic.Uint64
@@ -251,9 +251,9 @@ func (wh *WebHost) handleSubscribeLogs(client *webHostClient, msg core.HostMessa
 		event := events[i]
 		wh.sendToClient(client, core.HostMessage{
 			Id:   wh.nextMessageID(),
-			Type: core.HostMessageTypeEventRecieved,
+			Type: core.HostMessageTypeEventReceived,
 			Payload: core.HostMessagePayload{
-				EventRecieved: &event,
+				EventReceived: &event,
 			},
 		})
 	}
@@ -326,14 +326,14 @@ func (wh *WebHost) sendToClient(client *webHostClient, msg core.HostMessage) {
 	}
 }
 
-func (wh *WebHost) broadcastEvent(ev core.HostMessageEventRecieved) {
+func (wh *WebHost) broadcastEvent(ev core.HostMessageEventReceived) {
 	wh.writeEvent(ev)
 
 	msg := core.HostMessage{
 		Id:   wh.nextMessageID(),
-		Type: core.HostMessageTypeEventRecieved,
+		Type: core.HostMessageTypeEventReceived,
 		Payload: core.HostMessagePayload{
-			EventRecieved: &ev,
+			EventReceived: &ev,
 		},
 	}
 
@@ -351,7 +351,7 @@ func (wh *WebHost) broadcastEvent(ev core.HostMessageEventRecieved) {
 	}
 }
 
-func (wh *WebHost) writeEvent(ev core.HostMessageEventRecieved) {
+func (wh *WebHost) writeEvent(ev core.HostMessageEventReceived) {
 	wh.logLock.Lock()
 	if len(wh.logs) >= wh.maxLogs {
 		wh.logs = wh.logs[1:]
@@ -360,12 +360,12 @@ func (wh *WebHost) writeEvent(ev core.HostMessageEventRecieved) {
 	wh.logLock.Unlock()
 }
 
-func (wh *WebHost) readTailLogs(tail int64) []core.HostMessageEventRecieved {
+func (wh *WebHost) readTailLogs(tail int64) []core.HostMessageEventReceived {
 	wh.logLock.RLock()
 	defer wh.logLock.RUnlock()
 
 	if len(wh.logs) == 0 {
-		return []core.HostMessageEventRecieved{}
+		return []core.HostMessageEventReceived{}
 	}
 
 	count := int(tail)
@@ -377,13 +377,13 @@ func (wh *WebHost) readTailLogs(tail int64) []core.HostMessageEventRecieved {
 	}
 
 	start := len(wh.logs) - count
-	out := make([]core.HostMessageEventRecieved, count)
+	out := make([]core.HostMessageEventReceived, count)
 	copy(out, wh.logs[start:])
 	return out
 }
 
 func (wh *WebHost) emitLog(channel, kind string, namespace *string, message string, payload *string) {
-	wh.broadcastEvent(core.HostMessageEventRecieved{
+	wh.broadcastEvent(core.HostMessageEventReceived{
 		Date:      time.Now(),
 		Channel:   channel,
 		Kind:      kind,

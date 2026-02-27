@@ -9,7 +9,7 @@ enum HostMessageType: String {
          subscribeLogsAck,
          authorizationCreate,
          authorizationCreated,
-         eventRecieved,
+         eventReceived,
          error
 }
 
@@ -31,7 +31,7 @@ struct HostMessagePayload {
     let authorizationCreate = Field(.optional(.model(HostMessageAuthorizationCreate.self)))
     let authorizationCreated = Field(.optional(.model(HostMessageAuthorizationCreated.self)))
 
-    let eventRecieved = Field(.optional(.model(HostMessageEventRecieved.self)))
+    let eventReceived = Field(.optional(.model(HostMessageEventReceived.self)))
     let error = Field(.optional(.model(HostMessageError.self)))
 }
 
@@ -71,7 +71,7 @@ struct HostMessageAuthorizationCreated {
 }
 
 @Model
-struct HostMessageEventRecieved {
+struct HostMessageEventReceived {
     let date = Field(.datetime)
     let channel = Field(.string)
     let kind = Field(.string)
