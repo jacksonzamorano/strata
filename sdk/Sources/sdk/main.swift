@@ -4,7 +4,7 @@ import Foundation
 let sql = SQLBuilder(SQLite())
 
 let projectRoot = URL.currentDirectory().deletingLastPathComponent()
-let tasklibRoot = projectRoot.appending(path: "tasklib")
+let strataRoot = projectRoot.appending(path: "strata")
 
 let goConfig = GoConfiguration { cfg in
     cfg.packageName = "core"
@@ -33,13 +33,13 @@ try! Schema("schema") {
 }
 .output(Go(sqlBuilder: sql, config: goConfig)) {
     CodeBuilderConfiguration(
-        root: tasklibRoot.appending(path: "core"),
+        root: strataRoot.appending(path: "core"),
         fileStrategy: .monolithic,
         generateRecords: .asRecords,
         generateModels: true
     )
 }
-.sql(sql, rootDirectory: tasklibRoot)
+.sql(sql, rootDirectory: strataRoot)
 .build()
 
 try! Schema("messagetypes") {
@@ -49,7 +49,7 @@ try! Schema("messagetypes") {
 }
 .output(Go(sqlBuilder: sql, config: ipcGoConfig)) {
     CodeBuilderConfiguration(
-        root: tasklibRoot.appending(path: "internal/componentipc"),
+        root: strataRoot.appending(path: "internal/componentipc"),
         fileStrategy: .monolithic,
         generateRecords: .none,
         generateModels: true
@@ -74,7 +74,7 @@ try! Schema("hostschema") {
 }
 .output(Go(sqlBuilder: sql, config: goConfig)) {
     CodeBuilderConfiguration(
-        root: tasklibRoot.appending(path: "core"),
+        root: strataRoot.appending(path: "core"),
         fileStrategy: .monolithic,
         generateRecords: .none,
         generateModels: true

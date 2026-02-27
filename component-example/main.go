@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/jacksonzamorano/tasks/componentexample/types"
-	"github.com/jacksonzamorano/tasks/tasklib/component"
+	"github.com/jacksonzamorano/tasks/strata/component"
 )
 
 func sayFeature(r *component.ComponentInput[types.SayRequest, types.SayResponse], ctx *component.ComponentContext) *component.ComponentReturn[types.SayResponse] {

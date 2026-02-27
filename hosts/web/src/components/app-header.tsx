@@ -9,7 +9,7 @@ type HostHeaderProps = {
 export function HostHeader(props: HostHeaderProps) {
   return (
     <AppHeader
-      eyebrow="tasklib"
+      eyebrow="Strata"
       title="Control Plane"
       meta={
         <>

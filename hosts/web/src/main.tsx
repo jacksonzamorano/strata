@@ -313,7 +313,7 @@ function App() {
         ...emptyPayload(),
         hello: {
           protocol_version: "1",
-          client_name: "tasklib-web-host",
+          client_name: "strata-web-host",
         },
       });
 
