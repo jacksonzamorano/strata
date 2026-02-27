@@ -12,11 +12,11 @@ const stateLabel: Record<RequestState, string> = {
   unknown: "Unknown",
 };
 
-const stateClass: Record<RequestState, string> = {
-  in_progress: "border-[#e5e5e5] bg-white text-[#111111]",
-  succeeded: "border-[#21b35c] bg-[#effcf3] text-[#10753a]",
-  failed: "border-[#dd3e4d] bg-[#fff1f2] text-[#a51f2d]",
-  unknown: "border-[#e5e5e5] bg-[#fafafa] text-[#5f5f5f]",
+const stateLightClass: Record<RequestState, string> = {
+  in_progress: "bg-[#f59e0b]",
+  succeeded: "bg-[#21b35c]",
+  failed: "bg-[#dd3e4d]",
+  unknown: "bg-[#c4c4c4]",
 };
 
 const rowClassByState: Partial<Record<RequestState, string>> = {
@@ -49,35 +49,22 @@ const requestColumns: readonly TableColumn<RequestRecord>[] = [
   {
     key: "task",
     header: "Task",
+    class: "min-w-[220px]",
     render: (row) => row.taskName,
-  },
-  {
-    key: "method",
-    header: "Method",
-    class: `${monoTextClass} w-[90px]`,
-    render: (row) => row.method,
-  },
-  {
-    key: "path",
-    header: "Path",
-    class: monoTextClass,
-    render: (row) => row.path,
   },
   {
     key: "status",
     header: "Status",
-    class: "w-[130px]",
+    class: "w-[88px]",
     render: (row) => (
-      <span class={`inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${stateClass[row.state]}`}>
-        {stateLabel[row.state]}
+      <span class="inline-flex items-center justify-center">
+        <span
+          class={`h-[11px] w-[11px] rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.1)] ${stateLightClass[row.state]}`}
+          aria-label={stateLabel[row.state]}
+          title={stateLabel[row.state]}
+        />
       </span>
     ),
-  },
-  {
-    key: "code",
-    header: "Code",
-    class: `${monoTextClass} w-[90px]`,
-    render: (row) => (typeof row.statusCode === "number" ? row.statusCode : "-"),
   },
   {
     key: "duration",
@@ -96,6 +83,7 @@ export function RequestsPanel(props: RequestsPanelProps) {
         emptyLabel="No requests yet. Waiting for task events..."
         getRowId={(row) => row.id}
         rowClass={(row) => rowClassByState[row.state]}
+        tableClass="min-w-[520px]"
       />
     </Surface>
   );

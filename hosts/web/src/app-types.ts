@@ -16,11 +16,8 @@ export type RequestState = "in_progress" | "succeeded" | "failed" | "unknown";
 export type RequestRecord = {
   id: string;
   taskName: string;
-  method: string;
-  path: string;
   startedAt: Date | null;
   finishedAt: Date | null;
-  statusCode?: number;
   durationSeconds?: number;
   state: RequestState;
   sortTs: number;

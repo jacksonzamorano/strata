@@ -41,7 +41,7 @@ const tokenColumns: readonly TableColumn<TokenRecord>[] = [
 
 export function AuthorizationPanel(props: AuthorizationPanelProps) {
   return (
-    <Surface title="Authorization" subtitle="Generate credentials for API and client sessions">
+    <Surface title="Authorization" subtitle="Manage API keys.">
       <form class="grid grid-cols-[1fr_auto] items-center gap-2 max-[900px]:grid-cols-1" onSubmit={props.onSubmit}>
         <FieldLabel for="nickname-input">Nickname</FieldLabel>
         <TextInput

@@ -142,8 +142,6 @@ function App() {
       const current = map.get(id) ?? {
         id,
         taskName: "unknown",
-        method: "-",
-        path: "-",
         startedAt: null,
         finishedAt: null,
         state: "unknown",
@@ -151,17 +149,9 @@ function App() {
       };
 
       const payloadName = parseString(payload.name);
-      const payloadMethod = parseString(payload.method);
-      const payloadPath = parseString(payload.path);
 
       if (payloadName) {
         current.taskName = payloadName;
-      }
-      if (payloadMethod) {
-        current.method = payloadMethod.toUpperCase();
-      }
-      if (payloadPath) {
-        current.path = payloadPath;
       }
       current.sortTs = Math.max(current.sortTs, eventDate.getTime());
 
@@ -183,11 +173,6 @@ function App() {
         const duration = parseNumber(payload.duration);
         if (typeof duration === "number") {
           current.durationSeconds = duration;
-        }
-
-        const statusCode = parseNumber(payload.status_code);
-        if (typeof statusCode === "number") {
-          current.statusCode = statusCode;
         }
 
         if (typeof payload.succeeded === "boolean") {

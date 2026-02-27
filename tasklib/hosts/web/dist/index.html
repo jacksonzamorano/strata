@@ -1373,7 +1373,7 @@ delegateEvents(["click"]);
 
 function HostHeader(props) {
   return createComponent(AppHeader, {
-    eyebrow: "tasklib / host bus",
+    eyebrow: "tasklib",
     title: "Control Plane",
     get meta() {
       return [createComponent(StatusBadge, {
@@ -1424,7 +1424,7 @@ const tokenColumns = [{
 function AuthorizationPanel(props) {
   return createComponent(Surface, {
     title: "Authorization",
-    subtitle: "Generate credentials for API and client sessions",
+    subtitle: "Manage API keys.",
     get children() {
       return [(() => {
         var _el$2 = _tmpl$2$1();
@@ -1528,7 +1528,7 @@ const logColumns = [{
 function LogsPanel(props) {
   return createComponent(Surface, {
     title: "Logs",
-    subtitle: "Realtime event stream from the host bus",
+    subtitle: "All events recieved.",
     get children() {
       return createComponent(DataTable, {
         columns: logColumns,
@@ -1631,18 +1631,18 @@ function OverviewPanel(props) {
   });
 }
 
-var _tmpl$ = /* @__PURE__ */ template(`<span>`);
+var _tmpl$ = /* @__PURE__ */ template(`<span class="inline-flex items-center justify-center"><span>`);
 const stateLabel = {
   in_progress: "In Progress",
   succeeded: "Succeeded",
   failed: "Failed",
   unknown: "Unknown"
 };
-const stateClass = {
-  in_progress: "border-[#e5e5e5] bg-white text-[#111111]",
-  succeeded: "border-[#21b35c] bg-[#effcf3] text-[#10753a]",
-  failed: "border-[#dd3e4d] bg-[#fff1f2] text-[#a51f2d]",
-  unknown: "border-[#e5e5e5] bg-[#fafafa] text-[#5f5f5f]"
+const stateLightClass = {
+  in_progress: "bg-[#f59e0b]",
+  succeeded: "bg-[#21b35c]",
+  failed: "bg-[#dd3e4d]",
+  unknown: "bg-[#c4c4c4]"
 };
 const rowClassByState = {
   failed: "[&>td:first-child]:border-l-[3px] [&>td:first-child]:border-l-[#dd3e4d]",
@@ -1669,32 +1669,27 @@ const requestColumns = [{
 }, {
   key: "task",
   header: "Task",
+  class: "min-w-[220px]",
   render: (row) => row.taskName
-}, {
-  key: "method",
-  header: "Method",
-  class: `${monoTextClass} w-[90px]`,
-  render: (row) => row.method
-}, {
-  key: "path",
-  header: "Path",
-  class: monoTextClass,
-  render: (row) => row.path
 }, {
   key: "status",
   header: "Status",
-  class: "w-[130px]",
+  class: "w-[88px]",
   render: (row) => (() => {
-    var _el$ = _tmpl$();
-    insert(_el$, () => stateLabel[row.state]);
-    createRenderEffect(() => className(_el$, `inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${stateClass[row.state]}`));
+    var _el$ = _tmpl$(), _el$2 = _el$.firstChild;
+    createRenderEffect((_p$) => {
+      var _v$ = `h-[11px] w-[11px] rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.1)] ${stateLightClass[row.state]}`, _v$2 = stateLabel[row.state], _v$3 = stateLabel[row.state];
+      _v$ !== _p$.e && className(_el$2, _p$.e = _v$);
+      _v$2 !== _p$.t && setAttribute(_el$2, "aria-label", _p$.t = _v$2);
+      _v$3 !== _p$.a && setAttribute(_el$2, "title", _p$.a = _v$3);
+      return _p$;
+    }, {
+      e: void 0,
+      t: void 0,
+      a: void 0
+    });
     return _el$;
   })()
-}, {
-  key: "code",
-  header: "Code",
-  class: `${monoTextClass} w-[90px]`,
-  render: (row) => typeof row.statusCode === "number" ? row.statusCode : "-"
 }, {
   key: "duration",
   header: "Duration",
@@ -1704,7 +1699,7 @@ const requestColumns = [{
 function RequestsPanel(props) {
   return createComponent(Surface, {
     title: "Requests",
-    subtitle: "Task lifecycle derived from host event logs",
+    subtitle: "Task request history.",
     get children() {
       return createComponent(DataTable, {
         columns: requestColumns,
@@ -1713,7 +1708,8 @@ function RequestsPanel(props) {
         },
         emptyLabel: "No requests yet. Waiting for task events...",
         getRowId: (row) => row.id,
-        rowClass: (row) => rowClassByState[row.state]
+        rowClass: (row) => rowClassByState[row.state],
+        tableClass: "min-w-[520px]"
       });
     }
   });
@@ -1829,24 +1825,14 @@ function App() {
       const current = map.get(id) ?? {
         id,
         taskName: "unknown",
-        method: "-",
-        path: "-",
         startedAt: null,
         finishedAt: null,
         state: "unknown",
         sortTs: eventDate.getTime()
       };
       const payloadName = parseString(payload.name);
-      const payloadMethod = parseString(payload.method);
-      const payloadPath = parseString(payload.path);
       if (payloadName) {
         current.taskName = payloadName;
-      }
-      if (payloadMethod) {
-        current.method = payloadMethod.toUpperCase();
-      }
-      if (payloadPath) {
-        current.path = payloadPath;
       }
       current.sortTs = Math.max(current.sortTs, eventDate.getTime());
       if (row.kind === "taskStarted") {
@@ -1866,10 +1852,6 @@ function App() {
         const duration = parseNumber(payload.duration);
         if (typeof duration === "number") {
           current.durationSeconds = duration;
-        }
-        const statusCode = parseNumber(payload.status_code);
-        if (typeof statusCode === "number") {
-          current.statusCode = statusCode;
         }
         if (typeof payload.succeeded === "boolean") {
           current.state = payload.succeeded ? "succeeded" : "failed";
@@ -2219,7 +2201,6 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
       --tw-ring-offset-width: 0px;
       --tw-ring-offset-color: #fff;
       --tw-ring-offset-shadow: 0 0 #0000;
-      --tw-outline-style: solid;
     }
   }
 }
@@ -2510,14 +2491,6 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     position: sticky;
   }
 
-  .start {
-    inset-inline-start: var(--spacing);
-  }
-
-  .end {
-    inset-inline-end: var(--spacing);
-  }
-
   .top-0 {
     top: calc(var(--spacing) * 0);
   }
@@ -2596,10 +2569,6 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     margin-bottom: calc(var(--spacing) * 4);
   }
 
-  .ml-1 {
-    margin-left: calc(var(--spacing) * 1);
-  }
-
   .ml-1\.5 {
     margin-left: calc(var(--spacing) * 1.5);
   }
@@ -2616,16 +2585,8 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     display: grid;
   }
 
-  .hidden {
-    display: none;
-  }
-
   .inline-flex {
     display: inline-flex;
-  }
-
-  .table {
-    display: table;
   }
 
   .h-\[11px\] {
@@ -2644,16 +2605,12 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     width: 11px;
   }
 
-  .w-\[90px\] {
-    width: 90px;
+  .w-\[88px\] {
+    width: 88px;
   }
 
   .w-\[110px\] {
     width: 110px;
-  }
-
-  .w-\[130px\] {
-    width: 130px;
   }
 
   .w-\[180px\] {
@@ -2684,6 +2641,14 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     min-width: 24px;
   }
 
+  .min-w-\[220px\] {
+    min-width: 220px;
+  }
+
+  .min-w-\[520px\] {
+    min-width: 520px;
+  }
+
   .min-w-\[780px\] {
     min-width: 780px;
   }
@@ -2694,10 +2659,6 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
 
   .cursor-pointer {
     cursor: pointer;
-  }
-
-  .resize {
-    resize: both;
   }
 
   .resize-y {
@@ -2810,16 +2771,8 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     border-bottom-width: 1px;
   }
 
-  .border-\[\#21b35c\] {
-    border-color: #21b35c;
-  }
-
   .border-\[\#111111\] {
     border-color: #111;
-  }
-
-  .border-\[\#dd3e4d\] {
-    border-color: #dd3e4d;
   }
 
   .border-\[\#e5e5e5\] {
@@ -2834,12 +2787,16 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     background-color: #111;
   }
 
+  .bg-\[\#c4c4c4\] {
+    background-color: #c4c4c4;
+  }
+
   .bg-\[\#dd3e4d\] {
     background-color: #dd3e4d;
   }
 
-  .bg-\[\#effcf3\] {
-    background-color: #effcf3;
+  .bg-\[\#f59e0b\] {
+    background-color: #f59e0b;
   }
 
   .bg-\[\#fafafa\] {
@@ -2852,10 +2809,6 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
 
   .bg-\[\#fcfcfc\] {
     background-color: #fcfcfc;
-  }
-
-  .bg-\[\#fff1f2\] {
-    background-color: #fff1f2;
   }
 
   .bg-transparent {
@@ -2906,24 +2859,12 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     padding-inline: 22px;
   }
 
-  .py-0 {
-    padding-block: calc(var(--spacing) * 0);
-  }
-
   .py-0\.5 {
     padding-block: calc(var(--spacing) * .5);
   }
 
-  .py-1 {
-    padding-block: calc(var(--spacing) * 1);
-  }
-
   .py-1\.5 {
     padding-block: calc(var(--spacing) * 1.5);
-  }
-
-  .py-2 {
-    padding-block: calc(var(--spacing) * 2);
   }
 
   .py-2\.5 {
@@ -3050,20 +2991,12 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     color: #5f5f5f;
   }
 
-  .text-\[\#10753a\] {
-    color: #10753a;
-  }
-
   .text-\[\#111111\] {
     color: #111;
   }
 
   .text-\[\#242424\] {
     color: #242424;
-  }
-
-  .text-\[\#a51f2d\] {
-    color: #a51f2d;
   }
 
   .text-white {
@@ -3074,10 +3007,6 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     text-transform: uppercase;
   }
 
-  .underline {
-    text-decoration-line: underline;
-  }
-
   .shadow-\[0_0_0_1px_rgba\(0\,0\,0\,0\.1\)\] {
     --tw-shadow: 0 0 0 1px var(--tw-shadow-color, #0000001a);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
@@ -3086,11 +3015,6 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
   .shadow-\[inset_0_0_0_1px_\#e5e5e5\] {
     --tw-shadow: inset 0 0 0 1px var(--tw-shadow-color, #e5e5e5);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-  }
-
-  .outline {
-    outline-style: var(--tw-outline-style);
-    outline-width: 1px;
   }
 
   .last\:border-b-0:last-child {
@@ -3279,12 +3203,6 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
   syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
-}
-
-@property --tw-outline-style {
-  syntax: "*";
-  inherits: false;
-  initial-value: solid;
 }</style>
   </head>
   <body>
