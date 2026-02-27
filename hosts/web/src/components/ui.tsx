@@ -124,8 +124,25 @@ export function TabBar<T extends string>(props: {
   options: readonly TabOption<T>[];
   onChange: (key: T) => void;
 }) {
+  const gridClass =
+    props.options.length <= 1
+      ? "grid-cols-1"
+      : props.options.length === 2
+        ? "grid-cols-2"
+        : props.options.length === 3
+          ? "grid-cols-3"
+          : props.options.length === 4
+            ? "grid-cols-4"
+            : "grid-cols-5";
+
   return (
-    <nav class="grid grid-cols-3 gap-1 rounded-[12px] border border-[#e5e5e5] bg-[#fbfbfb] p-1 max-[640px]:grid-cols-1" aria-label="Sections">
+    <nav
+      class={joinClasses(
+        "grid gap-1 rounded-[12px] border border-[#e5e5e5] bg-[#fbfbfb] p-1 max-[640px]:grid-cols-1",
+        gridClass,
+      )}
+      aria-label="Sections"
+    >
       <For each={props.options}>
         {(option) => (
           <button

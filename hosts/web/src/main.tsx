@@ -8,6 +8,7 @@ import type {
 } from "./generated";
 import type {
   LogRecord,
+  RequestRecord,
   RegisteredComponent,
   RegisteredTask,
   TabKey,
@@ -18,6 +19,7 @@ import { HostHeader } from "./components/app-header";
 import { AuthorizationPanel } from "./components/authorization-panel";
 import { LogsPanel } from "./components/logs-panel";
 import { OverviewPanel } from "./components/overview-panel";
+import { RequestsPanel } from "./components/requests-panel";
 import { Shell, TabBar } from "./components/ui";
 import "./styles.css";
 
@@ -28,6 +30,7 @@ const tabOptions = [
   { key: "overview", label: "Overview" },
   { key: "authorization", label: "Authorization" },
   { key: "logs", label: "Logs" },
+  { key: "requests", label: "Requests" },
 ] as const satisfies readonly { key: TabKey; label: string }[];
 
 const emptyPayload = (): HostMessagePayload => ({
@@ -68,19 +71,7 @@ function App() {
   let reconnectTimer: number | null = null;
   let disposed = false;
 
-  const lineCount = createMemo(() => logs().length);
-
-  const pushLog = (entry: LogRecord) => {
-    setLogs((previous) => {
-      const next = [...previous, entry];
-      if (next.length <= MAX_LOG_LINES) {
-        return next;
-      }
-      return next.slice(next.length - MAX_LOG_LINES);
-    });
-  };
-
-  const parsePayloadObject = (rawPayload: string | undefined): Record<string, unknown> | null => {
+  function parsePayloadObject(rawPayload: string | undefined): Record<string, unknown> | null {
     if (!rawPayload) {
       return null;
     }
@@ -93,6 +84,134 @@ function App() {
     } catch {
       return null;
     }
+  }
+
+  const lineCount = createMemo(() => logs().length);
+  const requests = createMemo<RequestRecord[]>(() => {
+    const rows = logs();
+    const map = new Map<string, RequestRecord>();
+
+    const parseDate = (value: unknown): Date | null => {
+      if (value instanceof Date && !Number.isNaN(value.getTime())) {
+        return value;
+      }
+      if (typeof value === "string" || typeof value === "number") {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed;
+        }
+      }
+      return null;
+    };
+
+    const parseString = (value: unknown): string | null => {
+      if (typeof value !== "string") {
+        return null;
+      }
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    };
+
+    const parseNumber = (value: unknown): number | undefined => {
+      if (typeof value !== "number" || Number.isNaN(value)) {
+        return undefined;
+      }
+      return value;
+    };
+
+    for (const row of rows) {
+      if (row.channel !== "event") {
+        continue;
+      }
+      if (row.kind !== "taskStarted" && row.kind !== "taskFinished") {
+        continue;
+      }
+
+      const payload = parsePayloadObject(row.payload);
+      if (!payload) {
+        continue;
+      }
+
+      const id = parseString(payload.id);
+      if (!id) {
+        continue;
+      }
+
+      const fallbackDate = new Date(row.timestamp);
+      const eventDate = parseDate(payload.date) ?? fallbackDate;
+      const current = map.get(id) ?? {
+        id,
+        taskName: "unknown",
+        method: "-",
+        path: "-",
+        startedAt: null,
+        finishedAt: null,
+        state: "unknown",
+        sortTs: eventDate.getTime(),
+      };
+
+      const payloadName = parseString(payload.name);
+      const payloadMethod = parseString(payload.method);
+      const payloadPath = parseString(payload.path);
+
+      if (payloadName) {
+        current.taskName = payloadName;
+      }
+      if (payloadMethod) {
+        current.method = payloadMethod.toUpperCase();
+      }
+      if (payloadPath) {
+        current.path = payloadPath;
+      }
+      current.sortTs = Math.max(current.sortTs, eventDate.getTime());
+
+      if (row.kind === "taskStarted") {
+        if (!current.startedAt || eventDate.getTime() < current.startedAt.getTime()) {
+          current.startedAt = eventDate;
+        }
+        if (current.state === "unknown") {
+          current.state = "in_progress";
+        }
+      } else {
+        if (!current.finishedAt || eventDate.getTime() > current.finishedAt.getTime()) {
+          current.finishedAt = eventDate;
+        }
+        if (!current.startedAt) {
+          current.startedAt = eventDate;
+        }
+
+        const duration = parseNumber(payload.duration);
+        if (typeof duration === "number") {
+          current.durationSeconds = duration;
+        }
+
+        const statusCode = parseNumber(payload.status_code);
+        if (typeof statusCode === "number") {
+          current.statusCode = statusCode;
+        }
+
+        if (typeof payload.succeeded === "boolean") {
+          current.state = payload.succeeded ? "succeeded" : "failed";
+        } else {
+          current.state = "unknown";
+        }
+      }
+
+      map.set(id, current);
+    }
+
+    return Array.from(map.values()).sort((a, b) => b.sortTs - a.sortTs);
+  });
+  const requestCount = createMemo(() => requests().length);
+
+  const pushLog = (entry: LogRecord) => {
+    setLogs((previous) => {
+      const next = [...previous, entry];
+      if (next.length <= MAX_LOG_LINES) {
+        return next;
+      }
+      return next.slice(next.length - MAX_LOG_LINES);
+    });
   };
 
   const upsertTask = (name: string, url: string) => {
@@ -249,6 +368,7 @@ function App() {
 
         pushLog({
           id: message.id,
+          timestamp: timestamp.getTime(),
           date: timestamp.toLocaleTimeString(),
           channel: incoming.channel,
           kind: incoming.kind,
@@ -289,9 +409,11 @@ function App() {
       }
 
       if (message.type === "error" && message.payload.error) {
+        const now = new Date();
         pushLog({
           id: message.id || nextMessageId(),
-          date: new Date().toLocaleTimeString(),
+          timestamp: now.getTime(),
+          date: now.toLocaleTimeString(),
           channel: "error",
           kind: message.payload.error.code,
           message: message.payload.error.message,
@@ -347,9 +469,15 @@ function App() {
       <TabBar
         value={activeTab()}
         onChange={setActiveTab}
-        options={tabOptions.map((tab) =>
-          tab.key === "logs" ? { ...tab, count: lineCount() } : tab,
-        )}
+        options={tabOptions.map((tab) => {
+          if (tab.key === "logs") {
+            return { ...tab, count: lineCount() };
+          }
+          if (tab.key === "requests") {
+            return { ...tab, count: requestCount() };
+          }
+          return tab;
+        })}
       />
 
       <Show when={activeTab() === "overview"}>
@@ -368,6 +496,10 @@ function App() {
 
       <Show when={activeTab() === "logs"}>
         <LogsPanel logs={logs()} />
+      </Show>
+
+      <Show when={activeTab() === "requests"}>
+        <RequestsPanel requests={requests()} />
       </Show>
     </Shell>
   );

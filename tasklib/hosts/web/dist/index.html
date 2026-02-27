@@ -1143,7 +1143,7 @@ function cleanChildren(parent, current, marker, replacement) {
   return [node];
 }
 
-var _tmpl$$2 = /* @__PURE__ */ template(`<main class="mx-auto grid max-w-[1080px] gap-4 p-[28px] max-[900px]:p-4">`), _tmpl$2$2 = /* @__PURE__ */ template(`<header class="flex flex-wrap items-start justify-between gap-3 rounded-[12px] border border-[#e5e5e5] bg-white p-4 max-[640px]:p-3"><div><div class="text-[11px] uppercase tracking-[0.1em] text-[#5f5f5f]"></div><h1 class="m-0 mt-[6px] text-[clamp(1.5rem,3vw,2rem)] leading-[1.1] tracking-[-0.02em]"></h1></div><div class="flex flex-wrap items-center gap-2">`), _tmpl$3$2 = /* @__PURE__ */ template(`<p class="m-0 mt-1 text-xs text-[#5f5f5f]">`), _tmpl$4$2 = /* @__PURE__ */ template(`<section><div class="mb-4 flex justify-between gap-3"><div><h2 class="m-0 text-[1.05rem] tracking-[-0.01em]">`), _tmpl$5$2 = /* @__PURE__ */ template(`<span>`), _tmpl$6$1 = /* @__PURE__ */ template(`<label>`), _tmpl$7 = /* @__PURE__ */ template(`<input>`), _tmpl$8 = /* @__PURE__ */ template(`<textarea>`), _tmpl$9 = /* @__PURE__ */ template(`<button>`), _tmpl$0 = /* @__PURE__ */ template(`<nav class="grid grid-cols-3 gap-1 rounded-[12px] border border-[#e5e5e5] bg-[#fbfbfb] p-1 max-[640px]:grid-cols-1"aria-label=Sections>`), _tmpl$1 = /* @__PURE__ */ template(`<span class="min-w-[24px] rounded-full bg-[#111111] px-2 py-0.5 text-[11px] leading-[1.3] text-white">`), _tmpl$10 = /* @__PURE__ */ template(`<button type=button><span>`), _tmpl$13 = /* @__PURE__ */ template(`<div><table><thead><tr></tr></thead><tbody>`), _tmpl$14 = /* @__PURE__ */ template(`<th>`), _tmpl$15 = /* @__PURE__ */ template(`<tr><td class="px-[22px] py-[22px] text-center text-[#5f5f5f]">`), _tmpl$16 = /* @__PURE__ */ template(`<tr>`), _tmpl$17 = /* @__PURE__ */ template(`<td>`);
+var _tmpl$$3 = /* @__PURE__ */ template(`<main class="mx-auto grid max-w-[1080px] gap-4 p-[28px] max-[900px]:p-4">`), _tmpl$2$2 = /* @__PURE__ */ template(`<header class="flex flex-wrap items-start justify-between gap-3 rounded-[12px] border border-[#e5e5e5] bg-white p-4 max-[640px]:p-3"><div><div class="text-[11px] uppercase tracking-[0.1em] text-[#5f5f5f]"></div><h1 class="m-0 mt-[6px] text-[clamp(1.5rem,3vw,2rem)] leading-[1.1] tracking-[-0.02em]"></h1></div><div class="flex flex-wrap items-center gap-2">`), _tmpl$3$2 = /* @__PURE__ */ template(`<p class="m-0 mt-1 text-xs text-[#5f5f5f]">`), _tmpl$4$2 = /* @__PURE__ */ template(`<section><div class="mb-4 flex justify-between gap-3"><div><h2 class="m-0 text-[1.05rem] tracking-[-0.01em]">`), _tmpl$5$2 = /* @__PURE__ */ template(`<span>`), _tmpl$6$1 = /* @__PURE__ */ template(`<label>`), _tmpl$7 = /* @__PURE__ */ template(`<input>`), _tmpl$8 = /* @__PURE__ */ template(`<textarea>`), _tmpl$9 = /* @__PURE__ */ template(`<button>`), _tmpl$0 = /* @__PURE__ */ template(`<nav aria-label=Sections>`), _tmpl$1 = /* @__PURE__ */ template(`<span class="min-w-[24px] rounded-full bg-[#111111] px-2 py-0.5 text-[11px] leading-[1.3] text-white">`), _tmpl$10 = /* @__PURE__ */ template(`<button type=button><span>`), _tmpl$13 = /* @__PURE__ */ template(`<div><table><thead><tr></tr></thead><tbody>`), _tmpl$14 = /* @__PURE__ */ template(`<th>`), _tmpl$15 = /* @__PURE__ */ template(`<tr><td class="px-[22px] py-[22px] text-center text-[#5f5f5f]">`), _tmpl$16 = /* @__PURE__ */ template(`<tr>`), _tmpl$17 = /* @__PURE__ */ template(`<td>`);
 const joinClasses$1 = (...parts) => parts.filter(Boolean).join(" ");
 const pillClass = "rounded-full border border-[#e5e5e5] px-[10px] py-1.5 text-xs font-semibold";
 const inputClass = "w-full rounded-[10px] border border-[#e5e5e5] bg-white px-3 py-2.5 text-sm text-[#111111] focus:border-[#111111] focus:outline-none focus:shadow-[0_0_0_1px_#111111]";
@@ -1151,7 +1151,7 @@ const monoTextClass = "font-mono text-xs";
 const emptyStateClass = "px-[22px] py-[22px] text-center text-[#5f5f5f]";
 function Shell(props) {
   return (() => {
-    var _el$ = _tmpl$$2();
+    var _el$ = _tmpl$$3();
     insert(_el$, () => props.children);
     return _el$;
   })();
@@ -1262,6 +1262,7 @@ function Button(props) {
   })();
 }
 function TabBar(props) {
+  const gridClass = props.options.length <= 1 ? "grid-cols-1" : props.options.length === 2 ? "grid-cols-2" : props.options.length === 3 ? "grid-cols-3" : props.options.length === 4 ? "grid-cols-4" : "grid-cols-5";
   return (() => {
     var _el$16 = _tmpl$0();
     insert(_el$16, createComponent(For, {
@@ -1294,6 +1295,7 @@ function TabBar(props) {
         return _el$17;
       })()
     }));
+    createRenderEffect(() => className(_el$16, joinClasses$1("grid gap-1 rounded-[12px] border border-[#e5e5e5] bg-[#fbfbfb] p-1 max-[640px]:grid-cols-1", gridClass)));
     return _el$16;
   })();
 }
@@ -1392,7 +1394,7 @@ function HostHeader(props) {
   });
 }
 
-var _tmpl$$1 = /* @__PURE__ */ template(`<code>`), _tmpl$2$1 = /* @__PURE__ */ template(`<form class="grid grid-cols-[1fr_auto] items-center gap-2 max-[900px]:grid-cols-1">`), _tmpl$3$1 = /* @__PURE__ */ template(`<div class=mt-4><div class="mb-2 text-xs text-[#5f5f5f]">Existing tokens <span class="ml-1.5 font-semibold text-[#111111]">`), _tmpl$4$1 = /* @__PURE__ */ template(`<div class=mt-4><div class="mb-2 text-xs text-[#5f5f5f]">New secret <span class="ml-1.5 font-semibold text-[#111111]">`), _tmpl$5$1 = /* @__PURE__ */ template(`<div>No tokens found.`);
+var _tmpl$$2 = /* @__PURE__ */ template(`<code>`), _tmpl$2$1 = /* @__PURE__ */ template(`<form class="grid grid-cols-[1fr_auto] items-center gap-2 max-[900px]:grid-cols-1">`), _tmpl$3$1 = /* @__PURE__ */ template(`<div class=mt-4><div class="mb-2 text-xs text-[#5f5f5f]">Existing tokens <span class="ml-1.5 font-semibold text-[#111111]">`), _tmpl$4$1 = /* @__PURE__ */ template(`<div class=mt-4><div class="mb-2 text-xs text-[#5f5f5f]">New secret <span class="ml-1.5 font-semibold text-[#111111]">`), _tmpl$5$1 = /* @__PURE__ */ template(`<div>No tokens found.`);
 const tokenColumns = [{
   key: "nickname",
   header: "Nickname",
@@ -1413,7 +1415,7 @@ const tokenColumns = [{
   key: "secret",
   header: "Secret",
   render: (token) => (() => {
-    var _el$ = _tmpl$$1();
+    var _el$ = _tmpl$$2();
     className(_el$, `${monoTextClass} m-0 block max-w-full whitespace-pre-wrap break-all`);
     insert(_el$, () => token.secret);
     return _el$;
@@ -1541,7 +1543,7 @@ function LogsPanel(props) {
   });
 }
 
-var _tmpl$ = /* @__PURE__ */ template(`<ul class="m-0 list-none p-0">`), _tmpl$2 = /* @__PURE__ */ template(`<div class="grid grid-cols-2 gap-3 max-[900px]:grid-cols-1"><article class="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fcfcfc]"><header class="flex items-center justify-between gap-2 border-b border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5"><h3 class="m-0 text-xs uppercase tracking-[0.06em] text-[#5f5f5f]">Registered Tasks</h3><span></span></header></article><article class="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fcfcfc]"><header class="flex items-center justify-between gap-2 border-b border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5"><h3 class="m-0 text-xs uppercase tracking-[0.06em] text-[#5f5f5f]">Registered Components</h3><span>`), _tmpl$3 = /* @__PURE__ */ template(`<div>No registered tasks yet.`), _tmpl$4 = /* @__PURE__ */ template(`<li class="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 border-b border-[#e5e5e5] px-3 py-2.5 last:border-b-0"><span class="min-w-0 [overflow-wrap:anywhere] text-[13px]"></span><code>`), _tmpl$5 = /* @__PURE__ */ template(`<div>No registered components yet.`), _tmpl$6 = /* @__PURE__ */ template(`<li class="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 border-b border-[#e5e5e5] px-3 py-2.5 last:border-b-0"><span aria-hidden=true></span><span class="min-w-0 [overflow-wrap:anywhere] text-[13px]"></span><code>`);
+var _tmpl$$1 = /* @__PURE__ */ template(`<ul class="m-0 list-none p-0">`), _tmpl$2 = /* @__PURE__ */ template(`<div class="grid grid-cols-2 gap-3 max-[900px]:grid-cols-1"><article class="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fcfcfc]"><header class="flex items-center justify-between gap-2 border-b border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5"><h3 class="m-0 text-xs uppercase tracking-[0.06em] text-[#5f5f5f]">Registered Tasks</h3><span></span></header></article><article class="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fcfcfc]"><header class="flex items-center justify-between gap-2 border-b border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5"><h3 class="m-0 text-xs uppercase tracking-[0.06em] text-[#5f5f5f]">Registered Components</h3><span>`), _tmpl$3 = /* @__PURE__ */ template(`<div>No registered tasks yet.`), _tmpl$4 = /* @__PURE__ */ template(`<li class="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 border-b border-[#e5e5e5] px-3 py-2.5 last:border-b-0"><span class="min-w-0 [overflow-wrap:anywhere] text-[13px]"></span><code>`), _tmpl$5 = /* @__PURE__ */ template(`<div>No registered components yet.`), _tmpl$6 = /* @__PURE__ */ template(`<li class="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 border-b border-[#e5e5e5] px-3 py-2.5 last:border-b-0"><span aria-hidden=true></span><span class="min-w-0 [overflow-wrap:anywhere] text-[13px]"></span><code>`);
 const joinClasses = (...parts) => parts.filter(Boolean).join(" ");
 function OverviewPanel(props) {
   return createComponent(Surface, {
@@ -1562,7 +1564,7 @@ function OverviewPanel(props) {
           })();
         },
         get children() {
-          var _el$6 = _tmpl$();
+          var _el$6 = _tmpl$$1();
           insert(_el$6, createComponent(For, {
             get each() {
               return props.tasks;
@@ -1591,7 +1593,7 @@ function OverviewPanel(props) {
           })();
         },
         get children() {
-          var _el$1 = _tmpl$();
+          var _el$1 = _tmpl$$1();
           insert(_el$1, createComponent(For, {
             get each() {
               return props.components;
@@ -1629,6 +1631,94 @@ function OverviewPanel(props) {
   });
 }
 
+var _tmpl$ = /* @__PURE__ */ template(`<span>`);
+const stateLabel = {
+  in_progress: "In Progress",
+  succeeded: "Succeeded",
+  failed: "Failed",
+  unknown: "Unknown"
+};
+const stateClass = {
+  in_progress: "border-[#e5e5e5] bg-white text-[#111111]",
+  succeeded: "border-[#21b35c] bg-[#effcf3] text-[#10753a]",
+  failed: "border-[#dd3e4d] bg-[#fff1f2] text-[#a51f2d]",
+  unknown: "border-[#e5e5e5] bg-[#fafafa] text-[#5f5f5f]"
+};
+const rowClassByState = {
+  failed: "[&>td:first-child]:border-l-[3px] [&>td:first-child]:border-l-[#dd3e4d]",
+  succeeded: "[&>td:first-child]:border-l-[3px] [&>td:first-child]:border-l-[#21b35c]"
+};
+const renderTimestamp = (row) => {
+  const date = row.startedAt ?? row.finishedAt;
+  return date ? date.toLocaleString() : "-";
+};
+const renderDuration = (value) => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return "-";
+  }
+  if (value < 1) {
+    return `${Math.round(value * 1e3)}ms`;
+  }
+  return `${value.toFixed(2)}s`;
+};
+const requestColumns = [{
+  key: "time",
+  header: "Time",
+  class: `${monoTextClass} w-[190px]`,
+  render: (row) => renderTimestamp(row)
+}, {
+  key: "task",
+  header: "Task",
+  render: (row) => row.taskName
+}, {
+  key: "method",
+  header: "Method",
+  class: `${monoTextClass} w-[90px]`,
+  render: (row) => row.method
+}, {
+  key: "path",
+  header: "Path",
+  class: monoTextClass,
+  render: (row) => row.path
+}, {
+  key: "status",
+  header: "Status",
+  class: "w-[130px]",
+  render: (row) => (() => {
+    var _el$ = _tmpl$();
+    insert(_el$, () => stateLabel[row.state]);
+    createRenderEffect(() => className(_el$, `inline-flex rounded-full border px-2 py-1 text-[11px] font-semibold ${stateClass[row.state]}`));
+    return _el$;
+  })()
+}, {
+  key: "code",
+  header: "Code",
+  class: `${monoTextClass} w-[90px]`,
+  render: (row) => typeof row.statusCode === "number" ? row.statusCode : "-"
+}, {
+  key: "duration",
+  header: "Duration",
+  class: `${monoTextClass} w-[110px]`,
+  render: (row) => renderDuration(row.durationSeconds)
+}];
+function RequestsPanel(props) {
+  return createComponent(Surface, {
+    title: "Requests",
+    subtitle: "Task lifecycle derived from host event logs",
+    get children() {
+      return createComponent(DataTable, {
+        columns: requestColumns,
+        get rows() {
+          return props.requests;
+        },
+        emptyLabel: "No requests yet. Waiting for task events...",
+        getRowId: (row) => row.id,
+        rowClass: (row) => rowClassByState[row.state]
+      });
+    }
+  });
+}
+
 const MAX_LOG_LINES = 1e3;
 const RECONNECT_DELAY_MS = 1e3;
 const tabOptions = [{
@@ -1640,6 +1730,9 @@ const tabOptions = [{
 }, {
   key: "logs",
   label: "Logs"
+}, {
+  key: "requests",
+  label: "Requests"
 }];
 const emptyPayload = () => ({
   hello: void 0,
@@ -1673,17 +1766,7 @@ function App() {
   let socket = null;
   let reconnectTimer = null;
   let disposed = false;
-  const lineCount = createMemo(() => logs().length);
-  const pushLog = (entry) => {
-    setLogs((previous) => {
-      const next = [...previous, entry];
-      if (next.length <= MAX_LOG_LINES) {
-        return next;
-      }
-      return next.slice(next.length - MAX_LOG_LINES);
-    });
-  };
-  const parsePayloadObject = (rawPayload) => {
+  function parsePayloadObject(rawPayload) {
     if (!rawPayload) {
       return null;
     }
@@ -1696,6 +1779,117 @@ function App() {
     } catch {
       return null;
     }
+  }
+  const lineCount = createMemo(() => logs().length);
+  const requests = createMemo(() => {
+    const rows = logs();
+    const map = /* @__PURE__ */ new Map();
+    const parseDate = (value) => {
+      if (value instanceof Date && !Number.isNaN(value.getTime())) {
+        return value;
+      }
+      if (typeof value === "string" || typeof value === "number") {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed;
+        }
+      }
+      return null;
+    };
+    const parseString = (value) => {
+      if (typeof value !== "string") {
+        return null;
+      }
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    };
+    const parseNumber = (value) => {
+      if (typeof value !== "number" || Number.isNaN(value)) {
+        return void 0;
+      }
+      return value;
+    };
+    for (const row of rows) {
+      if (row.channel !== "event") {
+        continue;
+      }
+      if (row.kind !== "taskStarted" && row.kind !== "taskFinished") {
+        continue;
+      }
+      const payload = parsePayloadObject(row.payload);
+      if (!payload) {
+        continue;
+      }
+      const id = parseString(payload.id);
+      if (!id) {
+        continue;
+      }
+      const fallbackDate = new Date(row.timestamp);
+      const eventDate = parseDate(payload.date) ?? fallbackDate;
+      const current = map.get(id) ?? {
+        id,
+        taskName: "unknown",
+        method: "-",
+        path: "-",
+        startedAt: null,
+        finishedAt: null,
+        state: "unknown",
+        sortTs: eventDate.getTime()
+      };
+      const payloadName = parseString(payload.name);
+      const payloadMethod = parseString(payload.method);
+      const payloadPath = parseString(payload.path);
+      if (payloadName) {
+        current.taskName = payloadName;
+      }
+      if (payloadMethod) {
+        current.method = payloadMethod.toUpperCase();
+      }
+      if (payloadPath) {
+        current.path = payloadPath;
+      }
+      current.sortTs = Math.max(current.sortTs, eventDate.getTime());
+      if (row.kind === "taskStarted") {
+        if (!current.startedAt || eventDate.getTime() < current.startedAt.getTime()) {
+          current.startedAt = eventDate;
+        }
+        if (current.state === "unknown") {
+          current.state = "in_progress";
+        }
+      } else {
+        if (!current.finishedAt || eventDate.getTime() > current.finishedAt.getTime()) {
+          current.finishedAt = eventDate;
+        }
+        if (!current.startedAt) {
+          current.startedAt = eventDate;
+        }
+        const duration = parseNumber(payload.duration);
+        if (typeof duration === "number") {
+          current.durationSeconds = duration;
+        }
+        const statusCode = parseNumber(payload.status_code);
+        if (typeof statusCode === "number") {
+          current.statusCode = statusCode;
+        }
+        if (typeof payload.succeeded === "boolean") {
+          current.state = payload.succeeded ? "succeeded" : "failed";
+        } else {
+          current.state = "unknown";
+        }
+      }
+      map.set(id, current);
+    }
+    return Array.from(map.values()).sort((a, b) => b.sortTs - a.sortTs);
+  });
+  const requestCount = createMemo(() => requests().length);
+  const pushLog = (entry) => {
+    setLogs((previous) => {
+      const next = [...previous, entry];
+      if (next.length <= MAX_LOG_LINES) {
+        return next;
+      }
+      return next.slice(next.length - MAX_LOG_LINES);
+    });
   };
   const upsertTask = (name, url) => {
     setTasks((previous) => {
@@ -1827,6 +2021,7 @@ function App() {
         const timestamp = new Date(incoming.date || Date.now());
         pushLog({
           id: message.id,
+          timestamp: timestamp.getTime(),
           date: timestamp.toLocaleTimeString(),
           channel: incoming.channel,
           kind: incoming.kind,
@@ -1858,9 +2053,11 @@ function App() {
         return;
       }
       if (message.type === "error" && message.payload.error) {
+        const now = /* @__PURE__ */ new Date();
         pushLog({
           id: message.id || nextMessageId(),
-          date: (/* @__PURE__ */ new Date()).toLocaleTimeString(),
+          timestamp: now.getTime(),
+          date: now.toLocaleTimeString(),
           channel: "error",
           kind: message.payload.error.code,
           message: message.payload.error.message
@@ -1918,10 +2115,21 @@ function App() {
         },
         onChange: setActiveTab,
         get options() {
-          return tabOptions.map((tab) => tab.key === "logs" ? {
-            ...tab,
-            count: lineCount()
-          } : tab);
+          return tabOptions.map((tab) => {
+            if (tab.key === "logs") {
+              return {
+                ...tab,
+                count: lineCount()
+              };
+            }
+            if (tab.key === "requests") {
+              return {
+                ...tab,
+                count: requestCount()
+              };
+            }
+            return tab;
+          });
         }
       }), createComponent(Show, {
         get when() {
@@ -1964,6 +2172,17 @@ function App() {
           return createComponent(LogsPanel, {
             get logs() {
               return logs();
+            }
+          });
+        }
+      }), createComponent(Show, {
+        get when() {
+          return activeTab() === "requests";
+        },
+        get children() {
+          return createComponent(RequestsPanel, {
+            get requests() {
+              return requests();
             }
           });
         }
@@ -2377,6 +2596,10 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     margin-bottom: calc(var(--spacing) * 4);
   }
 
+  .ml-1 {
+    margin-left: calc(var(--spacing) * 1);
+  }
+
   .ml-1\.5 {
     margin-left: calc(var(--spacing) * 1.5);
   }
@@ -2401,6 +2624,10 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     display: inline-flex;
   }
 
+  .table {
+    display: table;
+  }
+
   .h-\[11px\] {
     height: 11px;
   }
@@ -2417,12 +2644,24 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     width: 11px;
   }
 
+  .w-\[90px\] {
+    width: 90px;
+  }
+
   .w-\[110px\] {
     width: 110px;
   }
 
+  .w-\[130px\] {
+    width: 130px;
+  }
+
   .w-\[180px\] {
     width: 180px;
+  }
+
+  .w-\[190px\] {
+    width: 190px;
   }
 
   .w-full {
@@ -2469,12 +2708,24 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     list-style-type: none;
   }
 
+  .grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
   .grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .grid-cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .grid-cols-\[1fr_auto\] {
@@ -2559,8 +2810,16 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     border-bottom-width: 1px;
   }
 
+  .border-\[\#21b35c\] {
+    border-color: #21b35c;
+  }
+
   .border-\[\#111111\] {
     border-color: #111;
+  }
+
+  .border-\[\#dd3e4d\] {
+    border-color: #dd3e4d;
   }
 
   .border-\[\#e5e5e5\] {
@@ -2579,6 +2838,10 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     background-color: #dd3e4d;
   }
 
+  .bg-\[\#effcf3\] {
+    background-color: #effcf3;
+  }
+
   .bg-\[\#fafafa\] {
     background-color: #fafafa;
   }
@@ -2589,6 +2852,10 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
 
   .bg-\[\#fcfcfc\] {
     background-color: #fcfcfc;
+  }
+
+  .bg-\[\#fff1f2\] {
+    background-color: #fff1f2;
   }
 
   .bg-transparent {
@@ -2639,12 +2906,24 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     padding-inline: 22px;
   }
 
+  .py-0 {
+    padding-block: calc(var(--spacing) * 0);
+  }
+
   .py-0\.5 {
     padding-block: calc(var(--spacing) * .5);
   }
 
+  .py-1 {
+    padding-block: calc(var(--spacing) * 1);
+  }
+
   .py-1\.5 {
     padding-block: calc(var(--spacing) * 1.5);
+  }
+
+  .py-2 {
+    padding-block: calc(var(--spacing) * 2);
   }
 
   .py-2\.5 {
@@ -2771,6 +3050,10 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     color: #5f5f5f;
   }
 
+  .text-\[\#10753a\] {
+    color: #10753a;
+  }
+
   .text-\[\#111111\] {
     color: #111;
   }
@@ -2779,12 +3062,20 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     color: #242424;
   }
 
+  .text-\[\#a51f2d\] {
+    color: #a51f2d;
+  }
+
   .text-white {
     color: var(--color-white);
   }
 
   .uppercase {
     text-transform: uppercase;
+  }
+
+  .underline {
+    text-decoration-line: underline;
   }
 
   .shadow-\[0_0_0_1px_rgba\(0\,0\,0\,0\.1\)\] {
@@ -2868,8 +3159,16 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
     border-left-width: 3px;
   }
 
+  .\[\&\>td\:first-child\]\:border-l-\[\#21b35c\] > td:first-child {
+    border-left-color: #21b35c;
+  }
+
   .\[\&\>td\:first-child\]\:border-l-\[\#111111\] > td:first-child {
     border-left-color: #111;
+  }
+
+  .\[\&\>td\:first-child\]\:border-l-\[\#dd3e4d\] > td:first-child {
+    border-left-color: #dd3e4d;
   }
 
   .\[\&\>td\:first-child\]\:font-semibold > td:first-child {
