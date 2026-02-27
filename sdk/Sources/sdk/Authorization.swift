@@ -24,4 +24,10 @@ struct Authorization {
         q.filter("\(\.secret) = \(\._secret)")
         q.one()
     }
+
+    @Argument
+    struct NoArguments {}
+    static let getAuthorizations = select(with: NoArguments.self) { q in
+        q.many()
+    }
 }

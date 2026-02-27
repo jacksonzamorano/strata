@@ -27,7 +27,7 @@ type AppServer struct {
 }
 
 func NewAppServer(tasks []Task, deps []AppDependancy) AppServer {
-	bus := &ConsoleHost{}
+	bus := NewWebHost()
 	appState := newAppState(bus)
 	channel := bus.Channel()
 	mux := http.NewServeMux()

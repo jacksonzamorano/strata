@@ -56,3 +56,36 @@ try! Schema("messagetypes") {
     )
 }
 .build()
+
+try! Schema("hostschema") {
+    HostMessageType.self
+    HostMessage.self
+    HostMessagePayload.self
+    HostMessageHello.self
+    HostMessageHelloAck.self
+    HostMessageSubscribeLogs.self
+    HostMessageSubscribeLogsAck.self
+    HostMessageAuthorizationCreate.self
+    HostMessageAuthorizationCreated.self
+    HostMessageEventRecieved.self
+    HostMessageError.self
+} routes: {
+
+}
+.output(Go(sqlBuilder: sql, config: goConfig)) {
+    CodeBuilderConfiguration(
+        root: tasklibRoot.appending(path: "core"),
+        fileStrategy: .monolithic,
+        generateRecords: .none,
+        generateModels: true
+    )
+}
+.output(TypeScript(buildIndex: true)) {
+    CodeBuilderConfiguration(
+        root: projectRoot.appending(path: "hosts/web/src/generated"),
+        fileStrategy: .perEntity,
+        generateRecords: .none,
+        generateModels: true
+    )
+}
+.build()
