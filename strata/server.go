@@ -8,6 +8,7 @@ import (
 
 	"github.com/jacksonzamorano/tasks/strata/core"
 	"github.com/jacksonzamorano/tasks/strata/internal/componentipc"
+	"github.com/jacksonzamorano/tasks/strata/internal/hosts"
 )
 
 type RequestInfo struct {
@@ -39,7 +40,7 @@ func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*Configurati
 	}
 
 	if bus == nil {
-		bus = newWebHost()
+		bus = hosts.NewConsoleHost()
 	}
 	appState := newAppState(bus)
 	channel := bus.Channel()

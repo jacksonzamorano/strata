@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && mkdir -p ../../strata/hosts/web/dist && cp dist/index.html ../../strata/hosts/web/dist/index.html"
+    "build": "vite build && mkdir -p ../../strata/internal/hosts/web/dist && cp dist/index.html ../../strata/internal/hosts/web/dist/index.html"
   },
   "dependencies": {
     "solid-js": "^1.9.4"

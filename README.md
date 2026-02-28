@@ -69,7 +69,7 @@ Components provide reusable out-of-process automation capabilities. In current c
 
 ## Hosts
 
-Hosts provide operational visibility and control. The current web host supports basic-auth-protected access, WebSocket event streaming, authorization creation, and replay of authorization data to connected clients. CLI and native app host directions remain part of the architecture roadmap.
+Hosts provide operational visibility and control. The current web host supports basic-auth-protected access, WebSocket event streaming, authorization creation, and replay of authorization data to connected clients. The built-in host can be selected with `strata.UseWeb()` or `strata.UseConsole()`, and `strata.UseWebUI(false)` disables the HTML UI while keeping `/ws` available. CLI and native app host directions remain part of the architecture roadmap.
 
 ## Storage & Data
 
@@ -81,4 +81,4 @@ Today, task authorization is centralized in Strata task wrappers and components 
 
 ## Repository Layout
 
-The `strata/` directory contains the library runtime, `strata-example/` contains an example app that defines and runs tasks, and `component-example/` contains a sample component and typed definitions package. The `hosts/web/` directory contains web host frontend code, and `sdk/` contains SDK sources.
+The `strata/` directory contains the library runtime, `strata-example/` contains an example app that defines and runs tasks, and `component-example/` contains a sample component and typed definitions package. The `hosts/web/` directory contains web host frontend code, and `strata/internal/hosts/` contains the built-in Go host runtimes and embedded web host assets. The `sdk/` directory contains SDK sources.

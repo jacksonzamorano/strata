@@ -1,4 +1,4 @@
-package strata
+package hosts
 
 import (
 	"encoding/json"
@@ -18,6 +18,7 @@ import (
 type WebHost struct {
 	persistence core.PersistenceProvider
 	channel     *webHostChannel
+	enableUI    bool
 
 	once sync.Once
 
@@ -49,8 +50,9 @@ func (c *webHostClient) close() {
 	})
 }
 
-func newWebHost() core.HostBus {
+func NewWebHost(enableUI bool) core.HostBus {
 	host := &WebHost{
+		enableUI: enableUI,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -92,6 +94,12 @@ func (wh *WebHost) Channel() core.HostBusChannel {
 }
 
 func (wh *WebHost) handleIndex(w http.ResponseWriter, r *http.Request) {
+	if !wh.enableUI {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Strata web UI disabled."))
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write(webHostIndexHTML)
 }

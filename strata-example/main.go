@@ -14,7 +14,6 @@ type SayHelloData struct {
 type SayHelloResponse struct {
 	Name          string
 	OldName       string
-	KeychainName  string
 	ComponentData cex.SayResponse
 	Counter       int
 }
@@ -27,9 +26,6 @@ type Visitor struct {
 func sayHello(data SayHelloData, container *strata.Container) *strata.TaskResult {
 	oldName := container.Storage.GetString("username")
 	container.Storage.SetString("username", data.Name)
-	keychainName := container.Keychain.Get("username")
-	container.Keychain.Set("old_username", oldName)
-	container.Keychain.Set("username", data.Name)
 
 	count := container.Storage.GetInt("count")
 	count += 1
@@ -47,7 +43,6 @@ func sayHello(data SayHelloData, container *strata.Container) *strata.TaskResult
 
 	return strata.Done(SayHelloResponse{
 		Name:          data.Name,
-		KeychainName:  keychainName,
 		OldName:       oldName,
 		ComponentData: msg,
 		Counter:       count,
@@ -58,13 +53,6 @@ func getVisitorLog(data strata.NoTaskBody, container *strata.Container) *strata.
 	entityContainer := strata.NewEntityStorage[Visitor](container)
 	allNonEmpty := entityContainer.Find(func(v Visitor) bool { return len(v.Name) > 0 })
 	return strata.Done(allNonEmpty)
-}
-
-func sayHelloBack(data SayHelloData, container *strata.Container) *strata.TaskResult {
-	name := data.Name
-	lastPerson := container.Storage.GetString("last_person")
-	container.Storage.SetString("last_person", name)
-	return strata.Done("Hello, " + name + ", goodbye " + lastPerson + "!")
 }
 
 func reset(data strata.NoTaskBody, container *strata.Container) *strata.TaskResult {
@@ -78,14 +66,13 @@ func main() {
 	cd, _ := os.Getwd()
 	as := strata.NewAppServer([]strata.Task{
 		strata.UsePublicTask(sayHello),
-		strata.UsePublicTask(sayHelloBack),
 		strata.UseTask(getVisitorLog),
 		strata.UseTask(reset),
 	}, strata.Import(
 		// strata.Binary("component-example"),
 		strata.ImportLocal(path.Join(path.Dir(cd), "component-example")),
 		// strata.ImportGitSubdirectory("git@github.com:jacksonzamorano/strata.git", "component-example"),
-	))
+	), strata.UseWebUI())
 	e := as.Start()
 	panic(e)
 }

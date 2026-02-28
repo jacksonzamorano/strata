@@ -1,4 +1,4 @@
-package strata
+package hosts
 
 import (
 	"encoding/json"
@@ -8,9 +8,10 @@ import (
 	"github.com/jacksonzamorano/tasks/strata/core"
 )
 
-func newConsoleHost() core.HostBus {
+func NewConsoleHost() core.HostBus {
 	return &ConsoleHost{}
 }
+
 type ConsoleHost struct{}
 
 func (cl *ConsoleHost) Initialize(data core.PersistenceProvider) {}
