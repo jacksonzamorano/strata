@@ -52,6 +52,7 @@ export function LogsPanel(props: LogsPanelProps) {
         emptyLabel="No logs yet. Waiting for events..."
         getRowId={(row) => row.id}
         rowClass={(row) => rowClassByKind[row.kind]}
+        cellVerticalAlign="top"
       />
     </Surface>
   );

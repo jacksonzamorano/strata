@@ -1,4 +1,4 @@
-import { For, Show, splitProps, type JSX } from "solid-js";
+import { For, Show, createSignal, onCleanup, splitProps, type JSX } from "solid-js";
 
 export type TabOption<T extends string> = {
   key: T;
@@ -99,22 +99,115 @@ export function TextArea(props: JSX.TextareaHTMLAttributes<HTMLTextAreaElement>)
   return <textarea {...rest} class={joinClasses(inputClass, local.class)} />;
 }
 
+type ButtonProps = JSX.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "ghost";
+  size?: "default" | "table";
+  completeValue?: string;
+  completeDurationMs?: number;
+};
+
 export function Button(
-  props: JSX.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" },
+  props: ButtonProps,
 ) {
-  const [local, rest] = splitProps(props, ["children", "class", "variant"]);
+  const [local, rest] = splitProps(props, [
+    "children",
+    "class",
+    "variant",
+    "size",
+    "onClick",
+    "completeValue",
+    "completeDurationMs",
+  ]);
+  const [completed, setCompleted] = createSignal(false);
+  let completeTimer: number | undefined;
+
+  const clearCompleteTimer = () => {
+    if (completeTimer !== undefined) {
+      window.clearTimeout(completeTimer);
+      completeTimer = undefined;
+    }
+  };
+
+  const startCompleteState = () => {
+    if (!local.completeValue) {
+      return;
+    }
+
+    setCompleted(true);
+    clearCompleteTimer();
+    completeTimer = window.setTimeout(() => {
+      setCompleted(false);
+      completeTimer = undefined;
+    }, local.completeDurationMs ?? 3000);
+  };
+
+  onCleanup(clearCompleteTimer);
+
+  const handleClick: JSX.EventHandler<HTMLButtonElement, MouseEvent> = (event) => {
+    startCompleteState();
+    local.onClick?.(event);
+  };
+
   return (
     <button
       {...rest}
+      onClick={handleClick}
       class={joinClasses(
-        "cursor-pointer rounded-[10px] px-[14px] py-2.5 text-[13px] font-semibold",
+        "inline-flex cursor-pointer items-center justify-center font-semibold",
+        local.size === "table" ? "h-7 rounded-[8px] px-2.5 text-[11px] leading-[1.2] whitespace-nowrap" : "rounded-[10px] px-[14px] py-2.5 text-[13px]",
         local.variant === "ghost"
-          ? "border border-[#e5e5e5] bg-white text-[#5f5f5f]"
+          ? joinClasses(
+              "border border-[#e5e5e5] bg-white text-[#5f5f5f] transition-colors duration-200",
+              local.completeValue && completed() ? "border-[#d8d8d8] bg-[#f7f7f7] text-[#111111]" : undefined,
+            )
           : "border border-[#111111] bg-[#111111] text-white hover:bg-[#2a2a2a]",
         local.class,
       )}
     >
-      {local.children}
+      <Show
+        when={local.completeValue}
+        fallback={local.children}
+      >
+        <span class={joinClasses("relative inline-block text-center", local.size === "table" ? "min-w-[44px]" : "min-w-[68px]")}>
+          <span class={joinClasses("block transition-all duration-200", completed() ? "-translate-y-0.5 opacity-0" : "translate-y-0 opacity-100")}>
+            {local.children}
+          </span>
+          <span
+            class={joinClasses(
+              "pointer-events-none absolute inset-0 block transition-all duration-200",
+              completed() ? "translate-y-0 opacity-100" : "translate-y-0.5 opacity-0",
+            )}
+          >
+            {local.completeValue}
+          </span>
+        </span>
+      </Show>
+    </button>
+  );
+}
+
+export function TabButton(props: {
+  selected: boolean;
+  label: string;
+  count?: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      class={joinClasses(
+        "inline-flex cursor-pointer items-center justify-center gap-2 rounded-[9px] bg-transparent px-[10px] py-[9px] text-[13px] font-semibold text-[#5f5f5f] hover:bg-[#f2f2f2]",
+        props.selected ? "bg-white text-[#111111] shadow-[inset_0_0_0_1px_#e5e5e5]" : undefined,
+      )}
+      aria-pressed={props.selected}
+      onClick={props.onClick}
+    >
+      <span>{props.label}</span>
+      <Show when={typeof props.count === "number"}>
+        <span class="min-w-[24px] rounded-full bg-[#111111] px-2 py-0.5 text-[11px] leading-[1.3] text-white">
+          {props.count}
+        </span>
+      </Show>
     </button>
   );
 }
@@ -144,24 +237,7 @@ export function TabBar<T extends string>(props: {
       aria-label="Sections"
     >
       <For each={props.options}>
-        {(option) => (
-          <button
-            type="button"
-            class={joinClasses(
-              "inline-flex cursor-pointer items-center justify-center gap-2 rounded-[9px] bg-transparent px-[10px] py-[9px] text-[13px] font-semibold text-[#5f5f5f] hover:bg-[#f2f2f2]",
-              props.value === option.key && "bg-white text-[#111111] shadow-[inset_0_0_0_1px_#e5e5e5]",
-            )}
-            aria-pressed={props.value === option.key}
-            onClick={() => props.onChange(option.key)}
-          >
-            <span>{option.label}</span>
-            <Show when={typeof option.count === "number"}>
-              <span class="min-w-[24px] rounded-full bg-[#111111] px-2 py-0.5 text-[11px] leading-[1.3] text-white">
-                {option.count}
-              </span>
-            </Show>
-          </button>
-        )}
+        {(option) => <TabButton selected={props.value === option.key} label={option.label} count={option.count} onClick={() => props.onChange(option.key)} />}
       </For>
     </nav>
   );
@@ -187,7 +263,10 @@ export function DataTable<T>(props: {
   emptyLabel?: string;
   tableClass?: string;
   wrapClass?: string;
+  cellVerticalAlign?: "center" | "top";
 }) {
+  const cellAlignClass = props.cellVerticalAlign === "top" ? "align-top" : "align-middle";
+
   return (
     <div class={joinClasses("max-h-[min(62vh,640px)] overflow-auto rounded-[10px] border border-[#e5e5e5]", props.wrapClass)}>
       <table class={joinClasses("w-full min-w-[780px] border-collapse max-[640px]:min-w-[640px]", props.tableClass)}>
@@ -226,7 +305,7 @@ export function DataTable<T>(props: {
                 >
                   <For each={props.columns}>
                     {(column) => (
-                      <td class={joinClasses("border-b border-[#e5e5e5] px-3 py-2.5 text-left align-top text-xs text-[#242424]", column.class)}>
+                      <td class={joinClasses("border-b border-[#e5e5e5] px-3 py-2.5 text-left text-xs text-[#242424]", cellAlignClass, column.class)}>
                         {column.render(row)}
                       </td>
                     )}

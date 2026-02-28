@@ -25,7 +25,6 @@ export type RequestRecord = {
 
 export type TabKey = "overview" | "authorization" | "logs" | "requests";
 
-export type TokenState = HostMessageAuthorizationCreated | null;
 export type TokenRecord = HostMessageAuthorizationCreated;
 
 export type RegisteredTask = {

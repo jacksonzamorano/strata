@@ -13,7 +13,6 @@ import type {
   RegisteredTask,
   TabKey,
   TokenRecord,
-  TokenState,
 } from "./app-types";
 import { HostHeader } from "./components/app-header";
 import { AuthorizationPanel } from "./components/authorization-panel";
@@ -62,7 +61,6 @@ function App() {
   const [tasks, setTasks] = createSignal<RegisteredTask[]>([]);
   const [components, setComponents] = createSignal<RegisteredComponent[]>([]);
   const [nickname, setNickname] = createSignal("");
-  const [latestToken, setLatestToken] = createSignal<TokenState>(null);
   const [tokens, setTokens] = createSignal<TokenRecord[]>([]);
   const [activeTab, setActiveTab] = createSignal<TabKey>("overview");
   const createRequestIds = new Set<string>();
@@ -387,7 +385,6 @@ function App() {
 
         if (createRequestIds.has(message.id)) {
           createRequestIds.delete(message.id);
-          setLatestToken(token);
           setActiveTab("authorization");
         }
         return;
@@ -474,7 +471,6 @@ function App() {
           nickname={nickname()}
           onNicknameInput={setNickname}
           onSubmit={onCreateToken}
-          latestToken={latestToken()}
           tokens={tokens()}
         />
       </Show>

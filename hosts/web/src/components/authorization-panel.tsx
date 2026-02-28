@@ -1,14 +1,68 @@
 import { Show } from "solid-js";
-import type { TokenRecord, TokenState } from "../app-types";
-import { Button, DataTable, FieldLabel, Surface, TextArea, TextInput, emptyStateClass, monoTextClass, type TableColumn } from "./ui";
+import type { TokenRecord } from "../app-types";
+import { Button, DataTable, FieldLabel, Surface, TextInput, emptyStateClass, monoTextClass, type TableColumn } from "./ui";
 
 type AuthorizationPanelProps = {
   nickname: string;
   onNicknameInput: (value: string) => void;
   onSubmit: (event: SubmitEvent) => void;
-  latestToken: TokenState;
   tokens: TokenRecord[];
 };
+
+const visibleSecretChars = 8;
+
+function maskSecret(secret: string) {
+  if (secret.length <= visibleSecretChars * 2) {
+    return secret;
+  }
+
+  return `${secret.slice(0, visibleSecretChars)}...${secret.slice(-visibleSecretChars)}`;
+}
+
+async function copySecret(secret: string) {
+  if (!secret) {
+    return false;
+  }
+
+  try {
+    await navigator.clipboard.writeText(secret);
+    return true;
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = secret;
+    textarea.setAttribute("readonly", "true");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.append(textarea);
+    textarea.select();
+    try {
+      return document.execCommand("copy");
+    } finally {
+      textarea.remove();
+    }
+  }
+}
+
+function SecretDisplay(props: { secret: string; class?: string }) {
+  const handleCopy = () => {
+    void copySecret(props.secret);
+  };
+
+  return (
+    <div class={`flex min-w-0 items-center gap-1.5 [&>button]:shrink-0 max-[640px]:flex-col max-[640px]:items-stretch max-[640px]:[&>button]:w-full ${props.class ?? ""}`}>
+      <code class={`${monoTextClass} m-0 block min-w-0 flex-1 whitespace-pre-wrap break-all`}>{maskSecret(props.secret)}</code>
+      <Button
+        type="button"
+        variant="ghost"
+        size="table"
+        completeValue="Copied"
+        onClick={handleCopy}
+      >
+        Copy
+      </Button>
+    </div>
+  );
+}
 
 const tokenColumns: readonly TableColumn<TokenRecord>[] = [
   {
@@ -33,16 +87,14 @@ const tokenColumns: readonly TableColumn<TokenRecord>[] = [
   {
     key: "secret",
     header: "Secret",
-    render: (token) => (
-      <code class={`${monoTextClass} m-0 block max-w-full whitespace-pre-wrap break-all`}>{token.secret}</code>
-    ),
+    render: (token) => <SecretDisplay secret={token.secret} />,
   },
 ];
 
 export function AuthorizationPanel(props: AuthorizationPanelProps) {
   return (
     <Surface title="Authorization" subtitle="Manage API keys.">
-      <form class="grid grid-cols-[1fr_auto] items-center gap-2 max-[900px]:grid-cols-1" onSubmit={props.onSubmit}>
+      <form class="grid grid-cols-[1fr_auto] items-center gap-2 max-[900px]:grid-cols-1 max-[900px]:[&>button]:w-full" onSubmit={props.onSubmit}>
         <FieldLabel for="nickname-input">Nickname</FieldLabel>
         <TextInput
           id="nickname-input"
@@ -52,21 +104,10 @@ export function AuthorizationPanel(props: AuthorizationPanelProps) {
           maxLength={64}
           autocomplete="off"
         />
-        <Button type="submit" class="max-[900px]:w-full">
+        <Button type="submit">
           Create Token
         </Button>
       </form>
-
-      <Show when={props.latestToken}>
-        {(token) => (
-          <div class="mt-4">
-            <div class="mb-2 text-xs text-[#5f5f5f]">
-              New secret <span class="ml-1.5 font-semibold text-[#111111]">{token().source}</span>
-            </div>
-            <TextArea readonly value={token().secret} class={`${monoTextClass} min-h-[130px] resize-y`} />
-          </div>
-        )}
-      </Show>
 
       <div class="mt-4">
         <div class="mb-2 text-xs text-[#5f5f5f]">

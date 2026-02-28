@@ -20,6 +20,10 @@ try! Schema("schema") {
     StorageRowKeyNames.self
     EntityRow.self
     Authorization.self
+    
+    PermissionAction.self
+    Permission.self
+    
     EventKind.self
     EventTaskRegisterPayload.self
     EventComponentRegisteredPayload.self

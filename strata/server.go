@@ -18,15 +18,29 @@ type RequestInfo struct {
 }
 
 type AppServer struct {
-	bus      core.HostBus
-	channel  core.HostBusChannel
-	state    *AppState
-	srv      *http.Server
-	listener *http.ServeMux
+	bus             core.HostBus
+	channel         core.HostBusChannel
+	state           *AppState
+	srv             *http.Server
+	listener        *http.ServeMux
+	approvedActions []core.ApprovedComponentPermission
 }
 
-func NewAppServer(tasks []Task, deps []core.ComponentImport) AppServer {
-	bus := NewWebHost()
+func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*ConfigurationModification) AppServer {
+	var approvedActions []core.ApprovedComponentPermission
+	var bus core.HostBus
+	for _, op := range cfg {
+		if op.NewHost != nil {
+			bus = op.NewHost()
+		}
+		if op.Permissions != nil {
+			approvedActions = append(approvedActions, op.Permissions...)
+		}
+	}
+
+	if bus == nil {
+		bus = newWebHost()
+	}
 	appState := newAppState(bus)
 	channel := bus.Channel()
 	mux := http.NewServeMux()

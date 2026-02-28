@@ -60,6 +60,13 @@ func getVisitorLog(data strata.NoTaskBody, container *strata.Container) *strata.
 	return strata.Done(allNonEmpty)
 }
 
+func sayHelloBack(data SayHelloData, container *strata.Container) *strata.TaskResult {
+	name := data.Name
+	lastPerson := container.Storage.GetString("last_person")
+	container.Storage.SetString("last_person", name)
+	return strata.Done("Hello, " + name + ", goodbye " + lastPerson + "!")
+}
+
 func reset(data strata.NoTaskBody, container *strata.Container) *strata.TaskResult {
 	container.Storage.SetInt("count", 0)
 	container.Storage.SetString("username", "")
@@ -71,6 +78,7 @@ func main() {
 	cd, _ := os.Getwd()
 	as := strata.NewAppServer([]strata.Task{
 		strata.UsePublicTask(sayHello),
+		strata.UsePublicTask(sayHelloBack),
 		strata.UseTask(getVisitorLog),
 		strata.UseTask(reset),
 	}, strata.Import(

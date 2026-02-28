@@ -49,7 +49,7 @@ func (c *webHostClient) close() {
 	})
 }
 
-func NewWebHost() *WebHost {
+func newWebHost() core.HostBus {
 	host := &WebHost{
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
