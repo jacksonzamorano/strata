@@ -1,4 +1,4 @@
-import { Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { render } from "solid-js/web";
 import type {
   HostMessage,
@@ -23,6 +23,7 @@ import { Shell, TabBar } from "./components/ui";
 import "./styles.css";
 
 const MAX_LOG_LINES = 1000;
+const MAX_PERMISSION_POPUPS = 4;
 const RECONNECT_DELAY_MS = 1000;
 
 const tabOptions = [
@@ -39,6 +40,8 @@ const emptyPayload = (): HostMessagePayload => ({
   subscribe_logs_ack: undefined,
   authorization_create: undefined,
   authorization_created: undefined,
+  request_permission: undefined,
+  permission_response: undefined,
   event_received: undefined,
   error: undefined,
 });
@@ -54,6 +57,13 @@ const nextMessageId = (() => {
 const sortByName = <T extends { name: string }>(rows: T[]): T[] =>
   rows.sort((a, b) => a.name.localeCompare(b.name));
 
+type PermissionPrompt = {
+  id: string;
+  container: string;
+  action: string;
+  scope?: string;
+};
+
 function App() {
   const [connected, setConnected] = createSignal(false);
   const [status, setStatus] = createSignal("Connecting");
@@ -63,6 +73,7 @@ function App() {
   const [nickname, setNickname] = createSignal("");
   const [tokens, setTokens] = createSignal<TokenRecord[]>([]);
   const [activeTab, setActiveTab] = createSignal<TabKey>("overview");
+  const [permissionPrompts, setPermissionPrompts] = createSignal<PermissionPrompt[]>([]);
   const createRequestIds = new Set<string>();
 
   let socket: WebSocket | null = null;
@@ -272,12 +283,60 @@ function App() {
     }
   };
 
-  const send = (type: HostMessageType, payload: HostMessagePayload): string | null => {
+  const parsePermissionPrompt = (message: HostMessage): PermissionPrompt | null => {
+    const raw = message.payload.request_permission as unknown;
+    if (!raw || typeof raw !== "object") {
+      return null;
+    }
+
+    const requestRecord = raw as Record<string, unknown>;
+    const maybePermission = requestRecord.permission;
+    const permissionRecord =
+      maybePermission && typeof maybePermission === "object"
+        ? (maybePermission as Record<string, unknown>)
+        : requestRecord;
+
+    const rawContainer = permissionRecord.container;
+    const rawAction = permissionRecord.action;
+    const rawScope = permissionRecord.scope;
+
+    const container =
+      typeof rawContainer === "string" && rawContainer.trim().length > 0
+        ? rawContainer.trim()
+        : "unknown-container";
+    const action =
+      typeof rawAction === "string" && rawAction.trim().length > 0
+        ? rawAction.trim()
+        : "unknown-action";
+    const scope = typeof rawScope === "string" && rawScope.trim().length > 0 ? rawScope.trim() : undefined;
+
+    return {
+      id: message.id,
+      container,
+      action,
+      scope,
+    };
+  };
+
+  const enqueuePermissionPrompt = (prompt: PermissionPrompt) => {
+    setPermissionPrompts((previous) => {
+      if (previous.some((entry) => entry.id === prompt.id)) {
+        return previous;
+      }
+      const next = [prompt, ...previous];
+      if (next.length <= MAX_PERMISSION_POPUPS) {
+        return next;
+      }
+      return next.slice(0, MAX_PERMISSION_POPUPS);
+    });
+  };
+
+  const send = (type: HostMessageType, payload: HostMessagePayload, forceId?: string): string | null => {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       return null;
     }
 
-    const id = nextMessageId();
+    const id = forceId ?? nextMessageId();
 
     socket.send(
       JSON.stringify({
@@ -288,6 +347,25 @@ function App() {
     );
 
     return id;
+  };
+
+  const respondToPermissionPrompt = (promptId: string, approve: boolean) => {
+    const sent = send(
+      "permissionReplied",
+      {
+        ...emptyPayload(),
+        permission_response: {
+          approve,
+        },
+      },
+      promptId,
+    );
+    if (!sent) {
+      setStatus("Not connected");
+      return;
+    }
+
+    setPermissionPrompts((previous) => previous.filter((prompt) => prompt.id !== promptId));
   };
 
   const connect = () => {
@@ -327,6 +405,7 @@ function App() {
       setConnected(false);
       setStatus("Disconnected (retrying)");
       createRequestIds.clear();
+      setPermissionPrompts([]);
 
       if (!disposed) {
         reconnectTimer = window.setTimeout(connect, RECONNECT_DELAY_MS);
@@ -361,6 +440,15 @@ function App() {
         });
 
         processHostEvent(incoming);
+        return;
+      }
+
+      if (message.type === "permissionRequest") {
+        const prompt = parsePermissionPrompt(message);
+        if (!prompt) {
+          return;
+        }
+        enqueuePermissionPrompt(prompt);
         return;
       }
 
@@ -445,44 +533,74 @@ function App() {
   });
 
   return (
-    <Shell>
-      <HostHeader connected={connected()} status={status()} lineCount={lineCount()} />
+    <>
+      <Shell>
+        <HostHeader connected={connected()} status={status()} lineCount={lineCount()} />
 
-      <TabBar
-        value={activeTab()}
-        onChange={setActiveTab}
-        options={tabOptions.map((tab) => {
-          if (tab.key === "logs") {
-            return { ...tab, count: lineCount() };
-          }
-          if (tab.key === "requests") {
-            return { ...tab, count: requestCount() };
-          }
-          return tab;
-        })}
-      />
-
-      <Show when={activeTab() === "overview"}>
-        <OverviewPanel tasks={tasks()} components={components()} />
-      </Show>
-
-      <Show when={activeTab() === "authorization"}>
-        <AuthorizationPanel
-          nickname={nickname()}
-          onNicknameInput={setNickname}
-          onSubmit={onCreateToken}
-          tokens={tokens()}
+        <TabBar
+          value={activeTab()}
+          onChange={setActiveTab}
+          options={tabOptions.map((tab) => {
+            if (tab.key === "logs") {
+              return { ...tab, count: lineCount() };
+            }
+            if (tab.key === "requests") {
+              return { ...tab, count: requestCount() };
+            }
+            return tab;
+          })}
         />
-      </Show>
 
-      <Show when={activeTab() === "logs"}>
-        <LogsPanel logs={logs()} />
-      </Show>
+        <Show when={activeTab() === "overview"}>
+          <OverviewPanel tasks={tasks()} components={components()} />
+        </Show>
 
-      <Show when={activeTab() === "requests"}>
-        <RequestsPanel requests={requests()} />
-      </Show>
-    </Shell>
+        <Show when={activeTab() === "authorization"}>
+          <AuthorizationPanel
+            nickname={nickname()}
+            onNicknameInput={setNickname}
+            onSubmit={onCreateToken}
+            tokens={tokens()}
+          />
+        </Show>
+
+        <Show when={activeTab() === "logs"}>
+          <LogsPanel logs={logs()} />
+        </Show>
+
+        <Show when={activeTab() === "requests"}>
+          <RequestsPanel requests={requests()} />
+        </Show>
+      </Shell>
+
+      <div class="permission-popups" aria-live="assertive">
+        <For each={permissionPrompts()}>
+          {(prompt) => (
+            <article class="permission-popup">
+              <div class="permission-popup__badge">Permission Request</div>
+              <p class="permission-popup__summary">
+                <span class="permission-popup__container">{prompt.container}</span>
+                <span> requests </span>
+                <code class="permission-popup__action">{prompt.action}</code>
+              </p>
+              <Show when={prompt.scope}>
+                <p class="permission-popup__scope">
+                  Scope: <code>{prompt.scope}</code>
+                </p>
+              </Show>
+              <div class="permission-popup__actions">
+                <button type="button" class="permission-popup__button permission-popup__button--deny" onClick={() => respondToPermissionPrompt(prompt.id, false)}>
+                  Deny
+                </button>
+                <button type="button" class="permission-popup__button permission-popup__button--approve" onClick={() => respondToPermissionPrompt(prompt.id, true)}>
+                  Approve
+                </button>
+              </div>
+            </article>
+          )}
+        </For>
+      </div>
+    </>
   );
 }
 

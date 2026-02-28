@@ -72,6 +72,8 @@ try! Schema("hostschema") {
     HostMessageAuthorizationCreate.self
     HostMessageAuthorizationCreated.self
     HostMessageEventReceived.self
+    HostMessageRequestPermission.self
+    HostMessagePermissionResponded.self
     HostMessageError.self
 } routes: {
 

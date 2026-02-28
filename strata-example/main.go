@@ -50,6 +50,7 @@ func sayHello(data SayHelloData, container *strata.Container) *strata.TaskResult
 }
 
 func getVisitorLog(data strata.NoTaskBody, container *strata.Container) *strata.TaskResult {
+	container.ReadFile("test.txt")
 	entityContainer := strata.NewEntityStorage[Visitor](container)
 	allNonEmpty := entityContainer.Find(func(v Visitor) bool { return len(v.Name) > 0 })
 	return strata.Done(allNonEmpty)

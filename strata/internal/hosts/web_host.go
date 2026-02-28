@@ -32,15 +32,28 @@ type WebHost struct {
 	logs    []core.HostMessageEventReceived
 	maxLogs int
 
+	permissionLock     sync.Mutex
+	pendingPermissions map[string]chan bool
+
 	messageID atomic.Uint64
 }
 
 type webHostClient struct {
 	conn       *websocket.Conn
-	send       chan core.HostMessage
+	send       chan any
 	done       chan struct{}
 	closeOnce  sync.Once
 	subscribed atomic.Bool
+}
+
+type webHostPermissionRequestPayload struct {
+	RequestPermission *core.HostMessageRequestPermission `json:"request_permission"`
+}
+
+type webHostPermissionRequestMessage struct {
+	Id      string                          `json:"id"`
+	Type    core.HostMessageType            `json:"type"`
+	Payload webHostPermissionRequestPayload `json:"payload"`
 }
 
 func (c *webHostClient) close() {
@@ -60,8 +73,9 @@ func NewWebHost(enableUI bool) core.HostBus {
 				return true
 			},
 		},
-		clients: map[*webHostClient]struct{}{},
-		maxLogs: 200,
+		clients:            map[*webHostClient]struct{}{},
+		maxLogs:            200,
+		pendingPermissions: map[string]chan bool{},
 	}
 	host.channel = &webHostChannel{host: host}
 	return host
@@ -133,7 +147,7 @@ func (wh *WebHost) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 
 	client := &webHostClient{
 		conn: conn,
-		send: make(chan core.HostMessage, 128),
+		send: make(chan any, 128),
 		done: make(chan struct{}),
 	}
 
@@ -197,6 +211,8 @@ func (wh *WebHost) handleHostMessage(client *webHostClient, msg core.HostMessage
 		wh.handleSubscribeLogs(client, msg)
 	case core.HostMessageTypeAuthorizationCreate:
 		wh.handleAuthorizationCreate(client, msg)
+	case core.HostMessageTypePermissionReplied:
+		wh.handlePermissionReplied(client, msg)
 	default:
 		wh.sendToClient(client, wh.errorMessage(msg.Id, "unsupported_type", "Unsupported message type."))
 	}
@@ -309,6 +325,35 @@ func (wh *WebHost) handleAuthorizationCreate(client *webHostClient, msg core.Hos
 	})
 }
 
+func (wh *WebHost) handlePermissionReplied(client *webHostClient, msg core.HostMessage) {
+	response := msg.Payload.PermissionResponse
+	if response == nil {
+		// Accept request_permission as a fallback to tolerate protocol/schema drift.
+		response = msg.Payload.RequestPermission
+	}
+	if response == nil {
+		wh.sendToClient(client, wh.errorMessage(msg.Id, "invalid_payload", "Missing permission response payload."))
+		return
+	}
+
+	wh.permissionLock.Lock()
+	waiter, ok := wh.pendingPermissions[msg.Id]
+	if ok {
+		delete(wh.pendingPermissions, msg.Id)
+	}
+	wh.permissionLock.Unlock()
+
+	if !ok {
+		wh.sendToClient(client, wh.errorMessage(msg.Id, "unknown_permission_request", "Unknown permission request id."))
+		return
+	}
+
+	select {
+	case waiter <- response.Approve:
+	default:
+	}
+}
+
 func (wh *WebHost) nextMessageID() string {
 	return strconv.FormatUint(wh.messageID.Add(1), 10)
 }
@@ -326,12 +371,25 @@ func (wh *WebHost) errorMessage(id, code, message string) core.HostMessage {
 	}
 }
 
-func (wh *WebHost) sendToClient(client *webHostClient, msg core.HostMessage) {
+func (wh *WebHost) sendToClient(client *webHostClient, msg any) bool {
 	select {
 	case client.send <- msg:
+		return true
 	default:
 		wh.removeClient(client)
+		return false
 	}
+}
+
+func (wh *WebHost) readConnectedClients() []*webHostClient {
+	wh.clientLock.RLock()
+	defer wh.clientLock.RUnlock()
+
+	clients := make([]*webHostClient, 0, len(wh.clients))
+	for client := range wh.clients {
+		clients = append(clients, client)
+	}
+	return clients
 }
 
 func (wh *WebHost) broadcastEvent(ev core.HostMessageEventReceived) {
@@ -422,6 +480,74 @@ func (whc *webHostChannel) Container(namespace string) core.Logger {
 		host:      whc.host,
 		namespace: namespace,
 	}
+}
+
+func (whc *webHostChannel) RequestPermission(p core.Permission) bool {
+	encoded, _ := json.Marshal(p)
+	payload := string(encoded)
+	requestID := whc.host.nextMessageID()
+	waiter := make(chan bool, 1)
+
+	whc.host.permissionLock.Lock()
+	whc.host.pendingPermissions[requestID] = waiter
+	whc.host.permissionLock.Unlock()
+
+	clients := whc.host.readConnectedClients()
+	if len(clients) == 0 {
+		whc.host.permissionLock.Lock()
+		delete(whc.host.pendingPermissions, requestID)
+		whc.host.permissionLock.Unlock()
+
+		msg := fmt.Sprintf(
+			"[%s] requested permission '%s' but no web host clients are connected.",
+			p.Container,
+			p.Action,
+		)
+		whc.host.emitLog("permission", "requestRejected", nil, msg, &payload)
+		return false
+	}
+
+	msg := webHostPermissionRequestMessage{
+		Id:   requestID,
+		Type: core.HostMessageTypePermissionRequest,
+		Payload: webHostPermissionRequestPayload{
+			RequestPermission: &core.HostMessageRequestPermission{
+				Permission: p,
+			},
+		},
+	}
+
+	delivered := 0
+	for _, client := range clients {
+		if whc.host.sendToClient(client, msg) {
+			delivered += 1
+		}
+	}
+	if delivered == 0 {
+		whc.host.permissionLock.Lock()
+		delete(whc.host.pendingPermissions, requestID)
+		whc.host.permissionLock.Unlock()
+
+		msg := fmt.Sprintf(
+			"[%s] requested permission '%s' but request could not be delivered to a web host client.",
+			p.Container,
+			p.Action,
+		)
+		whc.host.emitLog("permission", "requestRejected", nil, msg, &payload)
+		return false
+	}
+
+	startMsg := fmt.Sprintf("[%s] requested permission '%s'. Awaiting approval.", p.Container, p.Action)
+	whc.host.emitLog("permission", "requestPending", nil, startMsg, &payload)
+
+	approved := <-waiter
+	decision := "denied"
+	if approved {
+		decision = "approved"
+	}
+	endMsg := fmt.Sprintf("[%s] permission '%s' %s.", p.Container, p.Action, decision)
+	whc.host.emitLog("permission", "requestResolved", nil, endMsg, &payload)
+	return approved
 }
 
 type webHostContainerLogger struct {

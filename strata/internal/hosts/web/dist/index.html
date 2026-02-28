@@ -1143,7 +1143,7 @@ function cleanChildren(parent, current, marker, replacement) {
   return [node];
 }
 
-var _tmpl$$3 = /* @__PURE__ */ template(`<main class="mx-auto grid max-w-[1080px] gap-4 p-[28px] max-[900px]:p-4">`), _tmpl$2$2 = /* @__PURE__ */ template(`<header class="flex flex-wrap items-start justify-between gap-3 rounded-[12px] border border-[#e5e5e5] bg-white p-4 max-[640px]:p-3"><div><div class="text-[11px] uppercase tracking-[0.1em] text-[#5f5f5f]"></div><h1 class="m-0 mt-[6px] text-[clamp(1.5rem,3vw,2rem)] leading-[1.1] tracking-[-0.02em]"></h1></div><div class="flex flex-wrap items-center gap-2">`), _tmpl$3$2 = /* @__PURE__ */ template(`<p class="m-0 mt-1 text-xs text-[#5f5f5f]">`), _tmpl$4$2 = /* @__PURE__ */ template(`<section><div class="mb-4 flex justify-between gap-3"><div><h2 class="m-0 text-[1.05rem] tracking-[-0.01em]">`), _tmpl$5$1 = /* @__PURE__ */ template(`<span>`), _tmpl$6$1 = /* @__PURE__ */ template(`<label>`), _tmpl$7 = /* @__PURE__ */ template(`<input>`), _tmpl$9 = /* @__PURE__ */ template(`<span><span></span><span>`), _tmpl$0 = /* @__PURE__ */ template(`<button>`), _tmpl$1 = /* @__PURE__ */ template(`<span class="min-w-[24px] rounded-full bg-[#111111] px-2 py-0.5 text-[11px] leading-[1.3] text-white">`), _tmpl$10 = /* @__PURE__ */ template(`<button type=button><span>`), _tmpl$11 = /* @__PURE__ */ template(`<nav aria-label=Sections>`), _tmpl$14 = /* @__PURE__ */ template(`<div><table><thead><tr></tr></thead><tbody>`), _tmpl$15 = /* @__PURE__ */ template(`<th>`), _tmpl$16 = /* @__PURE__ */ template(`<tr><td class="px-[22px] py-[22px] text-center text-[#5f5f5f]">`), _tmpl$17 = /* @__PURE__ */ template(`<tr>`), _tmpl$18 = /* @__PURE__ */ template(`<td>`);
+var _tmpl$$4 = /* @__PURE__ */ template(`<main class="mx-auto grid max-w-[1080px] gap-4 p-[28px] max-[900px]:p-4">`), _tmpl$2$3 = /* @__PURE__ */ template(`<header class="flex flex-wrap items-start justify-between gap-3 rounded-[12px] border border-[#e5e5e5] bg-white p-4 max-[640px]:p-3"><div><div class="text-[11px] uppercase tracking-[0.1em] text-[#5f5f5f]"></div><h1 class="m-0 mt-[6px] text-[clamp(1.5rem,3vw,2rem)] leading-[1.1] tracking-[-0.02em]"></h1></div><div class="flex flex-wrap items-center gap-2">`), _tmpl$3$3 = /* @__PURE__ */ template(`<p class="m-0 mt-1 text-xs text-[#5f5f5f]">`), _tmpl$4$2 = /* @__PURE__ */ template(`<section><div class="mb-4 flex justify-between gap-3"><div><h2 class="m-0 text-[1.05rem] tracking-[-0.01em]">`), _tmpl$5$1 = /* @__PURE__ */ template(`<span>`), _tmpl$6$1 = /* @__PURE__ */ template(`<label>`), _tmpl$7 = /* @__PURE__ */ template(`<input>`), _tmpl$9 = /* @__PURE__ */ template(`<span><span></span><span>`), _tmpl$0 = /* @__PURE__ */ template(`<button>`), _tmpl$1 = /* @__PURE__ */ template(`<span class="min-w-[24px] rounded-full bg-[#111111] px-2 py-0.5 text-[11px] leading-[1.3] text-white">`), _tmpl$10 = /* @__PURE__ */ template(`<button type=button><span>`), _tmpl$11 = /* @__PURE__ */ template(`<nav aria-label=Sections>`), _tmpl$14 = /* @__PURE__ */ template(`<div><table><thead><tr></tr></thead><tbody>`), _tmpl$15 = /* @__PURE__ */ template(`<th>`), _tmpl$16 = /* @__PURE__ */ template(`<tr><td class="px-[22px] py-[22px] text-center text-[#5f5f5f]">`), _tmpl$17 = /* @__PURE__ */ template(`<tr>`), _tmpl$18 = /* @__PURE__ */ template(`<td>`);
 const joinClasses$1 = (...parts) => parts.filter(Boolean).join(" ");
 const pillClass = "rounded-full border border-[#e5e5e5] px-[10px] py-1.5 text-xs font-semibold";
 const inputClass = "w-full rounded-[10px] border border-[#e5e5e5] bg-white px-3 py-2.5 text-sm text-[#111111] focus:border-[#111111] focus:outline-none focus:shadow-[0_0_0_1px_#111111]";
@@ -1151,14 +1151,14 @@ const monoTextClass = "font-mono text-xs";
 const emptyStateClass = "px-[22px] py-[22px] text-center text-[#5f5f5f]";
 function Shell(props) {
   return (() => {
-    var _el$ = _tmpl$$3();
+    var _el$ = _tmpl$$4();
     insert(_el$, () => props.children);
     return _el$;
   })();
 }
 function AppHeader(props) {
   return (() => {
-    var _el$2 = _tmpl$2$2(), _el$3 = _el$2.firstChild, _el$4 = _el$3.firstChild, _el$5 = _el$4.nextSibling, _el$6 = _el$3.nextSibling;
+    var _el$2 = _tmpl$2$3(), _el$3 = _el$2.firstChild, _el$4 = _el$3.firstChild, _el$5 = _el$4.nextSibling, _el$6 = _el$3.nextSibling;
     insert(_el$4, () => props.eyebrow);
     insert(_el$5, () => props.title);
     insert(_el$6, () => props.meta);
@@ -1174,7 +1174,7 @@ function Surface(props) {
         return props.subtitle;
       },
       get children() {
-        var _el$1 = _tmpl$3$2();
+        var _el$1 = _tmpl$3$3();
         insert(_el$1, () => props.subtitle);
         return _el$1;
       }
@@ -1446,7 +1446,7 @@ function HostHeader(props) {
   });
 }
 
-var _tmpl$$2 = /* @__PURE__ */ template(`<div><code>`), _tmpl$2$1 = /* @__PURE__ */ template(`<form class="grid grid-cols-[1fr_auto] items-center gap-2 max-[900px]:grid-cols-1 max-[900px]:[&amp;>button]:w-full">`), _tmpl$3$1 = /* @__PURE__ */ template(`<div class=mt-4><div class="mb-2 text-xs text-[#5f5f5f]">Existing tokens <span class="ml-1.5 font-semibold text-[#111111]">`), _tmpl$4$1 = /* @__PURE__ */ template(`<div>No tokens found.`);
+var _tmpl$$3 = /* @__PURE__ */ template(`<div><code>`), _tmpl$2$2 = /* @__PURE__ */ template(`<form class="grid grid-cols-[1fr_auto] items-center gap-2 max-[900px]:grid-cols-1 max-[900px]:[&amp;>button]:w-full">`), _tmpl$3$2 = /* @__PURE__ */ template(`<div class=mt-4><div class="mb-2 text-xs text-[#5f5f5f]">Existing tokens <span class="ml-1.5 font-semibold text-[#111111]">`), _tmpl$4$1 = /* @__PURE__ */ template(`<div>No tokens found.`);
 const visibleSecretChars = 8;
 function maskSecret(secret) {
   if (secret.length <= visibleSecretChars * 2) {
@@ -1481,7 +1481,7 @@ function SecretDisplay(props) {
     void copySecret(props.secret);
   };
   return (() => {
-    var _el$ = _tmpl$$2(), _el$2 = _el$.firstChild;
+    var _el$ = _tmpl$$3(), _el$2 = _el$.firstChild;
     className(_el$2, `${monoTextClass} m-0 block min-w-0 flex-1 whitespace-pre-wrap break-all`);
     insert(_el$2, () => maskSecret(props.secret));
     insert(_el$, createComponent(Button, {
@@ -1527,7 +1527,7 @@ function AuthorizationPanel(props) {
     subtitle: "Manage API keys.",
     get children() {
       return [(() => {
-        var _el$3 = _tmpl$2$1();
+        var _el$3 = _tmpl$2$2();
         addEventListener(_el$3, "submit", props.onSubmit);
         insert(_el$3, createComponent(FieldLabel, {
           "for": "nickname-input",
@@ -1549,7 +1549,7 @@ function AuthorizationPanel(props) {
         }), null);
         return _el$3;
       })(), (() => {
-        var _el$4 = _tmpl$3$1(), _el$5 = _el$4.firstChild, _el$6 = _el$5.firstChild, _el$7 = _el$6.nextSibling;
+        var _el$4 = _tmpl$3$2(), _el$5 = _el$4.firstChild, _el$6 = _el$5.firstChild, _el$7 = _el$6.nextSibling;
         insert(_el$7, () => props.tokens.length);
         insert(_el$4, createComponent(Show, {
           get when() {
@@ -1628,14 +1628,14 @@ function LogsPanel(props) {
   });
 }
 
-var _tmpl$$1 = /* @__PURE__ */ template(`<ul class="m-0 list-none p-0">`), _tmpl$2 = /* @__PURE__ */ template(`<div class="grid grid-cols-2 gap-3 max-[900px]:grid-cols-1"><article class="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fcfcfc]"><header class="flex items-center justify-between gap-2 border-b border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5"><h3 class="m-0 text-xs uppercase tracking-[0.06em] text-[#5f5f5f]">Registered Tasks</h3><span></span></header></article><article class="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fcfcfc]"><header class="flex items-center justify-between gap-2 border-b border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5"><h3 class="m-0 text-xs uppercase tracking-[0.06em] text-[#5f5f5f]">Registered Components</h3><span>`), _tmpl$3 = /* @__PURE__ */ template(`<div>No registered tasks yet.`), _tmpl$4 = /* @__PURE__ */ template(`<li class="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 border-b border-[#e5e5e5] px-3 py-2.5 last:border-b-0"><span class="min-w-0 [overflow-wrap:anywhere] text-[13px]"></span><code>`), _tmpl$5 = /* @__PURE__ */ template(`<div>No registered components yet.`), _tmpl$6 = /* @__PURE__ */ template(`<li class="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 border-b border-[#e5e5e5] px-3 py-2.5 last:border-b-0"><span aria-hidden=true></span><span class="min-w-0 [overflow-wrap:anywhere] text-[13px]"></span><code>`);
+var _tmpl$$2 = /* @__PURE__ */ template(`<ul class="m-0 list-none p-0">`), _tmpl$2$1 = /* @__PURE__ */ template(`<div class="grid grid-cols-2 gap-3 max-[900px]:grid-cols-1"><article class="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fcfcfc]"><header class="flex items-center justify-between gap-2 border-b border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5"><h3 class="m-0 text-xs uppercase tracking-[0.06em] text-[#5f5f5f]">Registered Tasks</h3><span></span></header></article><article class="overflow-hidden rounded-[10px] border border-[#e5e5e5] bg-[#fcfcfc]"><header class="flex items-center justify-between gap-2 border-b border-[#e5e5e5] bg-[#fafafa] px-3 py-2.5"><h3 class="m-0 text-xs uppercase tracking-[0.06em] text-[#5f5f5f]">Registered Components</h3><span>`), _tmpl$3$1 = /* @__PURE__ */ template(`<div>No registered tasks yet.`), _tmpl$4 = /* @__PURE__ */ template(`<li class="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 border-b border-[#e5e5e5] px-3 py-2.5 last:border-b-0"><span class="min-w-0 [overflow-wrap:anywhere] text-[13px]"></span><code>`), _tmpl$5 = /* @__PURE__ */ template(`<div>No registered components yet.`), _tmpl$6 = /* @__PURE__ */ template(`<li class="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 border-b border-[#e5e5e5] px-3 py-2.5 last:border-b-0"><span aria-hidden=true></span><span class="min-w-0 [overflow-wrap:anywhere] text-[13px]"></span><code>`);
 const joinClasses = (...parts) => parts.filter(Boolean).join(" ");
 function OverviewPanel(props) {
   return createComponent(Surface, {
     title: "Overview",
     subtitle: "Registered tasks and components",
     get children() {
-      var _el$ = _tmpl$2(), _el$2 = _el$.firstChild, _el$3 = _el$2.firstChild, _el$4 = _el$3.firstChild, _el$5 = _el$4.nextSibling, _el$7 = _el$2.nextSibling, _el$8 = _el$7.firstChild, _el$9 = _el$8.firstChild, _el$0 = _el$9.nextSibling;
+      var _el$ = _tmpl$2$1(), _el$2 = _el$.firstChild, _el$3 = _el$2.firstChild, _el$4 = _el$3.firstChild, _el$5 = _el$4.nextSibling, _el$7 = _el$2.nextSibling, _el$8 = _el$7.firstChild, _el$9 = _el$8.firstChild, _el$0 = _el$9.nextSibling;
       insert(_el$5, () => props.tasks.length);
       insert(_el$2, createComponent(Show, {
         get when() {
@@ -1643,13 +1643,13 @@ function OverviewPanel(props) {
         },
         get fallback() {
           return (() => {
-            var _el$10 = _tmpl$3();
+            var _el$10 = _tmpl$3$1();
             className(_el$10, emptyStateClass);
             return _el$10;
           })();
         },
         get children() {
-          var _el$6 = _tmpl$$1();
+          var _el$6 = _tmpl$$2();
           insert(_el$6, createComponent(For, {
             get each() {
               return props.tasks;
@@ -1678,7 +1678,7 @@ function OverviewPanel(props) {
           })();
         },
         get children() {
-          var _el$1 = _tmpl$$1();
+          var _el$1 = _tmpl$$2();
           insert(_el$1, createComponent(For, {
             get each() {
               return props.components;
@@ -1716,7 +1716,7 @@ function OverviewPanel(props) {
   });
 }
 
-var _tmpl$ = /* @__PURE__ */ template(`<span class="inline-flex items-center justify-center"><span>`);
+var _tmpl$$1 = /* @__PURE__ */ template(`<span class="inline-flex items-center justify-center"><span>`);
 const stateLabel = {
   in_progress: "In Progress",
   succeeded: "Succeeded",
@@ -1761,7 +1761,7 @@ const requestColumns = [{
   header: "Status",
   class: "w-[88px]",
   render: (row) => (() => {
-    var _el$ = _tmpl$(), _el$2 = _el$.firstChild;
+    var _el$ = _tmpl$$1(), _el$2 = _el$.firstChild;
     createRenderEffect((_p$) => {
       var _v$ = `h-[11px] w-[11px] rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.1)] ${stateLightClass[row.state]}`, _v$2 = stateLabel[row.state], _v$3 = stateLabel[row.state];
       _v$ !== _p$.e && className(_el$2, _p$.e = _v$);
@@ -1800,7 +1800,9 @@ function RequestsPanel(props) {
   });
 }
 
+var _tmpl$ = /* @__PURE__ */ template(`<div class=permission-popups aria-live=assertive>`), _tmpl$2 = /* @__PURE__ */ template(`<p class=permission-popup__scope>Scope: <code>`), _tmpl$3 = /* @__PURE__ */ template(`<article class=permission-popup><div class=permission-popup__badge>Permission Request</div><p class=permission-popup__summary><span class=permission-popup__container></span><span> requests </span><code class=permission-popup__action></code></p><div class=permission-popup__actions><button type=button class="permission-popup__button permission-popup__button--deny">Deny</button><button type=button class="permission-popup__button permission-popup__button--approve">Approve`);
 const MAX_LOG_LINES = 1e3;
+const MAX_PERMISSION_POPUPS = 4;
 const RECONNECT_DELAY_MS = 1e3;
 const tabOptions = [{
   key: "overview",
@@ -1822,6 +1824,8 @@ const emptyPayload = () => ({
   subscribe_logs_ack: void 0,
   authorization_create: void 0,
   authorization_created: void 0,
+  request_permission: void 0,
+  permission_response: void 0,
   event_received: void 0,
   error: void 0
 });
@@ -1842,6 +1846,7 @@ function App() {
   const [nickname, setNickname] = createSignal("");
   const [tokens, setTokens] = createSignal([]);
   const [activeTab, setActiveTab] = createSignal("overview");
+  const [permissionPrompts, setPermissionPrompts] = createSignal([]);
   const createRequestIds = /* @__PURE__ */ new Set();
   let socket = null;
   let reconnectTimer = null;
@@ -2025,17 +2030,63 @@ function App() {
       }));
     }
   };
-  const send = (type, payload) => {
+  const parsePermissionPrompt = (message) => {
+    const raw = message.payload.request_permission;
+    if (!raw || typeof raw !== "object") {
+      return null;
+    }
+    const requestRecord = raw;
+    const maybePermission = requestRecord.permission;
+    const permissionRecord = maybePermission && typeof maybePermission === "object" ? maybePermission : requestRecord;
+    const rawContainer = permissionRecord.container;
+    const rawAction = permissionRecord.action;
+    const rawScope = permissionRecord.scope;
+    const container = typeof rawContainer === "string" && rawContainer.trim().length > 0 ? rawContainer.trim() : "unknown-container";
+    const action = typeof rawAction === "string" && rawAction.trim().length > 0 ? rawAction.trim() : "unknown-action";
+    const scope = typeof rawScope === "string" && rawScope.trim().length > 0 ? rawScope.trim() : void 0;
+    return {
+      id: message.id,
+      container,
+      action,
+      scope
+    };
+  };
+  const enqueuePermissionPrompt = (prompt) => {
+    setPermissionPrompts((previous) => {
+      if (previous.some((entry) => entry.id === prompt.id)) {
+        return previous;
+      }
+      const next = [prompt, ...previous];
+      if (next.length <= MAX_PERMISSION_POPUPS) {
+        return next;
+      }
+      return next.slice(0, MAX_PERMISSION_POPUPS);
+    });
+  };
+  const send = (type, payload, forceId) => {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       return null;
     }
-    const id = nextMessageId();
+    const id = forceId ?? nextMessageId();
     socket.send(JSON.stringify({
       id,
       type,
       payload
     }));
     return id;
+  };
+  const respondToPermissionPrompt = (promptId, approve) => {
+    const sent = send("permissionReplied", {
+      ...emptyPayload(),
+      permission_response: {
+        approve
+      }
+    }, promptId);
+    if (!sent) {
+      setStatus("Not connected");
+      return;
+    }
+    setPermissionPrompts((previous) => previous.filter((prompt) => prompt.id !== promptId));
   };
   const connect = () => {
     if (disposed) {
@@ -2068,6 +2119,7 @@ function App() {
       setConnected(false);
       setStatus("Disconnected (retrying)");
       createRequestIds.clear();
+      setPermissionPrompts([]);
       if (!disposed) {
         reconnectTimer = window.setTimeout(connect, RECONNECT_DELAY_MS);
       }
@@ -2096,6 +2148,14 @@ function App() {
           payload: incoming.payload ?? void 0
         });
         processHostEvent(incoming);
+        return;
+      }
+      if (message.type === "permissionRequest") {
+        const prompt = parsePermissionPrompt(message);
+        if (!prompt) {
+          return;
+        }
+        enqueuePermissionPrompt(prompt);
         return;
       }
       if (message.type === "authorizationCreated" && message.payload.authorization_created) {
@@ -2162,7 +2222,7 @@ function App() {
       socket = null;
     }
   });
-  return createComponent(Shell, {
+  return [createComponent(Shell, {
     get children() {
       return [createComponent(HostHeader, {
         get connected() {
@@ -2250,9 +2310,36 @@ function App() {
         }
       })];
     }
-  });
+  }), (() => {
+    var _el$ = _tmpl$();
+    insert(_el$, createComponent(For, {
+      get each() {
+        return permissionPrompts();
+      },
+      children: (prompt) => (() => {
+        var _el$2 = _tmpl$3(), _el$3 = _el$2.firstChild, _el$4 = _el$3.nextSibling, _el$5 = _el$4.firstChild, _el$6 = _el$5.nextSibling, _el$7 = _el$6.nextSibling, _el$1 = _el$4.nextSibling, _el$10 = _el$1.firstChild, _el$11 = _el$10.nextSibling;
+        insert(_el$5, () => prompt.container);
+        insert(_el$7, () => prompt.action);
+        insert(_el$2, createComponent(Show, {
+          get when() {
+            return prompt.scope;
+          },
+          get children() {
+            var _el$8 = _tmpl$2(), _el$9 = _el$8.firstChild, _el$0 = _el$9.nextSibling;
+            insert(_el$0, () => prompt.scope);
+            return _el$8;
+          }
+        }), _el$1);
+        _el$10.$$click = () => respondToPermissionPrompt(prompt.id, false);
+        _el$11.$$click = () => respondToPermissionPrompt(prompt.id, true);
+        return _el$2;
+      })()
+    }));
+    return _el$;
+  })()];
 }
-render(() => createComponent(App, {}), document.getElementById("root"));</script>
+render(() => createComponent(App, {}), document.getElementById("root"));
+delegateEvents(["click"]);</script>
     <style rel="stylesheet" crossorigin>@import "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap";
 
 
@@ -3313,6 +3400,129 @@ render(() => createComponent(App, {}), document.getElementById("root"));</script
 
   .\[\&\>td\:first-child\]\:underline > td:first-child {
     text-decoration-line: underline;
+  }
+}
+
+.permission-popups {
+  z-index: 90;
+  pointer-events: none;
+  flex-direction: column;
+  gap: 12px;
+  width: min(360px, 100vw - 40px);
+  display: flex;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+}
+
+.permission-popup {
+  pointer-events: auto;
+  background: linear-gradient(150deg, #fefefe 0%, #f5f5f5 100%);
+  border: 1px solid #111;
+  border-radius: 12px;
+  padding: 12px;
+  animation: .18s ease-out permission-popup-in;
+  box-shadow: 0 18px 36px #00000024;
+}
+
+.permission-popup__badge {
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #4c4c4c;
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  border-radius: 999px;
+  align-items: center;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+}
+
+.permission-popup__summary {
+  color: #141414;
+  margin: 9px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.permission-popup__container {
+  font-weight: 700;
+}
+
+.permission-popup__action {
+  font-family: var(--font-mono);
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+.permission-popup__scope {
+  color: #5f5f5f;
+  margin: 7px 0 0;
+  font-size: 11px;
+}
+
+.permission-popup__scope code {
+  font-family: var(--font-mono);
+}
+
+.permission-popup__actions {
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+  display: flex;
+}
+
+.permission-popup__button {
+  cursor: pointer;
+  border: 1px solid #111;
+  border-radius: 9px;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform .13s, opacity .13s, background-color .13s;
+}
+
+.permission-popup__button:hover {
+  transform: translateY(-1px);
+}
+
+.permission-popup__button:active {
+  transform: translateY(0);
+}
+
+.permission-popup__button--deny {
+  color: #111;
+  background: #fff;
+  border-color: #d0d0d0;
+}
+
+.permission-popup__button--approve {
+  color: #fff;
+  background: #111;
+}
+
+@keyframes permission-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px)scale(.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0)scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .permission-popups {
+    width: auto;
+    top: 12px;
+    left: 12px;
+    right: 12px;
   }
 }
 

@@ -10,6 +10,8 @@ enum HostMessageType: String {
          authorizationCreate,
          authorizationCreated,
          eventReceived,
+         permissionRequest,
+         permissionReplied,
          error
 }
 
@@ -30,6 +32,9 @@ struct HostMessagePayload {
 
     let authorizationCreate = Field(.optional(.model(HostMessageAuthorizationCreate.self)))
     let authorizationCreated = Field(.optional(.model(HostMessageAuthorizationCreated.self)))
+    
+    let requestPermission = Field(.optional(.model(HostMessagePermissionResponded.self)))
+    let permissionResponse = Field(.optional(.model(HostMessagePermissionResponded.self)))
 
     let eventReceived = Field(.optional(.model(HostMessageEventReceived.self)))
     let error = Field(.optional(.model(HostMessageError.self)))
@@ -84,4 +89,14 @@ struct HostMessageEventReceived {
 struct HostMessageError {
     let code = Field(.string)
     let message = Field(.string)
+}
+
+@Model
+struct HostMessageRequestPermission {
+    let permission = Field(.model(Permission.self))
+}
+
+@Model
+struct HostMessagePermissionResponded {
+    let approve = Field(.bool)
 }

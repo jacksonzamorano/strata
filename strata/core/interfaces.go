@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+type Filesystem interface {
+	Read(filename string) ([]byte, error)
+}
+
 type Storage interface {
 	GetString(key string) string
 	SetString(key string, value string) error
@@ -98,6 +102,7 @@ type HostBus interface {
 // Use a channel or other primitive.
 type HostBusChannel interface {
 	Info(v string, args ...any)
+	RequestPermission(p Permission) bool
 	Event(ev EventKind, payload any)
 	Container(namespace string) Logger
 }

@@ -13,6 +13,7 @@ type Container struct {
 	Logger        core.Logger
 	Keychain      core.Keychain
 	Authorization *core.Authorization
+	filesystem    *core.Filesystem
 	persistence   core.PersistenceProvider
 	busLogger     core.HostBusChannel
 	components    map[string]*ComponentRunner

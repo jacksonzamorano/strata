@@ -33,6 +33,10 @@ func (cl *ConsoleLoggerTransport) Event(ev core.EventKind, payload any) {
 	encoded, _ := json.Marshal(payload)
 	log.Printf("(%s): %s", ev, string(encoded))
 }
+func (cl *ConsoleLoggerTransport) RequestPermission(p core.Permission) bool {
+	log.Printf("[%s] requested permission '%s'. Permissions are rejected in the console host.", p.Container, p.Action)
+	return false
+}
 
 type ContainerConsoleLogger struct {
 	namespace string
