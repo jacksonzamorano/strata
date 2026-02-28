@@ -96,7 +96,7 @@ func DefaultPersistence(initScript string) (PersistenceProvider, bool) {
 type HostBus interface {
 	Initialize(data PersistenceProvider)
 	Send(msg HostMessage) bool
-	Incoming() <-chan HostReceivedEvent
+	Incoming() <-chan HostMessage
 	Done() <-chan struct{}
 }
 

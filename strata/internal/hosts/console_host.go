@@ -13,7 +13,7 @@ func NewConsoleHost() core.HostBus {
 	return &ConsoleHost{
 		ctx:      ctx,
 		cancel:   cancel,
-		incoming: make(chan core.HostReceivedEvent),
+		incoming: make(chan core.HostMessage),
 	}
 }
 
@@ -21,10 +21,20 @@ type ConsoleHost struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	incoming chan core.HostReceivedEvent
+	incoming chan core.HostMessage
 }
 
 func (cl *ConsoleHost) Initialize(_ core.PersistenceProvider) {}
+
+func (cl *ConsoleHost) reply(id string, typ core.HostMessageType, payload any) {
+	d, _ := json.Marshal(payload)
+	msg := core.HostMessage{
+		Id:      id,
+		Type:    typ,
+		Payload: d,
+	}
+	cl.incoming <- msg
+}
 
 func (cl *ConsoleHost) Send(msg core.HostMessage) bool {
 	select {
@@ -33,6 +43,11 @@ func (cl *ConsoleHost) Send(msg core.HostMessage) bool {
 	default:
 	}
 
+	if msg.Type == core.HostMessageTypePermissionRequest {
+		cl.reply(msg.Id, core.HostMessageTypeRespondPermission, core.HostMessageRespondPermission{
+			Approve: true,
+		})
+	}
 	payload := "{}"
 	if len(msg.Payload) > 0 {
 		payload = string(msg.Payload)
@@ -48,7 +63,7 @@ func (cl *ConsoleHost) Send(msg core.HostMessage) bool {
 	return true
 }
 
-func (cl *ConsoleHost) Incoming() <-chan core.HostReceivedEvent {
+func (cl *ConsoleHost) Incoming() <-chan core.HostMessage {
 	return cl.incoming
 }
 

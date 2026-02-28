@@ -19,7 +19,7 @@ type WebHost struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	incoming chan core.HostReceivedEvent
+	incoming chan core.HostMessage
 	once     sync.Once
 
 	upgrader websocket.Upgrader
@@ -41,7 +41,7 @@ func NewWebHost(enableUI bool) core.HostBus {
 		enableUI: enableUI,
 		ctx:      ctx,
 		cancel:   cancel,
-		incoming: make(chan core.HostReceivedEvent, 256),
+		incoming: make(chan core.HostMessage, 256),
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -92,7 +92,7 @@ func (wh *WebHost) Send(msg core.HostMessage) bool {
 	return true
 }
 
-func (wh *WebHost) Incoming() <-chan core.HostReceivedEvent {
+func (wh *WebHost) Incoming() <-chan core.HostMessage {
 	return wh.incoming
 }
 
@@ -153,51 +153,12 @@ func (wh *WebHost) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (wh *WebHost) handleClientMessages(client *webHostClient) {
-	getTasksList := websocketipc.Receive(client.io, core.HostMessageTypeGetTasksList)
-	getComponentsList := websocketipc.Receive(client.io, core.HostMessageTypeGetComponentsList)
-	getRequestHistory := websocketipc.Receive(client.io, core.HostMessageTypeGetRequestHistory)
-	getAuthorizationsList := websocketipc.Receive(client.io, core.HostMessageTypeGetAuthorizationsList)
-	getPendingPermissionList := websocketipc.Receive(client.io, core.HostMessageTypeGetPendingPermissionList)
-	createAuthorization := websocketipc.Receive(client.io, core.HostMessageTypeCreateAuthorization)
-	respondPermission := websocketipc.Receive(client.io, core.HostMessageTypeRespondPermission)
+	incoming := client.io.Incoming()
 
 	for {
 		select {
-		case ev := <-getTasksList:
-			if ev.Error {
-				return
-			}
-			wh.pushIncoming(ev.Message)
-		case ev := <-getComponentsList:
-			if ev.Error {
-				return
-			}
-			wh.pushIncoming(ev.Message)
-		case ev := <-getRequestHistory:
-			if ev.Error {
-				return
-			}
-			wh.pushIncoming(ev.Message)
-		case ev := <-getAuthorizationsList:
-			if ev.Error {
-				return
-			}
-			wh.pushIncoming(ev.Message)
-		case ev := <-getPendingPermissionList:
-			if ev.Error {
-				return
-			}
-			wh.pushIncoming(ev.Message)
-		case ev := <-createAuthorization:
-			if ev.Error {
-				return
-			}
-			wh.pushIncoming(ev.Message)
-		case ev := <-respondPermission:
-			if ev.Error {
-				return
-			}
-			wh.pushIncoming(ev.Message)
+		case msg := <-incoming:
+			wh.pushIncoming(msg)
 		case <-client.io.Done():
 			return
 		case <-wh.ctx.Done():
@@ -210,7 +171,7 @@ func (wh *WebHost) pushIncoming(msg core.HostMessage) bool {
 	select {
 	case <-wh.ctx.Done():
 		return false
-	case wh.incoming <- core.HostReceivedEvent{Message: msg}:
+	case wh.incoming <- msg:
 		return true
 	}
 }

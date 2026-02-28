@@ -45,10 +45,7 @@ func (c *HostBusCoordinator) readLoop() {
 		case <-c.bus.Done():
 			return
 		case ev := <-incoming:
-			if ev.Error {
-				continue
-			}
-			msg := ev.Message
+			msg := ev
 
 			c.mu.Lock()
 			threadWaiter := c.threadWaiters[msg.Id]
