@@ -63,18 +63,25 @@ try! Schema("messagetypes") {
 
 try! Schema("hostschema") {
     HostMessageType.self
-    HostMessage.self
-    HostMessagePayload.self
-    HostMessageHello.self
-    HostMessageHelloAck.self
-    HostMessageSubscribeLogs.self
-    HostMessageSubscribeLogsAck.self
-    HostMessageAuthorizationCreate.self
+    HostStatusTask.self
+    HostStatusComponent.self
+    HostStatusPendingPermission.self
+    HostRequestHistoryEntry.self
+    HostMessageTasksList.self
+    HostMessageComponentsList.self
+    HostMessageRequestHistory.self
+    HostMessageAuthorizationsList.self
+    HostMessagePendingPermissionList.self
+    HostMessageGetTasksList.self
+    HostMessageGetComponentsList.self
+    HostMessageGetRequestHistory.self
+    HostMessageGetAuthorizationsList.self
+    HostMessageGetPendingPermissionList.self
+    HostMessageCreateAuthorization.self
     HostMessageAuthorizationCreated.self
-    HostMessageEventReceived.self
+    HostMessageLogEvent.self
     HostMessageRequestPermission.self
-    HostMessagePermissionResponded.self
-    HostMessageError.self
+    HostMessageRespondPermission.self
 } routes: {
 
 }

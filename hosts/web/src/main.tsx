@@ -1,9 +1,16 @@
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { render } from "solid-js/web";
+import type { HostMessage } from "./generated/HostMessage";
 import type {
-  HostMessage,
-  HostMessageEventReceived,
-  HostMessagePayload,
+  HostMessageAuthorizationsList,
+  HostMessageComponentsList,
+  HostMessageCreateAuthorization,
+  HostMessageLogEvent,
+  HostMessagePendingPermissionList,
+  HostMessageRequestHistory,
+  HostMessageRequestPermission,
+  HostMessageRespondPermission,
+  HostMessageTasksList,
   HostMessageType,
 } from "./generated";
 import type {
@@ -33,19 +40,6 @@ const tabOptions = [
   { key: "requests", label: "Requests" },
 ] as const satisfies readonly { key: TabKey; label: string }[];
 
-const emptyPayload = (): HostMessagePayload => ({
-  hello: undefined,
-  hello_ack: undefined,
-  subscribe_logs: undefined,
-  subscribe_logs_ack: undefined,
-  authorization_create: undefined,
-  authorization_created: undefined,
-  request_permission: undefined,
-  permission_response: undefined,
-  event_received: undefined,
-  error: undefined,
-});
-
 const nextMessageId = (() => {
   let seed = 0;
   return () => {
@@ -64,6 +58,19 @@ type PermissionPrompt = {
   scope?: string;
 };
 
+function toDate(value: unknown): Date {
+  if (value instanceof Date) {
+    return value;
+  }
+  if (typeof value === "string" || typeof value === "number") {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  return new Date();
+}
+
 function App() {
   const [connected, setConnected] = createSignal(false);
   const [status, setStatus] = createSignal("Connecting");
@@ -72,6 +79,7 @@ function App() {
   const [components, setComponents] = createSignal<RegisteredComponent[]>([]);
   const [nickname, setNickname] = createSignal("");
   const [tokens, setTokens] = createSignal<TokenRecord[]>([]);
+  const [requests, setRequests] = createSignal<RequestRecord[]>([]);
   const [activeTab, setActiveTab] = createSignal<TabKey>("overview");
   const [permissionPrompts, setPermissionPrompts] = createSignal<PermissionPrompt[]>([]);
   const createRequestIds = new Set<string>();
@@ -80,122 +88,7 @@ function App() {
   let reconnectTimer: number | null = null;
   let disposed = false;
 
-  function parsePayloadObject(rawPayload: string | undefined): Record<string, unknown> | null {
-    if (!rawPayload) {
-      return null;
-    }
-    try {
-      const parsed = JSON.parse(rawPayload) as unknown;
-      if (!parsed || typeof parsed !== "object") {
-        return null;
-      }
-      return parsed as Record<string, unknown>;
-    } catch {
-      return null;
-    }
-  }
-
   const lineCount = createMemo(() => logs().length);
-  const requests = createMemo<RequestRecord[]>(() => {
-    const rows = logs();
-    const map = new Map<string, RequestRecord>();
-
-    const parseDate = (value: unknown): Date | null => {
-      if (value instanceof Date && !Number.isNaN(value.getTime())) {
-        return value;
-      }
-      if (typeof value === "string" || typeof value === "number") {
-        const parsed = new Date(value);
-        if (!Number.isNaN(parsed.getTime())) {
-          return parsed;
-        }
-      }
-      return null;
-    };
-
-    const parseString = (value: unknown): string | null => {
-      if (typeof value !== "string") {
-        return null;
-      }
-      const trimmed = value.trim();
-      return trimmed.length > 0 ? trimmed : null;
-    };
-
-    const parseNumber = (value: unknown): number | undefined => {
-      if (typeof value !== "number" || Number.isNaN(value)) {
-        return undefined;
-      }
-      return value;
-    };
-
-    for (const row of rows) {
-      if (row.channel !== "event") {
-        continue;
-      }
-      if (row.kind !== "taskStarted" && row.kind !== "taskFinished") {
-        continue;
-      }
-
-      const payload = parsePayloadObject(row.payload);
-      if (!payload) {
-        continue;
-      }
-
-      const id = parseString(payload.id);
-      if (!id) {
-        continue;
-      }
-
-      const fallbackDate = new Date(row.timestamp);
-      const eventDate = parseDate(payload.date) ?? fallbackDate;
-      const current = map.get(id) ?? {
-        id,
-        taskName: "unknown",
-        startedAt: null,
-        finishedAt: null,
-        state: "unknown",
-        sortTs: eventDate.getTime(),
-      };
-
-      const payloadName = parseString(payload.name);
-
-      if (payloadName) {
-        current.taskName = payloadName;
-      }
-      current.sortTs = Math.max(current.sortTs, eventDate.getTime());
-
-      if (row.kind === "taskStarted") {
-        if (!current.startedAt || eventDate.getTime() < current.startedAt.getTime()) {
-          current.startedAt = eventDate;
-        }
-        if (current.state === "unknown") {
-          current.state = "in_progress";
-        }
-      } else {
-        if (!current.finishedAt || eventDate.getTime() > current.finishedAt.getTime()) {
-          current.finishedAt = eventDate;
-        }
-        if (!current.startedAt) {
-          current.startedAt = eventDate;
-        }
-
-        const duration = parseNumber(payload.duration);
-        if (typeof duration === "number") {
-          current.durationSeconds = duration;
-        }
-
-        if (typeof payload.succeeded === "boolean") {
-          current.state = payload.succeeded ? "succeeded" : "failed";
-        } else {
-          current.state = "unknown";
-        }
-      }
-
-      map.set(id, current);
-    }
-
-    return Array.from(map.values()).sort((a, b) => b.sortTs - a.sortTs);
-  });
   const requestCount = createMemo(() => requests().length);
 
   const pushLog = (entry: LogRecord) => {
@@ -208,114 +101,86 @@ function App() {
     });
   };
 
-  const upsertTask = (name: string, url: string) => {
-    setTasks((previous) => {
-      const next = previous.filter((task) => task.name !== name);
-      next.push({ name, url });
-      return sortByName(next);
+  const hydrateTasks = (payload: HostMessageTasksList) => {
+    setTasks(sortByName(payload.tasks.map((task) => ({ name: task.name, url: task.url }))));
+  };
+
+  const hydrateComponents = (payload: HostMessageComponentsList) => {
+    setComponents(
+      sortByName(
+        payload.components.map((component) => ({
+          name: component.name,
+          version: component.version || "unknown",
+          isHealthy: component.is_healthy,
+        })),
+      ),
+    );
+  };
+
+  const hydrateAuthorizations = (payload: HostMessageAuthorizationsList, requestId?: string) => {
+    setTokens(
+      [...payload.authorizations].sort(
+        (a, b) =>
+          toDate((b.created_date as unknown as string) || Date.now()).getTime() -
+          toDate((a.created_date as unknown as string) || Date.now()).getTime(),
+      ),
+    );
+
+    if (requestId && createRequestIds.has(requestId)) {
+      createRequestIds.delete(requestId);
+      setActiveTab("authorization");
+    }
+  };
+
+  const hydrateRequestHistory = (payload: HostMessageRequestHistory) => {
+    const nextRequests = payload.requests.map((entry) => {
+      const startedAt = toDate(entry.task_start_date);
+      const finishedAt = toDate(entry.task_end_date);
+      const durationSeconds = Math.max(0, (finishedAt.getTime() - startedAt.getTime()) / 1000);
+
+      const row: RequestRecord = {
+        id: String(entry.id),
+        taskName: `#${entry.id}`,
+        startedAt,
+        finishedAt,
+        durationSeconds,
+        state: entry.succeeded ? "succeeded" : "failed",
+        sortTs: startedAt.getTime(),
+      };
+      return row;
     });
+
+    nextRequests.sort((a, b) => b.sortTs - a.sortTs);
+    setRequests(nextRequests);
   };
 
-  const upsertComponent = (
-    name: string,
-    update: (existing: RegisteredComponent | undefined) => RegisteredComponent,
-  ) => {
-    setComponents((previous) => {
-      const index = previous.findIndex((component) => component.name === name);
-      const existing = index >= 0 ? previous[index] : undefined;
-      const next = [...previous];
-      const updated = update(existing);
-      if (index >= 0) {
-        next[index] = updated;
-      } else {
-        next.push(updated);
-      }
-      return sortByName(next);
-    });
-  };
-
-  const processHostEvent = (incoming: HostMessageEventReceived) => {
-    if (incoming.channel !== "event") {
-      return;
-    }
-
-    const payload = parsePayloadObject(incoming.payload ?? undefined);
-    if (!payload) {
-      return;
-    }
-
-    if (incoming.kind === "taskRegistered") {
-      const name = typeof payload.name === "string" ? payload.name.trim() : "";
-      const url = typeof payload.url === "string" ? payload.url.trim() : "";
-      if (!name || !url) {
-        return;
-      }
-      upsertTask(name, url);
-      return;
-    }
-
-    if (incoming.kind === "componentRegistered") {
-      const name = typeof payload.name === "string" ? payload.name.trim() : "";
-      const version = typeof payload.version === "string" ? payload.version.trim() : "";
-      const status = payload.suceeded ?? payload.succeeded;
-      if (!name || typeof status !== "boolean") {
-        return;
-      }
-      upsertComponent(name, (existing) => ({
-        name,
-        version: version || existing?.version || "unknown",
-        isHealthy: status,
-      }));
-      return;
-    }
-
-    if (incoming.kind === "componentReady") {
-      const name = typeof payload.name === "string" ? payload.name.trim() : "";
-      const succeeded = payload.succeeded;
-      if (!name || typeof succeeded !== "boolean") {
-        return;
-      }
-      upsertComponent(name, (existing) => ({
-        name,
-        version: existing?.version || "unknown",
-        isHealthy: succeeded,
-      }));
-    }
-  };
-
-  const parsePermissionPrompt = (message: HostMessage): PermissionPrompt | null => {
-    const raw = message.payload.request_permission as unknown;
-    if (!raw || typeof raw !== "object") {
+  const parsePermissionPromptPayload = (
+    id: string,
+    payload: HostMessageRequestPermission,
+  ): PermissionPrompt | null => {
+    if (!payload || !payload.permission) {
       return null;
     }
 
-    const requestRecord = raw as Record<string, unknown>;
-    const maybePermission = requestRecord.permission;
-    const permissionRecord =
-      maybePermission && typeof maybePermission === "object"
-        ? (maybePermission as Record<string, unknown>)
-        : requestRecord;
-
-    const rawContainer = permissionRecord.container;
-    const rawAction = permissionRecord.action;
-    const rawScope = permissionRecord.scope;
-
-    const container =
-      typeof rawContainer === "string" && rawContainer.trim().length > 0
-        ? rawContainer.trim()
-        : "unknown-container";
-    const action =
-      typeof rawAction === "string" && rawAction.trim().length > 0
-        ? rawAction.trim()
-        : "unknown-action";
-    const scope = typeof rawScope === "string" && rawScope.trim().length > 0 ? rawScope.trim() : undefined;
+    const permission = payload.permission;
+    const container = permission.container.trim().length > 0 ? permission.container.trim() : "unknown-container";
+    const action = String(permission.action).trim().length > 0 ? String(permission.action).trim() : "unknown-action";
+    const scope = typeof permission.scope === "string" && permission.scope.trim().length > 0 ? permission.scope.trim() : undefined;
 
     return {
-      id: message.id,
+      id,
       container,
       action,
       scope,
     };
+  };
+
+  const hydratePendingPermissionList = (payload: HostMessagePendingPermissionList) => {
+    const next = payload.pending_permissions
+      .map((pending) => parsePermissionPromptPayload(pending.id, { permission: pending.permission }))
+      .filter((prompt): prompt is PermissionPrompt => prompt !== null)
+      .slice(0, MAX_PERMISSION_POPUPS);
+    setPermissionPrompts(next);
   };
 
   const enqueuePermissionPrompt = (prompt: PermissionPrompt) => {
@@ -331,7 +196,7 @@ function App() {
     });
   };
 
-  const send = (type: HostMessageType, payload: HostMessagePayload, forceId?: string): string | null => {
+  const send = <TPayload,>(type: HostMessageType, payload: TPayload, forceId?: string): string | null => {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       return null;
     }
@@ -343,20 +208,25 @@ function App() {
         id,
         type,
         payload,
-      } satisfies HostMessage),
+      } satisfies HostMessage<TPayload>),
     );
 
     return id;
   };
 
+  const requestInitialSnapshots = () => {
+    send("getTasksList", {});
+    send("getComponentsList", {});
+    send("getRequestHistory", {});
+    send("getAuthorizationsList", {});
+    send("getPendingPermissionList", {});
+  };
+
   const respondToPermissionPrompt = (promptId: string, approve: boolean) => {
-    const sent = send(
-      "permissionReplied",
+    const sent = send<HostMessageRespondPermission>(
+      "respondPermission",
       {
-        ...emptyPayload(),
-        permission_response: {
-          approve,
-        },
+        approve,
       },
       promptId,
     );
@@ -384,21 +254,7 @@ function App() {
     socket.onopen = () => {
       setConnected(true);
       setStatus("Connected");
-
-      send("hello", {
-        ...emptyPayload(),
-        hello: {
-          protocol_version: "1",
-          client_name: "strata-web-host",
-        },
-      });
-
-      send("subscribeLogs", {
-        ...emptyPayload(),
-        subscribe_logs: {
-          tail: 200,
-        },
-      });
+      requestInitialSnapshots();
     };
 
     socket.onclose = () => {
@@ -424,9 +280,43 @@ function App() {
         return;
       }
 
-      if (message.type === "eventReceived" && message.payload.event_received) {
-        const incoming = message.payload.event_received as HostMessageEventReceived;
-        const timestamp = new Date((incoming.date as unknown as string) || Date.now());
+      if (message.type === "tasksList") {
+        hydrateTasks(message.payload as HostMessageTasksList);
+        return;
+      }
+
+      if (message.type === "componentsList") {
+        hydrateComponents(message.payload as HostMessageComponentsList);
+        return;
+      }
+
+      if (message.type === "authorizationsList") {
+        hydrateAuthorizations(message.payload as HostMessageAuthorizationsList, message.id);
+        return;
+      }
+
+      if (message.type === "requestHistory") {
+        hydrateRequestHistory(message.payload as HostMessageRequestHistory);
+        return;
+      }
+
+      if (message.type === "pendingPermissionList") {
+        hydratePendingPermissionList(message.payload as HostMessagePendingPermissionList);
+        return;
+      }
+
+      if (message.type === "permissionRequest") {
+        const prompt = parsePermissionPromptPayload(message.id, message.payload as HostMessageRequestPermission);
+        if (!prompt) {
+          return;
+        }
+        enqueuePermissionPrompt(prompt);
+        return;
+      }
+
+      if (message.type === "logEvent") {
+        const incoming = message.payload as HostMessageLogEvent;
+        const timestamp = toDate(incoming.date);
 
         pushLog({
           id: message.id,
@@ -439,55 +329,9 @@ function App() {
           payload: incoming.payload ?? undefined,
         });
 
-        processHostEvent(incoming);
-        return;
-      }
-
-      if (message.type === "permissionRequest") {
-        const prompt = parsePermissionPrompt(message);
-        if (!prompt) {
-          return;
+        if (incoming.channel === "event" && incoming.kind === "taskFinished") {
+          send("getRequestHistory", {});
         }
-        enqueuePermissionPrompt(prompt);
-        return;
-      }
-
-      if (message.type === "authorizationCreated" && message.payload.authorization_created) {
-        const token = message.payload.authorization_created;
-
-        setTokens((previous) => {
-          const index = previous.findIndex((existing) => existing.secret === token.secret);
-          const next = [...previous];
-          if (index >= 0) {
-            next[index] = token;
-          } else {
-            next.push(token);
-          }
-          next.sort(
-            (a, b) =>
-              new Date((b.created_date as unknown as string) || Date.now()).getTime() -
-              new Date((a.created_date as unknown as string) || Date.now()).getTime(),
-          );
-          return next;
-        });
-
-        if (createRequestIds.has(message.id)) {
-          createRequestIds.delete(message.id);
-          setActiveTab("authorization");
-        }
-        return;
-      }
-
-      if (message.type === "error" && message.payload.error) {
-        const now = new Date();
-        pushLog({
-          id: message.id || nextMessageId(),
-          timestamp: now.getTime(),
-          date: now.toLocaleTimeString(),
-          channel: "error",
-          kind: message.payload.error.code,
-          message: message.payload.error.message,
-        });
       }
     };
   };
@@ -501,11 +345,8 @@ function App() {
       return;
     }
 
-    const requestId = send("authorizationCreate", {
-      ...emptyPayload(),
-      authorization_create: {
-        nickname: nextNickname,
-      },
+    const requestId = send<HostMessageCreateAuthorization>("createAuthorization", {
+      nickname: nextNickname,
     });
     if (!requestId) {
       setStatus("Not connected");

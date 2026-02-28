@@ -3,68 +3,20 @@ import Passport
 
 @Enum
 enum HostMessageType: String {
-    case hello,
-         helloAck,
-         subscribeLogs,
-         subscribeLogsAck,
-         authorizationCreate,
-         authorizationCreated,
-         eventReceived,
+    case tasksList,
+         componentsList,
+         logEvent,
+         requestHistory,
+         authorizationsList,
          permissionRequest,
-         permissionReplied,
-         error
-}
-
-@Model
-struct HostMessage {
-    let id = Field(.string)
-    let type = Field(.value(HostMessageType.self))
-    let payload = Field(.model(HostMessagePayload.self))
-}
-
-@Model
-struct HostMessagePayload {
-    let hello = Field(.optional(.model(HostMessageHello.self)))
-    let helloAck = Field(.optional(.model(HostMessageHelloAck.self)))
-
-    let subscribeLogs = Field(.optional(.model(HostMessageSubscribeLogs.self)))
-    let subscribeLogsAck = Field(.optional(.model(HostMessageSubscribeLogsAck.self)))
-
-    let authorizationCreate = Field(.optional(.model(HostMessageAuthorizationCreate.self)))
-    let authorizationCreated = Field(.optional(.model(HostMessageAuthorizationCreated.self)))
-    
-    let requestPermission = Field(.optional(.model(HostMessagePermissionResponded.self)))
-    let permissionResponse = Field(.optional(.model(HostMessagePermissionResponded.self)))
-
-    let eventReceived = Field(.optional(.model(HostMessageEventReceived.self)))
-    let error = Field(.optional(.model(HostMessageError.self)))
-}
-
-@Model
-struct HostMessageHello {
-    let protocolVersion = Field(.string)
-    let clientName = Field(.string)
-}
-
-@Model
-struct HostMessageHelloAck {
-    let protocolVersion = Field(.string)
-    let serverName = Field(.string)
-}
-
-@Model
-struct HostMessageSubscribeLogs {
-    let tail = Field(.int64)
-}
-
-@Model
-struct HostMessageSubscribeLogsAck {
-    let replayCount = Field(.int64)
-}
-
-@Model
-struct HostMessageAuthorizationCreate {
-    let nickname = Field(.string)
+         pendingPermissionList,
+         getTasksList,
+         getComponentsList,
+         getRequestHistory,
+         getAuthorizationsList,
+         getPendingPermissionList,
+         createAuthorization,
+         respondPermission
 }
 
 @Model
@@ -76,7 +28,7 @@ struct HostMessageAuthorizationCreated {
 }
 
 @Model
-struct HostMessageEventReceived {
+struct HostMessageLogEvent {
     let date = Field(.datetime)
     let channel = Field(.string)
     let kind = Field(.string)
@@ -86,17 +38,87 @@ struct HostMessageEventReceived {
 }
 
 @Model
-struct HostMessageError {
-    let code = Field(.string)
-    let message = Field(.string)
-}
-
-@Model
 struct HostMessageRequestPermission {
     let permission = Field(.model(Permission.self))
 }
 
 @Model
-struct HostMessagePermissionResponded {
+struct HostMessageRespondPermission {
     let approve = Field(.bool)
+}
+
+@Model
+struct HostStatusTask {
+    let name = Field(.string)
+    let url = Field(.string)
+}
+
+@Model
+struct HostStatusComponent {
+    let name = Field(.string)
+    let version = Field(.string)
+    let isHealthy = Field(.bool)
+}
+
+@Model
+struct HostStatusPendingPermission {
+    let id = Field(.string)
+    let permission = Field(.model(Permission.self))
+}
+
+@Model
+struct HostRequestHistoryEntry {
+    let id = Field(.int64)
+    let succeeded = Field(.bool)
+    let inputBody = Field(.string)
+    let inputQuery = Field(.string)
+    let inputHeaders = Field(.string)
+    let output = Field(.optional(.string))
+    let taskStartDate = Field(.datetime)
+    let taskEndDate = Field(.datetime)
+}
+
+@Model
+struct HostMessageTasksList {
+    let tasks = Field(.array(.model(HostStatusTask.self)))
+}
+
+@Model
+struct HostMessageComponentsList {
+    let components = Field(.array(.model(HostStatusComponent.self)))
+}
+
+@Model
+struct HostMessageRequestHistory {
+    let requests = Field(.array(.model(HostRequestHistoryEntry.self)))
+}
+
+@Model
+struct HostMessageAuthorizationsList {
+    let authorizations = Field(.array(.model(HostMessageAuthorizationCreated.self)))
+}
+
+@Model
+struct HostMessagePendingPermissionList {
+    let pendingPermissions = Field(.array(.model(HostStatusPendingPermission.self)))
+}
+
+@Model
+struct HostMessageGetTasksList {}
+
+@Model
+struct HostMessageGetComponentsList {}
+
+@Model
+struct HostMessageGetRequestHistory {}
+
+@Model
+struct HostMessageGetAuthorizationsList {}
+
+@Model
+struct HostMessageGetPendingPermissionList {}
+
+@Model
+struct HostMessageCreateAuthorization {
+    let nickname = Field(.string)
 }

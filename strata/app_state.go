@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/jacksonzamorano/tasks/strata/core"
+	"github.com/jacksonzamorano/tasks/strata/internal/hosts"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -14,23 +15,23 @@ var initScript []byte
 type AppState struct {
 	persistence core.PersistenceProvider
 	components  map[string]*ComponentRunner
-	logger      core.HostBusChannel
+	host        *appHostService
 }
 
 func newAppState(bus core.HostBus) AppState {
 	persistence, fresh := core.DefaultPersistence(string(initScript))
 	bus.Initialize(persistence)
+	hostService := newAppHostService(persistence, hosts.NewHostBusCoordinator(bus))
 
-	logger := bus.Channel()
 	if fresh {
 		auth := persistence.Authorization.NewAuthorization("core", "Master")
-		logger.Info("Created initial token '%s'", auth.Secret)
+		hostService.Info("Created initial token '%s'", auth.Secret)
 		log.Printf("Initial token: %s", auth.Secret)
 	}
 
 	as := AppState{
 		persistence: persistence,
-		logger:      bus.Channel(),
+		host:        hostService,
 		components:  map[string]*ComponentRunner{},
 	}
 

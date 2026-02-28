@@ -16,6 +16,7 @@ type TaskHistoryEntry struct {
 }
 type TaskHistoryProvider interface {
 	SaveTaskRun(taskRun TaskHistoryEntry)
+	GetRecentTaskRuns(limit int) []TaskRun
 }
 
 func (s *SQLiteStorage) SaveTaskRun(taskRun TaskHistoryEntry) {
@@ -39,4 +40,42 @@ func (s *SQLiteStorage) SaveTaskRun(taskRun TaskHistoryEntry) {
 		taskRun.Start,
 		taskRun.End,
 	)
+}
+
+func (s *SQLiteStorage) GetRecentTaskRuns(limit int) []TaskRun {
+	if limit <= 0 {
+		limit = 200
+	}
+
+	rows, err := s.db.Query(
+		`SELECT task_run.id,
+		        task_run.succeeded,
+		        task_run.input_body,
+		        task_run.input_query,
+		        task_run.input_headers,
+		        task_run.output,
+		        task_run.task_start_date,
+		        task_run.task_end_date
+		   FROM task_run
+		  ORDER BY task_run.task_start_date DESC
+		  LIMIT ?1`,
+		limit,
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	out := make([]TaskRun, 0)
+	for rows.Next() {
+		var entry TaskRun
+		if scanErr := ScanTaskRun(rows, &entry); scanErr != nil {
+			panic(scanErr)
+		}
+		out = append(out, entry)
+	}
+	if rowsErr := rows.Err(); rowsErr != nil {
+		panic(rowsErr)
+	}
+	return out
 }

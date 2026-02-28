@@ -95,16 +95,14 @@ func DefaultPersistence(initScript string) (PersistenceProvider, bool) {
 // and many channels will be created.
 type HostBus interface {
 	Initialize(data PersistenceProvider)
-	Channel() HostBusChannel
+	Send(msg HostMessage) bool
+	Incoming() <-chan HostReceivedEvent
+	Done() <-chan struct{}
 }
 
-// Must be async-safe.
-// Use a channel or other primitive.
-type HostBusChannel interface {
-	Info(v string, args ...any)
-	RequestPermission(p Permission) bool
-	Event(ev EventKind, payload any)
-	Container(namespace string) Logger
+type HostReceivedEvent struct {
+	Message HostMessage
+	Error   bool
 }
 
 // A containerized logger.

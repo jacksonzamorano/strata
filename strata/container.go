@@ -15,7 +15,7 @@ type Container struct {
 	Authorization *core.Authorization
 	filesystem    *core.Filesystem
 	persistence   core.PersistenceProvider
-	busLogger     core.HostBusChannel
+	hostService   *appHostService
 	components    map[string]*ComponentRunner
 	namespace     string
 }
@@ -47,7 +47,7 @@ func wrapExecuteFunction(c *Container, cname, fname string, args any) ([]byte, e
 func (c *Container) ExecuteFunction(cname, fname string, args any) ([]byte, error) {
 	id := makeId()
 	start := time.Now()
-	c.busLogger.Event(core.EventKindComponentFunctionStarted, core.EventComponentFunctionStartedPayload{
+	c.hostService.Event(core.EventKindComponentFunctionStarted, core.EventComponentFunctionStartedPayload{
 		Id:        id,
 		Component: cname,
 		Function:  fname,
@@ -56,7 +56,7 @@ func (c *Container) ExecuteFunction(cname, fname string, args any) ([]byte, erro
 	bytes, err := wrapExecuteFunction(c, cname, fname, args)
 	end := time.Now()
 	if err == nil {
-		c.busLogger.Event(core.EventKindComponentFunctionFinished, core.EventComponentFunctionFinishedPayload{
+		c.hostService.Event(core.EventKindComponentFunctionFinished, core.EventComponentFunctionFinishedPayload{
 			Id:        id,
 			Component: cname,
 			Function:  fname,
@@ -66,7 +66,7 @@ func (c *Container) ExecuteFunction(cname, fname string, args any) ([]byte, erro
 			Value:     string(bytes),
 		})
 	} else {
-		c.busLogger.Event(core.EventKindComponentFunctionFinished, core.EventComponentFunctionFinishedPayload{
+		c.hostService.Event(core.EventKindComponentFunctionFinished, core.EventComponentFunctionFinishedPayload{
 			Id:        id,
 			Component: cname,
 			Function:  fname,
@@ -83,11 +83,11 @@ func (c *Container) ExecuteFunction(cname, fname string, args any) ([]byte, erro
 func (as *AppState) buildContainer(namespace string) *Container {
 	return &Container{
 		Storage:     as.persistence.Storage.Container(namespace),
-		Logger:      as.logger.Container(namespace),
+		Logger:      as.host.Container(namespace),
 		Keychain:    newPlatformKeychain().Container(namespace),
 		persistence: as.persistence,
 		components:  as.components,
 		namespace:   namespace,
-		busLogger:   as.logger,
+		hostService: as.host,
 	}
 }

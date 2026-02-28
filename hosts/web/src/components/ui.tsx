@@ -145,7 +145,8 @@ export function Button(
 
   const handleClick: JSX.EventHandler<HTMLButtonElement, MouseEvent> = (event) => {
     startCompleteState();
-    local.onClick?.(event);
+    const clickHandler = local.onClick as JSX.EventHandler<HTMLButtonElement, MouseEvent> | undefined;
+    clickHandler?.(event);
   };
 
   return (

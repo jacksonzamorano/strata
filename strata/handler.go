@@ -46,7 +46,7 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 
 		start := time.Now()
 		id := makeId()
-		as.logger.Event(core.EventKindTaskStarted, core.EventTaskStartedPayload{
+		as.host.Event(core.EventKindTaskStarted, core.EventTaskStartedPayload{
 			Id:   id,
 			Name: ar.Name,
 			Date: start,
@@ -102,7 +102,7 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 			Start:        start,
 			End:          end,
 		})
-		as.logger.Event(core.EventKindTaskFinished, core.EventTaskFinishedPayload{
+		as.host.Event(core.EventKindTaskFinished, core.EventTaskFinishedPayload{
 			Id:        id,
 			Name:      ar.Name,
 			Date:      end,
