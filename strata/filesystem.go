@@ -1,6 +1,10 @@
 package strata
 
-import "github.com/jacksonzamorano/tasks/strata/core"
+import (
+	"os"
+
+	"github.com/jacksonzamorano/strata/core"
+)
 
 func (c *Container) ReadFile(name string) ([]byte, bool) {
 	approved := c.hostService.RequestPermission(core.Permission{
@@ -11,5 +15,12 @@ func (c *Container) ReadFile(name string) ([]byte, bool) {
 	if !approved {
 		return []byte{}, false
 	}
-	return []byte{}, true
+
+	b, err := os.ReadFile(name)
+	if err != nil {
+		c.hostService.Info("Could not read '%s': '%s'", name, err.Error())
+		return []byte{}, false
+	}
+
+	return b, true
 }

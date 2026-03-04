@@ -3,7 +3,7 @@ package strata
 import (
 	"encoding/json"
 
-	"github.com/jacksonzamorano/tasks/strata/core"
+	"github.com/jacksonzamorano/strata/core"
 )
 
 type ContainerEntityStorage[T any] struct {

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/jacksonzamorano/tasks/strata/internal/componentipc"
+	"github.com/jacksonzamorano/strata/internal/componentipc"
 )
 
 type ComponentLogger struct {

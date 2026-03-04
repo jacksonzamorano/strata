@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jacksonzamorano/tasks/strata/internal/componentipc"
+	"github.com/jacksonzamorano/strata/internal/componentipc"
 )
 
 type ComponentStorage struct {

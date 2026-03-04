@@ -4,8 +4,8 @@ import (
 	"os"
 	"path"
 
-	cex "github.com/jacksonzamorano/tasks/componentexample/types"
-	"github.com/jacksonzamorano/tasks/strata"
+	cex "github.com/jacksonzamorano/componentexample/types"
+	"github.com/jacksonzamorano/strata"
 )
 
 type SayHelloData struct {
@@ -50,10 +50,10 @@ func sayHello(data SayHelloData, container *strata.Container) *strata.TaskResult
 }
 
 func getVisitorLog(data strata.NoTaskBody, container *strata.Container) *strata.TaskResult {
-	container.ReadFile("test.txt")
+	c, _ := container.ReadFile("../README.md")
 	entityContainer := strata.NewEntityStorage[Visitor](container)
 	allNonEmpty := entityContainer.Find(func(v Visitor) bool { return len(v.Name) > 0 })
-	return strata.Done(allNonEmpty)
+	return strata.Done(map[string]any{"v": allNonEmpty, "c": string(c)})
 }
 
 func reset(data strata.NoTaskBody, container *strata.Container) *strata.TaskResult {
@@ -73,7 +73,7 @@ func main() {
 		// strata.Binary("component-example"),
 		strata.ImportLocal(path.Join(path.Dir(cd), "component-example")),
 		// strata.ImportGitSubdirectory("git@github.com:jacksonzamorano/strata.git", "component-example"),
-	), strata.UseWebUI())
+	))
 	e := as.Start()
 	panic(e)
 }

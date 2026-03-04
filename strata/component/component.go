@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/jacksonzamorano/tasks/strata/core"
-	"github.com/jacksonzamorano/tasks/strata/internal/componentipc"
+	"github.com/jacksonzamorano/strata/core"
+	"github.com/jacksonzamorano/strata/internal/componentipc"
 )
 
 type Component struct {

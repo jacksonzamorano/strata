@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/jacksonzamorano/tasks/strata/core"
-	"github.com/jacksonzamorano/tasks/strata/internal/componentipc"
-	"github.com/jacksonzamorano/tasks/strata/internal/hosts"
+	"github.com/jacksonzamorano/strata/core"
+	"github.com/jacksonzamorano/strata/hostio"
+	"github.com/jacksonzamorano/strata/internal/componentipc"
 )
 
 type RequestInfo struct {
@@ -19,7 +19,6 @@ type RequestInfo struct {
 }
 
 type AppServer struct {
-	bus             core.HostBus
 	state           *AppState
 	srv             *http.Server
 	listener        *http.ServeMux
@@ -28,26 +27,19 @@ type AppServer struct {
 
 func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*ConfigurationModification) AppServer {
 	var approvedActions []core.ApprovedComponentPermission
-	var bus core.HostBus
 	for _, op := range cfg {
-		if op.NewHost != nil {
-			bus = op.NewHost()
-		}
 		if op.Permissions != nil {
 			approvedActions = append(approvedActions, op.Permissions...)
 		}
 	}
 
-	if bus == nil {
-		bus = hosts.NewConsoleHost()
-	}
-	appState := newAppState(bus)
+	appState := newAppState()
 	mux := http.NewServeMux()
 
 	for idx := range tasks {
 		url := fmt.Sprintf("/tasks/%s", tasks[idx].Name)
 		mux.HandleFunc(url, appState.handler(tasks[idx]))
-		appState.host.Event(core.EventKindTaskRegistered, core.EventTaskRegisterPayload{
+		appState.host.Emit(hostio.HostMessageTypeTaskRegistered, hostio.EventTaskRegisterPayload{
 			Name: tasks[idx].Name,
 			Url:  url,
 		})
@@ -70,7 +62,7 @@ func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*Configurati
 
 		ev := componentipc.ReceiveOnce[componentipc.ComponentMessageHello](runner.transport, 5*time.Second, componentipc.MessageTypeHello)
 		if ev.Error {
-			appState.host.Event(core.EventKindComponentRegistered, core.EventComponentRegisteredPayload{
+			appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
 				Suceeded: false,
 				Name:     name,
 				Path:     runner.path,
@@ -79,7 +71,7 @@ func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*Configurati
 			continue
 		}
 		hello := ev.Payload
-		appState.host.Event(core.EventKindComponentRegistered, core.EventComponentRegisteredPayload{
+		appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
 			Suceeded: true,
 			Name:     hello.Name,
 			Version:  hello.Version,
@@ -89,25 +81,19 @@ func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*Configurati
 		appState.components[name] = runner
 
 		rdy, _ := componentipc.SendAndReceive[componentipc.ComponentMessageReady](ev.Thread, componentipc.MessageTypeSetup, struct{}{}, componentipc.MessageTypeReady)
-		var err_msg_ptr *string
+		var errMsgPtr *string
 		if len(rdy.Error) > 0 {
-			err_msg_ptr = &rdy.Error
+			errMsgPtr = &rdy.Error
 		}
-
-		appState.host.Event(core.EventKindComponentReady, core.EventComponentReadyPayload{
-			Name:      hello.Name,
-			Succeeded: err_msg_ptr == nil,
-			Error:     err_msg_ptr,
-		})
-		if err_msg_ptr == nil {
+		if errMsgPtr == nil {
 			appState.components[name].available = true
 			continue
 		}
 
-		appState.host.Event(core.EventKindComponentRegistered, core.EventComponentRegisteredPayload{
+		appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
 			Suceeded: false,
 			Name:     name,
-			Error:    new("Component sent invalid message."),
+			Error:    errMsgPtr,
 		})
 	}
 
@@ -126,13 +112,19 @@ func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*Configurati
 			Handler:           mux,
 			ReadHeaderTimeout: 5 * time.Second,
 		},
-		listener: mux,
-		bus:      bus,
+		listener:        mux,
+		approvedActions: approvedActions,
 	}
 	return as
 }
 
 func (as *AppServer) Start() error {
+	select {
+	case <-as.state.host.Done():
+		return fmt.Errorf("host rpc connection unavailable")
+	default:
+	}
+
 	as.state.host.Info("Listening on %s", as.srv.Addr)
 	return as.srv.ListenAndServe()
 }

@@ -3,9 +3,8 @@ package strata
 import (
 	"errors"
 	"reflect"
-	"time"
 
-	"github.com/jacksonzamorano/tasks/strata/core"
+	"github.com/jacksonzamorano/strata/core"
 )
 
 type Container struct {
@@ -15,7 +14,7 @@ type Container struct {
 	Authorization *core.Authorization
 	filesystem    *core.Filesystem
 	persistence   core.PersistenceProvider
-	hostService   *appHostService
+	hostService   *HostIOService
 	components    map[string]*ComponentRunner
 	namespace     string
 }
@@ -45,39 +44,7 @@ func wrapExecuteFunction(c *Container, cname, fname string, args any) ([]byte, e
 }
 
 func (c *Container) ExecuteFunction(cname, fname string, args any) ([]byte, error) {
-	id := makeId()
-	start := time.Now()
-	c.hostService.Event(core.EventKindComponentFunctionStarted, core.EventComponentFunctionStartedPayload{
-		Id:        id,
-		Component: cname,
-		Function:  fname,
-		Date:      start,
-	})
-	bytes, err := wrapExecuteFunction(c, cname, fname, args)
-	end := time.Now()
-	if err == nil {
-		c.hostService.Event(core.EventKindComponentFunctionFinished, core.EventComponentFunctionFinishedPayload{
-			Id:        id,
-			Component: cname,
-			Function:  fname,
-			Date:      end,
-			Duration:  end.Sub(start).Seconds(),
-			Succeeded: true,
-			Value:     string(bytes),
-		})
-	} else {
-		c.hostService.Event(core.EventKindComponentFunctionFinished, core.EventComponentFunctionFinishedPayload{
-			Id:        id,
-			Component: cname,
-			Function:  fname,
-			Date:      end,
-			Duration:  end.Sub(start).Seconds(),
-			Succeeded: false,
-			Value:     string(bytes),
-			Error:     err.Error(),
-		})
-	}
-	return bytes, err
+	return wrapExecuteFunction(c, cname, fname, args)
 }
 
 func (as *AppState) buildContainer(namespace string) *Container {

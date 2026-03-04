@@ -1,6 +1,6 @@
 package component
 
-import "github.com/jacksonzamorano/tasks/strata/internal/componentipc"
+import "github.com/jacksonzamorano/strata/internal/componentipc"
 
 type ComponentKeychain struct {
 	io *componentipc.IO

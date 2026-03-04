@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/jacksonzamorano/tasks/strata/component"
-	"github.com/jacksonzamorano/tasks/strata/core"
-	"github.com/jacksonzamorano/tasks/strata/internal/componentipc"
+	"github.com/jacksonzamorano/strata/component"
+	"github.com/jacksonzamorano/strata/core"
+	"github.com/jacksonzamorano/strata/internal/componentipc"
 )
 
 type ComponentRunner struct {

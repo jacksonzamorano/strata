@@ -1,11 +1,12 @@
 package strata
 
 import (
+	"context"
 	_ "embed"
 	"log"
 
-	"github.com/jacksonzamorano/tasks/strata/core"
-	"github.com/jacksonzamorano/tasks/strata/internal/hosts"
+	"github.com/jacksonzamorano/strata/core"
+	"github.com/jacksonzamorano/strata/hostio"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -15,13 +16,13 @@ var initScript []byte
 type AppState struct {
 	persistence core.PersistenceProvider
 	components  map[string]*ComponentRunner
-	host        *appHostService
+	host        *HostIOService
 }
 
-func newAppState(bus core.HostBus) AppState {
+func newAppState() AppState {
 	persistence, fresh := core.DefaultPersistence(string(initScript))
-	bus.Initialize(persistence)
-	hostService := newAppHostService(persistence, hosts.NewHostBusCoordinator(bus))
+	hostCtx, hostCancel := context.WithCancel(context.Background())
+	hostService := newAppHostService(persistence, hostio.NewStdio(hostCtx, hostCancel))
 
 	if fresh {
 		auth := persistence.Authorization.NewAuthorization("core", "Master")

@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/jacksonzamorano/tasks/strata/component"
+	"github.com/jacksonzamorano/strata/component"
 )
 
 type SayRequest struct {

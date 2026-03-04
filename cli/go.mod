@@ -1,4 +1,4 @@
-module github.com/jacksonzamorano/componentexample
+module github.com/jacksonzamorano/strata/cli
 
 go 1.26.0
 

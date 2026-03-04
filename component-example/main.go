@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/jacksonzamorano/tasks/componentexample/types"
-	"github.com/jacksonzamorano/tasks/strata/component"
+	"github.com/jacksonzamorano/componentexample/types"
+	"github.com/jacksonzamorano/strata/component"
 )
 
 func sayFeature(r *component.ComponentInput[types.SayRequest, types.SayResponse], ctx *component.ComponentContext) *component.ComponentReturn[types.SayResponse] {

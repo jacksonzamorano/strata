@@ -14,6 +14,10 @@ let ipcGoConfig = GoConfiguration { cfg in
     cfg.packageName = "componentipc"
 }
 
+let hostGoConfig = GoConfiguration { cfg in
+    cfg.packageName = "hostio"
+}
+
 try! Schema("schema") {
     TaskRun.self
     StorageRow.self
@@ -23,15 +27,6 @@ try! Schema("schema") {
     
     PermissionAction.self
     Permission.self
-    
-    EventKind.self
-    EventTaskRegisterPayload.self
-    EventComponentRegisteredPayload.self
-    EventComponentReadyPayload.self
-    EventTaskStartedPayload.self
-    EventTaskFinishedPayload.self
-    EventComponentFunctionStartedPayload.self
-    EventComponentFunctionFinishedPayload.self
 } routes: {
 
 }
@@ -44,6 +39,24 @@ try! Schema("schema") {
     )
 }
 .sql(sql, rootDirectory: strataRoot)
+.build()
+
+try! Schema("hostschema") {
+    EventKind.self
+    EventTaskRegisterPayload.self
+    EventComponentRegisteredPayload.self
+    EventTaskTriggeredPayload.self
+} routes: {
+    
+}
+.output(Go(sqlBuilder: sql, config: hostGoConfig)) {
+    CodeBuilderConfiguration(
+        root: strataRoot.appending(path: "hostio"),
+        fileStrategy: .monolithic,
+        generateRecords: .asRecords,
+        generateModels: true
+    )
+}
 .build()
 
 try! Schema("messagetypes") {
@@ -61,22 +74,13 @@ try! Schema("messagetypes") {
 }
 .build()
 
-try! Schema("hostschema") {
+try! Schema("host_protocol") {
     HostMessageType.self
-    HostStatusTask.self
-    HostStatusComponent.self
-    HostStatusPendingPermission.self
-    HostRequestHistoryEntry.self
-    HostMessageTasksList.self
-    HostMessageComponentsList.self
-    HostMessageRequestHistory.self
     HostMessageAuthorizationsList.self
-    HostMessagePendingPermissionList.self
-    HostMessageGetTasksList.self
-    HostMessageGetComponentsList.self
-    HostMessageGetRequestHistory.self
+    HostMessageTaskRegistered.self
+    HostMessageComponentRegistered.self
+    HostMessageTaskTriggered.self
     HostMessageGetAuthorizationsList.self
-    HostMessageGetPendingPermissionList.self
     HostMessageCreateAuthorization.self
     HostMessageAuthorizationCreated.self
     HostMessageLogEvent.self
@@ -85,18 +89,10 @@ try! Schema("hostschema") {
 } routes: {
 
 }
-.output(Go(sqlBuilder: sql, config: goConfig)) {
+.output(Go(sqlBuilder: sql, config: hostGoConfig)) {
     CodeBuilderConfiguration(
-        root: strataRoot.appending(path: "core"),
+        root: strataRoot.appending(path: "hostio"),
         fileStrategy: .monolithic,
-        generateRecords: .none,
-        generateModels: true
-    )
-}
-.output(TypeScript(buildIndex: true)) {
-    CodeBuilderConfiguration(
-        root: projectRoot.appending(path: "hosts/web/src/generated"),
-        fileStrategy: .perEntity,
         generateRecords: .none,
         generateModels: true
     )

@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jacksonzamorano/tasks/strata/core"
+	"github.com/jacksonzamorano/strata/core"
+	"github.com/jacksonzamorano/strata/hostio"
 )
 
 func (as *AppState) handle(r *http.Request, task Task) (*RequestInfo, *TaskResult) {
@@ -46,7 +47,7 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 
 		start := time.Now()
 		id := makeId()
-		as.host.Event(core.EventKindTaskStarted, core.EventTaskStartedPayload{
+		as.host.Emit(hostio.HostMessageTypeTaskTriggered, hostio.HostMessageTaskTriggered{
 			Id:   id,
 			Name: ar.Name,
 			Date: start,
@@ -101,13 +102,6 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 			HeaderParams: requestInfo.Headers,
 			Start:        start,
 			End:          end,
-		})
-		as.host.Event(core.EventKindTaskFinished, core.EventTaskFinishedPayload{
-			Id:        id,
-			Name:      ar.Name,
-			Date:      end,
-			Duration:  end.Sub(start).Seconds(),
-			Succeeded: response.Success,
 		})
 	}
 }

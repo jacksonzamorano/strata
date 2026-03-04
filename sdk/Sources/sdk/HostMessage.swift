@@ -3,18 +3,13 @@ import Passport
 
 @Enum
 enum HostMessageType: String {
-    case tasksList,
-         componentsList,
-         logEvent,
-         requestHistory,
-         authorizationsList,
+    case authorizationsList,
          permissionRequest,
-         pendingPermissionList,
-         getTasksList,
-         getComponentsList,
-         getRequestHistory,
+         logEvent,
+         taskRegistered,
+         componentRegistered,
+         taskTriggered,
          getAuthorizationsList,
-         getPendingPermissionList,
          createAuthorization,
          respondPermission
 }
@@ -29,12 +24,9 @@ struct HostMessageAuthorizationCreated {
 
 @Model
 struct HostMessageLogEvent {
-    let date = Field(.datetime)
-    let channel = Field(.string)
     let kind = Field(.string)
-    let namespace = Field(.optional(.string))
+    let namespace = Field(.string)
     let message = Field(.string)
-    let payload = Field(.optional(.string))
 }
 
 @Model
@@ -48,49 +40,25 @@ struct HostMessageRespondPermission {
 }
 
 @Model
-struct HostStatusTask {
+struct HostMessageTaskRegistered {
     let name = Field(.string)
     let url = Field(.string)
 }
 
 @Model
-struct HostStatusComponent {
+struct HostMessageComponentRegistered {
     let name = Field(.string)
     let version = Field(.string)
-    let isHealthy = Field(.bool)
+    let suceeded = Field(.bool)
+    let path = Field(.string)
+    let error = Field(.optional(.string))
 }
 
 @Model
-struct HostStatusPendingPermission {
+struct HostMessageTaskTriggered {
     let id = Field(.string)
-    let permission = Field(.model(Permission.self))
-}
-
-@Model
-struct HostRequestHistoryEntry {
-    let id = Field(.int64)
-    let succeeded = Field(.bool)
-    let inputBody = Field(.string)
-    let inputQuery = Field(.string)
-    let inputHeaders = Field(.string)
-    let output = Field(.optional(.string))
-    let taskStartDate = Field(.datetime)
-    let taskEndDate = Field(.datetime)
-}
-
-@Model
-struct HostMessageTasksList {
-    let tasks = Field(.array(.model(HostStatusTask.self)))
-}
-
-@Model
-struct HostMessageComponentsList {
-    let components = Field(.array(.model(HostStatusComponent.self)))
-}
-
-@Model
-struct HostMessageRequestHistory {
-    let requests = Field(.array(.model(HostRequestHistoryEntry.self)))
+    let name = Field(.string)
+    let date = Field(.datetime)
 }
 
 @Model
@@ -99,24 +67,7 @@ struct HostMessageAuthorizationsList {
 }
 
 @Model
-struct HostMessagePendingPermissionList {
-    let pendingPermissions = Field(.array(.model(HostStatusPendingPermission.self)))
-}
-
-@Model
-struct HostMessageGetTasksList {}
-
-@Model
-struct HostMessageGetComponentsList {}
-
-@Model
-struct HostMessageGetRequestHistory {}
-
-@Model
 struct HostMessageGetAuthorizationsList {}
-
-@Model
-struct HostMessageGetPendingPermissionList {}
 
 @Model
 struct HostMessageCreateAuthorization {

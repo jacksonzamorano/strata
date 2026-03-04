@@ -91,20 +91,6 @@ func DefaultPersistence(initScript string) (PersistenceProvider, bool) {
 	}, e
 }
 
-// This is owned by the application
-// and many channels will be created.
-type HostBus interface {
-	Initialize(data PersistenceProvider)
-	Send(msg HostMessage) bool
-	Incoming() <-chan HostMessage
-	Done() <-chan struct{}
-}
-
-type HostReceivedEvent struct {
-	Message HostMessage
-	Error   bool
-}
-
 // A containerized logger.
 type Logger interface {
 	Log(v string, args ...any)

@@ -1,6 +1,6 @@
 package strata
 
-import "github.com/jacksonzamorano/tasks/strata/core"
+import "github.com/jacksonzamorano/strata/core"
 
 var ImportLocal = core.ImportLocal
 var ImportBinary = core.ImportBinary
