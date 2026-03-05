@@ -7,7 +7,7 @@ import (
 	"github.com/jacksonzamorano/strata/component"
 )
 
-func sayFeature(r *component.ComponentInput[types.SayRequest, types.SayResponse], ctx *component.ComponentContext) *component.ComponentReturn[types.SayResponse] {
+func sayFeature(r *component.ComponentInput[types.SayRequest, types.SayResponse], ctx *component.ComponentContainer) *component.ComponentReturn[types.SayResponse] {
 	err := os.WriteFile("/Users/jackson/Desktop/hello.txt", []byte("hello world"), 0744)
 	if err != nil {
 		ctx.Logger.Log("Could not write to file: %s", err.Error())
@@ -26,7 +26,7 @@ func sayFeature(r *component.ComponentInput[types.SayRequest, types.SayResponse]
 		TenXValue:    tenx,
 	})
 }
-func reset(r *component.ComponentInput[types.EmptyRequest, string], ctx *component.ComponentContext) *component.ComponentReturn[string] {
+func reset(r *component.ComponentInput[types.EmptyRequest, string], ctx *component.ComponentContainer) *component.ComponentReturn[string] {
 	ctx.Storage.SetString("last", "")
 	ctx.Storage.SetInt("tenx", 0)
 	ctx.Logger.Log("Reset!")

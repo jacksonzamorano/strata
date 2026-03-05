@@ -39,22 +39,8 @@ func CreateComponent(name string, version string, fns ...ComponentMountable) *Co
 
 type ComponentResultPayload = componentipc.ComponentResultPayload
 
-type ComponentFunctionFn = func(body []byte, ctx *ComponentContext) *ComponentResultPayload
-type ComponentSetupFn = func(ctx *ComponentContext) string
-
-type ComponentContext struct {
-	Storage  core.Storage
-	Keychain core.Keychain
-	Logger   core.Logger
-}
-
-func (c *Component) buildContext() *ComponentContext {
-	return &ComponentContext{
-		Storage:  newComponentStorage(c.ioChannel),
-		Keychain: newComponentKeychain(c.ioChannel),
-		Logger:   newComponentLogger(c.ioChannel),
-	}
-}
+type ComponentFunctionFn = func(body []byte, ctx *ComponentContainer) *ComponentResultPayload
+type ComponentSetupFn = func(ctx *ComponentContainer) string
 
 func (c *Component) Start() {
 	c.ctx, c.cancel = context.WithCancel(context.Background())
@@ -103,10 +89,10 @@ func (c *Component) StartWithSetup(setup ComponentSetupFn) {
 
 type ComponentMountable interface {
 	getName() string
-	Execute(args []byte, context *ComponentContext) *ComponentResultPayload
+	Execute(args []byte, context *ComponentContainer) *ComponentResultPayload
 }
 
-type ComponentMountableFn[I any, O any] = func(input *ComponentInput[I, O], ctx *ComponentContext) *ComponentReturn[O]
+type ComponentMountableFn[I any, O any] = func(input *ComponentInput[I, O], ctx *ComponentContainer) *ComponentReturn[O]
 
 type ComponentDefinition[I any, O any] struct {
 	Name string
@@ -119,7 +105,7 @@ type ComponentMount[I any, O any] struct {
 func (m *ComponentMount[I, O]) getName() string {
 	return m.Definition.Name
 }
-func (m *ComponentMount[I, O]) Execute(args []byte, ctx *ComponentContext) *ComponentResultPayload {
+func (m *ComponentMount[I, O]) Execute(args []byte, ctx *ComponentContainer) *ComponentResultPayload {
 	var inputB I
 	ctx.Logger.Log("Recieve '%s'", string(args))
 	err := json.Unmarshal(args, &inputB)

@@ -78,7 +78,7 @@ func (c *IO[MT]) Send(typ MT, payload any) bool {
 }
 func (c *IO[MT]) SendId(id string, typ MT, payload any) bool {
 	enc, _ := json.Marshal(payload)
-	return  c.transport.Send(Message[MT]{
+	return c.transport.Send(Message[MT]{
 		Id:      id,
 		Type:    typ,
 		Payload: enc,
@@ -265,4 +265,3 @@ func SendAndReceive[T any, MT ~string](t *Thread[MT], sendType MT, sendPayload a
 		}
 	}
 }
-

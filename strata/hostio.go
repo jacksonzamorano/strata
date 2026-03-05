@@ -30,7 +30,7 @@ func newAppHostService(persistence core.PersistenceProvider, host *hostio.IO) *H
 
 		pendingPermissions: map[string]*pendingPermissionRequest{},
 	}
-	go service.listenForHostMessages()
+	service.listenForHostMessages()
 	return service
 }
 
@@ -97,22 +97,24 @@ func (hs *HostIO) listenForHostMessages() {
 	getAuthorizationsList := hostio.Receive[hostio.HostMessageGetAuthorizationsList](hs.host, hostio.HostMessageTypeGetAuthorizationsList)
 	createAuthorization := hostio.Receive[hostio.HostMessageCreateAuthorization](hs.host, hostio.HostMessageTypeCreateAuthorization)
 
-	hs.host.Send(hostio.HostMessageTypeHello, struct{}{})
+	hostio.SendAndReceive[any](hs.host.NewThread(), hostio.HostMessageTypeHello, struct{}{}, hostio.HostMessageTypeHello)
 
-	for {
-		select {
-		case ev := <-getAuthorizationsList:
-			if ev.Error {
-				continue
+	go func() {
+		for {
+			select {
+			case ev := <-getAuthorizationsList:
+				if ev.Error {
+					continue
+				}
+				hs.sendAuthorizationsList()
+			case ev := <-createAuthorization:
+				if ev.Error {
+					continue
+				}
+				hs.handleCreateAuthorization(ev)
 			}
-			hs.sendAuthorizationsList()
-		case ev := <-createAuthorization:
-			if ev.Error {
-				continue
-			}
-			hs.handleCreateAuthorization(ev)
 		}
-	}
+	}()
 }
 
 func (hs *HostIO) handleCreateAuthorization(ev hostio.ReceivedEvent[hostio.HostMessageCreateAuthorization]) {

@@ -44,13 +44,17 @@ func RunApp(args *AppArgs) {
 	}
 
 	app := hostio.NewIO(ctx, cancel, out, in)
-	HandleHost(ctx, host, app)
+	rdy := hostio.ReceiveOnce[any](app, time.Second*5, hostio.HostMessageTypeHello)
+	if rdy.Error {
+		return
+	}
+	HandleHost(ctx, host, app, rdy.Thread)
 
 	errors, _ := io.ReadAll(e)
 	println(string(errors))
 }
 
-func HandleHost(ctx context.Context, h Host, io *hostio.IO) {
+func HandleHost(ctx context.Context, h Host, io *hostio.IO, t *hostio.Thread) {
 	eventRegistered := hostio.Receive[hostio.HostMessageLogEvent](io, hostio.HostMessageTypeLogEvent)
 	taskRegistered := hostio.Receive[hostio.HostMessageTaskRegistered](io, hostio.HostMessageTypeTaskRegistered)
 	taskTriggered := hostio.Receive[hostio.HostMessageTaskTriggered](io, hostio.HostMessageTypeTaskTriggered)
@@ -58,10 +62,7 @@ func HandleHost(ctx context.Context, h Host, io *hostio.IO) {
 	permissionRequest := hostio.Receive[hostio.HostMessageRequestPermission](io, hostio.HostMessageTypePermissionRequest)
 	authorizationList := hostio.Receive[hostio.HostMessageAuthorizationsList](io, hostio.HostMessageTypeAuthorizationsList)
 
-	rdy := hostio.ReceiveOnce[struct{}](io, time.Minute*1, hostio.HostMessageTypeHello)
-	if rdy.Error {
-		return
-	}
+	t.Send(hostio.HostMessageTypeHello, struct{}{})
 
 	io.Send(hostio.HostMessageTypeGetAuthorizationsList, hostio.HostMessageGetAuthorizationsList{})
 
