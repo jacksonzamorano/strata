@@ -1,33 +1,69 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"strings"
+	"sync"
 
 	"github.com/jacksonzamorano/strata/hostio"
 )
 
-type ConsoleHost struct{}
+type ConsoleHost struct {
+	lines chan string
+	outputLocked sync.RWMutex
+}
+
+func NewConsoleHost() *ConsoleHost {
+	ch := &ConsoleHost{
+		lines: make(chan string, 128),
+	}
+	go func() {
+		for l := range ch.lines {
+			ch.outputLocked.RLock()
+			log.Print(l)
+			ch.outputLocked.RUnlock()
+		}
+	}()
+	return ch
+}
 
 func (ch *ConsoleHost) Log(ev hostio.ReceivedEvent[hostio.HostMessageLogEvent]) {
 	ns := "global"
 	if len(ev.Payload.Namespace) > 0 {
 		ns = ev.Payload.Namespace
 	}
-	log.Printf("[%s.%s]: '%s'", ns, ev.Payload.Kind, ev.Payload.Message)
+	ch.lines <- fmt.Sprintf("[%s.%s]: '%s'", ns, ev.Payload.Kind, ev.Payload.Message)
 }
 
 func (ch *ConsoleHost) TaskRegistered(ev hostio.ReceivedEvent[hostio.HostMessageTaskRegistered]) {
-	log.Printf("Registered task '%s'", ev.Payload.Name)
+	ch.lines <- fmt.Sprintf("Registered task '%s'", ev.Payload.Name)
 }
 
 func (ch *ConsoleHost) ComponentRegistered(ev hostio.ReceivedEvent[hostio.HostMessageComponentRegistered]) {
 	if ev.Error {
-		log.Printf("Error while registering component '%s': '%s'", ev.Payload.Name, *ev.Payload.Error)
+		ch.lines <- fmt.Sprintf("Error while registering component '%s': '%s'", ev.Payload.Name, *ev.Payload.Error)
 		return
 	}
-	log.Printf("Registered component '%s' version '%s'", ev.Payload.Name, ev.Payload.Version)
+	ch.lines <- fmt.Sprintf("Registered component '%s' version '%s'", ev.Payload.Name, ev.Payload.Version)
 }
 
 func (ch *ConsoleHost) TaskTriggered(ev hostio.ReceivedEvent[hostio.HostMessageTaskTriggered]) {
-	log.Printf("Triggered task '%s'.", ev.Payload.Name)
+	ch.lines <- fmt.Sprintf("Triggered task '%s'.", ev.Payload.Name)
+}
+
+func (ch *ConsoleHost) PermissionRequested(ev hostio.ReceivedEvent[hostio.HostMessageRequestPermission]) bool {
+	ch.outputLocked.Lock()
+	fmt.Printf("Allow '%s' to use '%s' on '%s'? ", ev.Payload.Permission.Container, ev.Payload.Permission.Action, *ev.Payload.Permission.Scope)
+	var input string
+	fmt.Scanln(&input)
+	ch.outputLocked.Unlock()
+	input = strings.TrimSpace(input)
+	appr :=  input == "y"
+	if appr {
+		ch.lines <- "Approved."
+	} else {
+		ch.lines <- "Denied."
+	}
+	return appr
 }

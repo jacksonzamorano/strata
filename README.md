@@ -8,7 +8,7 @@ Strata is designed to make personal automation easy to ship as Go code without f
 
 ## Status
 
-The core Strata runtime is implemented in `strata/`, with a runnable task example in `strata-example/` and a runnable component example in `component-example/`. A web host is already present and is started by the runtime. Components currently run as subprocesses without OS sandboxing. Planned work includes adding system sandboxing for components, with approaches such as `seatbelt` and `bwrap`, and moving permission approval flows into host interfaces.
+The core Strata runtime is implemented in `strata/`, with a runnable task example in `strata-example/`, a runnable component example in `component-example/`, and a reference external host in `cli/`. Hosts are now external binaries: the runtime communicates with hosts over a typed IPC protocol on stdin/stdout (`strata/hostio`). Components run as subprocesses through the platform sandbox provider (`sandbox-exec` on macOS, privileged execution on other platforms today).
 
 ## Architecture
 
@@ -16,11 +16,11 @@ Strata is organized around four layers: host interfaces, the Strata server runti
 
 ### Host
 
-Hosts are the operational interface for Strata. The codebase already includes a web host implementation, and the architecture direction includes CLI and native macOS host experiences. Hosts are expected to become the place where permissions are reviewed and approved.
+Hosts are the operational interface for Strata and now run outside the runtime process. A host and app communicate over stdin/stdout using the `hostio` protocol. The repository currently includes a CLI host (`cli/`) as the reference implementation, and additional host surfaces (for example native UI hosts) can be built as separate binaries using the same protocol.
 
 ### Server (Strata runtime)
 
-The server runtime registers task routes under `/tasks/{taskName}` and accepts all HTTP methods for those routes. For each request, it builds a `Container`, executes the target task, serializes the response, and records task history. It also emits host events and tracks task and component lifecycle activity. On a fresh database, the runtime initializes persistence and creates an initial authorization token.
+The server runtime registers task routes under `/tasks/{taskName}` and accepts all HTTP methods for those routes. For each request, it builds a `Container`, executes the target task, serializes the response, and records task history. It emits host messages for logs, task registration, component registration, task execution, and permission requests. It also handles host messages for authorization listing/creation and permission approvals. On a fresh database, the runtime initializes persistence and creates an initial authorization token.
 
 ### User Tasks
 
@@ -41,11 +41,11 @@ This repository currently targets Go `1.26.0`, which matches the `go.mod` files 
 From the repository root, run:
 
 ```bash
-cd strata-example
-go run .
+cd cli
+go run . run ../strata-example --cli
 ```
 
-This starts the Strata app server on `:8080` by default, with host and port behavior configurable by `ADDRESS` and `PORT`, launches the local component project from `../component-example`, and starts the web host service on `127.0.0.1:9090` in current code. On first run against a fresh database, Strata creates and logs an initial token.
+This starts the CLI host, which launches the Strata app as a child process and connects to it over stdin/stdout. The app server listens on `:8080` by default (configurable with `ADDRESS` and `PORT`) and launches the local component project from `../component-example`. On first run against a fresh database, Strata creates and logs an initial token.
 
 ### Call a task
 
@@ -69,7 +69,7 @@ Components provide reusable out-of-process automation capabilities. In current c
 
 ## Hosts
 
-Hosts provide operational visibility and control. The current web host supports basic-auth-protected access, WebSocket event streaming, authorization creation, and replay of authorization data to connected clients. The built-in host can be selected with `strata.UseWeb()` or `strata.UseConsole()`, and `strata.UseWebUI(false)` disables the HTML UI while keeping `/ws` available. CLI and native app host directions remain part of the architecture roadmap.
+Hosts provide operational visibility and control as external binaries. The host protocol is defined in `strata/hostio` and includes runtime-to-host messages for logs, task/component registration, task triggers, permission requests, and authorization lists, plus host-to-runtime messages for authorization queries/creation and permission responses. The repository’s current host implementation is the CLI host in `cli/`.
 
 ## Storage & Data
 
@@ -77,8 +77,8 @@ By default, Strata persistence uses SQLite at `./strata.db`, and this can be cha
 
 ## Security Model
 
-Today, task authorization is centralized in Strata task wrappers and components run without OS-level sandboxing. The intended direction is stronger component isolation through system sandbox mechanisms and host-managed capability approval flows.
+Task authorization is centralized in Strata task wrappers. Component execution goes through a platform sandbox provider (`sandbox-exec` on macOS in current code, privileged execution on non-macOS today). Host-managed capability approval flows are in place for container-level permission requests such as `Container.ReadFile`.
 
 ## Repository Layout
 
-The `strata/` directory contains the library runtime, `strata-example/` contains an example app that defines and runs tasks, and `component-example/` contains a sample component and typed definitions package. The `hosts/web/` directory contains web host frontend code, and `strata/internal/hosts/` contains the built-in Go host runtimes and embedded web host assets. The `sdk/` directory contains SDK sources.
+The `strata/` directory contains the library runtime, `strata/hostio/` contains shared host IPC protocol types, `strata-example/` contains an example app that defines and runs tasks, `component-example/` contains a sample component and typed definitions package, and `cli/` contains a reference external host implementation. The `sdk/` directory contains the Passport schema sources used to generate runtime protocol models.

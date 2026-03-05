@@ -18,7 +18,8 @@ Strata has four primary parts:
 ### Host
 
 - A host is the management interface.
-- Current host surfaces are a web console and CLI console (architecture target); a native macOS app is planned.
+- Hosts run as external binaries and communicate with Strata over stdin/stdout using `strata/hostio`.
+- The current in-repo host implementation is the CLI host in `cli/`.
 - Hosts are expected to become the permission-approval surface (for example, filesystem access).
 
 ### Server (Strata runtime)
@@ -26,6 +27,8 @@ Strata has four primary parts:
 - Registers tasks and routes them to `/tasks/{taskName}`.
 - Handles request decoding, response serialization, and task history logging.
 - Manages auth, storage, keychain access, component lifecycle, and host event streaming.
+- Emits host messages for logs, task/component registration, task triggers, and permission requests.
+- Handles host messages for authorization listing/creation and permission approval responses.
 
 ### User tasks
 
@@ -52,8 +55,8 @@ Strata has four primary parts:
 
 ## Security Posture
 
-- Current: components are not sandboxed.
-- Planned: OS-level sandboxing (for example `seatbelt` and `bwrap`) for components.
+- Current: component execution goes through the platform sandbox provider (`sandbox-exec` on macOS; privileged execution on non-macOS today).
+- Planned: stronger multi-platform sandboxing (for example `bwrap`) and richer host-managed capability controls.
 - Future expectation: direct access from components will be restricted; `Container`/context APIs become the required capability boundary.
 
 ## Data & Platform Services Strata Handles
@@ -67,6 +70,8 @@ Strata has four primary parts:
 ## Contribution Guidance
 
 - Preserve strong separation between host, runtime, user tasks, and components.
+- Preserve the external host boundary; avoid re-introducing in-process host implementations.
+- Keep host IPC contracts explicit and typed through `strata/hostio` (generated from `sdk/Sources/sdk/HostMessage.swift`).
 - Avoid adding features that encourage direct filesystem coupling inside task/component logic.
 - Prefer explicit, typed interfaces over ad-hoc map-based payload contracts.
 - Document whether behavior is implemented now or planned.

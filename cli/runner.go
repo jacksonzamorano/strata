@@ -37,9 +37,9 @@ func RunApp(args *AppArgs) {
 
 	var host Host
 	if args.Specifies(AppOptionHostCli) {
-		host = &ConsoleHost{}
+		host = NewConsoleHost()
 	} else {
-		host = &ConsoleHost{}
+		host = NewConsoleHost()
 	}
 
 	app := hostio.NewIO(ctx, cancel, out, in)
@@ -54,6 +54,7 @@ func HandleHost(ctx context.Context, h Host, io *hostio.IO) {
 	taskRegistered := hostio.Receive[hostio.HostMessageTaskRegistered](io, hostio.HostMessageTypeTaskRegistered)
 	taskTriggered := hostio.Receive[hostio.HostMessageTaskTriggered](io, hostio.HostMessageTypeTaskTriggered)
 	componentRegistered := hostio.Receive[hostio.HostMessageComponentRegistered](io, hostio.HostMessageTypeComponentRegistered)
+	permissionRequest := hostio.Receive[hostio.HostMessageRequestPermission](io, hostio.HostMessageTypePermissionRequest)
 	for {
 		select {
 		case ev := <-eventRegistered:
@@ -64,6 +65,13 @@ func HandleHost(ctx context.Context, h Host, io *hostio.IO) {
 			h.ComponentRegistered(ev)
 		case ev := <-taskTriggered:
 			h.TaskTriggered(ev)
+		case ev := <-permissionRequest:
+			go func() {
+				allowed := h.PermissionRequested(ev)
+				ev.Thread.Send(hostio.HostMessageTypeRespondPermission, hostio.HostMessageRespondPermission{
+					Approve: allowed,
+				})
+			}()
 		case <-ctx.Done():
 			return
 		}

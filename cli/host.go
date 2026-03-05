@@ -7,4 +7,5 @@ type Host interface {
 	TaskRegistered(ev hostio.ReceivedEvent[hostio.HostMessageTaskRegistered])
 	ComponentRegistered(ev hostio.ReceivedEvent[hostio.HostMessageComponentRegistered])
 	TaskTriggered(ev hostio.ReceivedEvent[hostio.HostMessageTaskTriggered])
+	PermissionRequested(ev hostio.ReceivedEvent[hostio.HostMessageRequestPermission]) bool
 }
