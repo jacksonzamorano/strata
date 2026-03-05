@@ -14,8 +14,6 @@ func showHelp() {
 	fmt.Print(help)
 }
 
-
-
 func main() {
 	args := ParseArgs()
 	if args == nil {
@@ -28,5 +26,4 @@ func main() {
 	default:
 		showHelp()
 	}
-
 }

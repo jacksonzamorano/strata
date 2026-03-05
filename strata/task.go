@@ -57,7 +57,7 @@ func buildTask[T any](fn TypedTaskFn[T], validation TaskFn) Task {
 
 func UseTask[T any](fn TypedTaskFn[T]) Task {
 	return buildTask(fn, func(request *RequestInfo, container *Container) *TaskResult {
-		if container.Authorization == nil || !container.Authorization.Active {
+		if request.Authorization == nil || !request.Authorization.Active {
 			return &TaskResult{
 				Success:    false,
 				StatusCode: 403,

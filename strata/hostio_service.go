@@ -93,12 +93,6 @@ func (hs *HostIOService) RequestPermission(permission core.Permission) bool {
 	}
 }
 
-func (hs *HostIOService) closePendingPermissionRequest(id string) {
-	hs.lock.Lock()
-	delete(hs.pendingPermissions, id)
-	hs.lock.Unlock()
-}
-
 func (hs *HostIOService) listenForHostMessages() {
 	getAuthorizationsList := hostio.Receive[hostio.HostMessageGetAuthorizationsList](hs.host, hostio.HostMessageTypeGetAuthorizationsList)
 	createAuthorization := hostio.Receive[hostio.HostMessageCreateAuthorization](hs.host, hostio.HostMessageTypeCreateAuthorization)

@@ -8,15 +8,15 @@ import (
 )
 
 type Container struct {
-	Storage       core.Storage
-	Logger        core.Logger
-	Keychain      core.Keychain
-	Authorization *core.Authorization
-	filesystem    *core.Filesystem
-	persistence   core.PersistenceProvider
-	hostService   *HostIOService
-	components    map[string]*ComponentRunner
-	namespace     string
+	Storage  core.Storage
+	Logger   core.Logger
+	Keychain core.Keychain
+
+	permissions map[string]bool
+	persistence core.PersistenceProvider
+	hostService *HostIOService
+	components  map[string]*ComponentRunner
+	namespace   string
 }
 
 func NewEntityStorage[T any](c *Container) *ContainerEntityStorage[T] {
@@ -52,9 +52,25 @@ func (as *AppState) buildContainer(namespace string) *Container {
 		Storage:     as.persistence.Storage.Container(namespace),
 		Logger:      as.host.Container(namespace),
 		Keychain:    newPlatformKeychain().Container(namespace),
+		permissions: map[string]bool{},
 		persistence: as.persistence,
 		components:  as.components,
 		namespace:   namespace,
 		hostService: as.host,
 	}
+}
+
+func (c *Container) HasPermission(act core.PermissionAction, scope string) bool {
+	p := core.Permission{
+		Container: c.namespace,
+		Action:    act,
+		Scope:     &scope,
+	}
+	h := p.Hash()
+	if v, ok := c.permissions[h]; ok {
+		return v
+	}
+	approved := c.hostService.RequestPermission(p)
+	c.permissions[h] = approved
+	return approved
 }

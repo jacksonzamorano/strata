@@ -12,10 +12,11 @@ import (
 )
 
 type RequestInfo struct {
-	Body    []byte
-	HasBody bool
-	Headers map[string][]string
-	Query   map[string][]string
+	Body          []byte
+	HasBody       bool
+	Headers       map[string][]string
+	Query         map[string][]string
+	Authorization *core.Authorization
 }
 
 type AppServer struct {
@@ -36,9 +37,10 @@ func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*Configurati
 	appState := newAppState()
 	mux := http.NewServeMux()
 
+	taskContainer := appState.buildContainer("tasks")
 	for idx := range tasks {
 		url := fmt.Sprintf("/tasks/%s", tasks[idx].Name)
-		mux.HandleFunc(url, appState.handler(tasks[idx]))
+		mux.HandleFunc(url, appState.handler(tasks[idx], taskContainer))
 		appState.host.Emit(hostio.HostMessageTypeTaskRegistered, hostio.EventTaskRegisterPayload{
 			Name: tasks[idx].Name,
 			Url:  url,

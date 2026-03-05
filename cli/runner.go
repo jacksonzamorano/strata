@@ -58,8 +58,10 @@ func HandleHost(ctx context.Context, h Host, io *hostio.IO) {
 	permissionRequest := hostio.Receive[hostio.HostMessageRequestPermission](io, hostio.HostMessageTypePermissionRequest)
 	authorizationList := hostio.Receive[hostio.HostMessageAuthorizationsList](io, hostio.HostMessageTypeAuthorizationsList)
 
-	rdy := hostio.ReceiveOnce[struct{}](io, time.Minute * 1, hostio.HostMessageTypeHello)
-	if rdy.Error { return }
+	rdy := hostio.ReceiveOnce[struct{}](io, time.Minute*1, hostio.HostMessageTypeHello)
+	if rdy.Error {
+		return
+	}
 
 	io.Send(hostio.HostMessageTypeGetAuthorizationsList, hostio.HostMessageGetAuthorizationsList{})
 

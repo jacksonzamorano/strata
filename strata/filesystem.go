@@ -7,11 +7,7 @@ import (
 )
 
 func (c *Container) ReadFile(name string) ([]byte, bool) {
-	approved := c.hostService.RequestPermission(core.Permission{
-		Action:    core.PermissionActionReadFile,
-		Container: c.namespace,
-		Scope:     &name,
-	})
+	approved := c.HasPermission(core.PermissionActionReadFile, name)
 	if !approved {
 		return []byte{}, false
 	}

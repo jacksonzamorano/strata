@@ -11,20 +11,16 @@ import (
 	"github.com/jacksonzamorano/strata/hostio"
 )
 
-func (as *AppState) handle(r *http.Request, task Task) (*RequestInfo, *TaskResult) {
+func (as *AppState) handle(r *http.Request, task Task, container *Container) (*RequestInfo, *TaskResult) {
 	requestInfo := RequestInfo{
 		HasBody: false,
 		Headers: r.Header,
 		Query:   r.URL.Query(),
 	}
 
-	var authorization *core.Authorization
 	if authSec, ok := r.Header["Authorization"]; ok && len(authSec) > 0 {
-		authorization = as.persistence.Authorization.GetAuthorization(authSec[0])
+		requestInfo.Authorization = as.persistence.Authorization.GetAuthorization(authSec[0])
 	}
-
-	container := as.buildContainer("task")
-	container.Authorization = authorization
 
 	if r.Body != nil && r.Body != http.NoBody {
 		b, err := io.ReadAll(r.Body)
@@ -42,7 +38,7 @@ func (as *AppState) handle(r *http.Request, task Task) (*RequestInfo, *TaskResul
 	return &requestInfo, task.Function(&requestInfo, container)
 }
 
-func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request) {
+func (as *AppState) handler(ar Task, container *Container) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		start := time.Now()
@@ -54,7 +50,7 @@ func (as *AppState) handler(ar Task) func(w http.ResponseWriter, r *http.Request
 		})
 
 		// Build request & dispatch
-		requestInfo, response := as.handle(r, ar)
+		requestInfo, response := as.handle(r, ar, container)
 
 		// If we didn't catch a response,
 		// make sure we send something.
