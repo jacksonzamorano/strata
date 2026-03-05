@@ -1,10 +1,15 @@
-package types
+package definitions
 
 import (
 	"time"
 
 	"github.com/jacksonzamorano/strata/component"
 )
+
+var Manifest = component.ComponentManifest{
+	Name:    "example",
+	Version: "1.1.0",
+}
 
 type SayRequest struct {
 	Name string

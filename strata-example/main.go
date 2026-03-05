@@ -5,7 +5,7 @@ import (
 	"path"
 	"time"
 
-	cex "github.com/jacksonzamorano/componentexample/types"
+	cex "github.com/jacksonzamorano/componentexample/definitions"
 	"github.com/jacksonzamorano/strata"
 )
 
@@ -38,7 +38,7 @@ func sayHello(data SayHelloData, container *strata.Container) *strata.RouteResul
 		CountAtTime: count,
 	})
 
-	msg, _ := cex.SayFeature.Execute("example", container, cex.SayRequest{
+	msg, _ := cex.SayFeature.Execute(cex.Manifest, container, cex.SayRequest{
 		Name: data.Name,
 	})
 
@@ -60,7 +60,7 @@ func getVisitorLog(data strata.RouteTaskNoInput, container *strata.Container) *s
 func reset(data strata.RouteTaskNoInput, container *strata.Container) *strata.RouteResult {
 	container.Storage.SetInt("count", 0)
 	container.Storage.SetString("username", "")
-	cex.Reset.Execute("example", container, cex.EmptyRequest{})
+	cex.Reset.Execute(cex.Manifest, container, cex.EmptyRequest{})
 	return strata.RouteResultSuccess("Reset.")
 }
 
@@ -79,7 +79,7 @@ func main() {
 		strata.NewRouteTask(getVisitorLog),
 		strata.NewRouteTask(reset),
 		strata.NewTimedTask(2*time.Minute, testTime),
-		strata.NewTriggerTask("example", cex.TestTrigger, testTrigger),
+		strata.NewTriggerTask(cex.Manifest, cex.TestTrigger, testTrigger),
 	}, strata.Import(
 		// strata.Binary("component-example"),
 		strata.ImportLocal(path.Join(path.Dir(cd), "component-example")),

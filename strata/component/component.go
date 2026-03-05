@@ -21,10 +21,12 @@ type Component struct {
 	ioChannel *componentipc.IO
 }
 
-func CreateComponent(name string, version string, fns ...ComponentMountable) *Component {
+type ComponentManifest = core.ComponentManifest
+
+func CreateComponent(manifest ComponentManifest, fns ...ComponentMountable) *Component {
 	cmp := &Component{
-		name:      name,
-		version:   version,
+		name:      manifest.Name,
+		version:   manifest.Version,
 		functions: map[string]ComponentMountable{},
 	}
 
@@ -177,9 +179,9 @@ type ComponentReturn[O any] struct {
 	Succeeded bool
 }
 
-func (c *ComponentDefinition[I, O]) Execute(module string, mod core.ForeignComponent, input I) (O, bool) {
+func (c *ComponentDefinition[I, O]) Execute(m core.ComponentManifest, mod core.ForeignComponent, input I) (O, bool) {
 	var output O
-	dec, err := mod.ExecuteFunction(module, c.Name, input)
+	dec, err := mod.ExecuteFunction(m.Name, c.Name, input)
 	if err != nil {
 		return output, false
 	}

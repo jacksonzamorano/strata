@@ -3,11 +3,11 @@ package main
 import (
 	"time"
 
-	"github.com/jacksonzamorano/componentexample/types"
+	d "github.com/jacksonzamorano/componentexample/definitions"
 	"github.com/jacksonzamorano/strata/component"
 )
 
-func sayFeature(r *component.ComponentInput[types.SayRequest, types.SayResponse], ctx *component.ComponentContainer) *component.ComponentReturn[types.SayResponse] {
+func sayFeature(r *component.ComponentInput[d.SayRequest, d.SayResponse], ctx *component.ComponentContainer) *component.ComponentReturn[d.SayResponse] {
 	last := ctx.Storage.GetString("last")
 	ctx.Storage.SetString("last", r.Body.Name)
 	ctx.Keychain.Set("last", r.Body.Name)
@@ -16,25 +16,25 @@ func sayFeature(r *component.ComponentInput[types.SayRequest, types.SayResponse]
 	tenx += 10
 	ctx.Storage.SetInt("tenx", tenx)
 
-	types.TestTrigger.Send(ctx, types.TriggerTest{
+	d.TestTrigger.Send(ctx, d.TriggerTest{
 		Time: time.Now(),
 	})
 
-	return r.Return(types.SayResponse{
+	return r.Return(d.SayResponse{
 		CurrentValue: r.Body.Name,
 		LastValue:    last,
 		TenXValue:    tenx,
 	})
 }
-func reset(r *component.ComponentInput[types.EmptyRequest, string], ctx *component.ComponentContainer) *component.ComponentReturn[string] {
+func reset(r *component.ComponentInput[d.EmptyRequest, string], ctx *component.ComponentContainer) *component.ComponentReturn[string] {
 	ctx.Storage.SetString("last", "")
 	ctx.Storage.SetInt("tenx", 0)
 	ctx.Logger.Log("Reset!")
 	return r.Return("Done!")
 }
 func main() {
-	component.CreateComponent("example", "1.0.2",
-		component.Mount(types.SayFeature, sayFeature),
-		component.Mount(types.Reset, reset),
+	component.CreateComponent(d.Manifest,
+		component.Mount(d.SayFeature, sayFeature),
+		component.Mount(d.Reset, reset),
 	).Start()
 }
