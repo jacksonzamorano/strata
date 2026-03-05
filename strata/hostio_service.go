@@ -2,7 +2,6 @@ package strata
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -43,16 +42,11 @@ func (hs *HostIOService) Emit(typ hostio.HostMessageType, payload any) {
 	hs.host.Send(typ, payload)
 }
 
-func (hs *HostIOService) emitLog(kind, namespace, message string) {
+func (hs *HostIOService) Log(v string, args ...any) {
 	hs.host.Send(hostio.HostMessageTypeLogEvent, hostio.HostMessageLogEvent{
-		Kind:      kind,
-		Namespace: namespace,
-		Message:   message,
+		Namespace: "global",
+		Message:   fmt.Sprintf(v, args...),
 	})
-}
-
-func (hs *HostIOService) Info(v string, args ...any) {
-	hs.emitLog("info", "", fmt.Sprintf(v, args...))
 }
 
 func (hs *HostIOService) Container(namespace string) core.Logger {
@@ -63,28 +57,38 @@ func (hs *HostIOService) Container(namespace string) core.Logger {
 }
 
 func (hs *HostIOService) RequestPermission(permission core.Permission) bool {
-	requestID := makeId()
-	waiter := make(chan bool, 1)
+	var waiter chan bool
 
+	permission_hash := fmt.Sprintf("%s.%s.%s", permission.Container, permission.Action, *permission.Scope)
 	hs.lock.Lock()
-	hs.pendingPermissions[requestID] = &pendingPermissionRequest{
-		permission: permission,
-		waiter:     waiter,
+	if existing, ok := hs.pendingPermissions[permission_hash]; ok {
+		waiter = existing.waiter
+	} else {
+		waiter = make(chan bool, 1)
+		defer func() {
+			hs.lock.Lock()
+			delete(hs.pendingPermissions, permission_hash)
+			hs.lock.Unlock()
+		}()
+		go func() {
+			res, _ := hostio.SendAndReceive[hostio.HostMessageRespondPermission](hs.host.NewThread(), hostio.HostMessageTypePermissionRequest, hostio.HostMessageRequestPermission{
+				Permission: permission,
+			}, hostio.HostMessageTypeRespondPermission)
+			waiter <- res.Approve
+		}()
+		hs.pendingPermissions[permission_hash] = &pendingPermissionRequest{
+			permission: permission,
+			waiter:     waiter,
+		}
 	}
 	hs.lock.Unlock()
-
-	hs.host.SendId(requestID, hostio.HostMessageTypePermissionRequest, hostio.HostMessageRequestPermission{
-		Permission: permission,
-	})
 
 	select {
 	case approved := <-waiter:
 		return approved
 	case <-time.After(2 * time.Minute):
-		hs.closePendingPermissionRequest(requestID)
 		return false
 	case <-hs.host.Done():
-		hs.closePendingPermissionRequest(requestID)
 		return false
 	}
 }
@@ -98,14 +102,12 @@ func (hs *HostIOService) closePendingPermissionRequest(id string) {
 func (hs *HostIOService) listenForHostMessages() {
 	getAuthorizationsList := hostio.Receive[hostio.HostMessageGetAuthorizationsList](hs.host, hostio.HostMessageTypeGetAuthorizationsList)
 	createAuthorization := hostio.Receive[hostio.HostMessageCreateAuthorization](hs.host, hostio.HostMessageTypeCreateAuthorization)
-	respondPermission := hostio.Receive[hostio.HostMessageRespondPermission](hs.host, hostio.HostMessageTypeRespondPermission)
 
 	hs.host.Send(hostio.HostMessageTypeHello, struct{}{})
 
 	for {
 		select {
 		case ev := <-getAuthorizationsList:
-			hs.emitLog("debug", "", "requested auth list")
 			if ev.Error {
 				continue
 			}
@@ -115,11 +117,6 @@ func (hs *HostIOService) listenForHostMessages() {
 				continue
 			}
 			hs.handleCreateAuthorization(ev)
-		case ev := <-respondPermission:
-			if ev.Error {
-				continue
-			}
-			hs.handleRespondPermission(ev)
 		}
 	}
 }
@@ -127,33 +124,14 @@ func (hs *HostIOService) listenForHostMessages() {
 func (hs *HostIOService) handleCreateAuthorization(ev hostio.ReceivedEvent[hostio.HostMessageCreateAuthorization]) {
 	nickname := strings.TrimSpace(ev.Payload.Nickname)
 	if len(nickname) == 0 {
-		hs.emitLog("invalidPayload", "host", "createAuthorization requires a nickname.")
+		hs.Log("Invalid payload: host requires a name")
 		return
 	}
 
 	hs.persistence.Authorization.NewAuthorization("Host", nickname)
 }
 
-func (hs *HostIOService) handleRespondPermission(ev hostio.ReceivedEvent[hostio.HostMessageRespondPermission]) {
-	hs.lock.Lock()
-	pending, ok := hs.pendingPermissions[ev.Message.Id]
-	if ok {
-		delete(hs.pendingPermissions, ev.Message.Id)
-	}
-	hs.lock.Unlock()
-
-	if !ok || pending == nil {
-		hs.emitLog("unknownPermissionRequest", "host", "respondPermission referenced an unknown request id.")
-		return
-	}
-
-	select {
-	case pending.waiter <- ev.Payload.Approve:
-	default:
-	}
-}
-
-func (hs *HostIOService) readAuthorizations() []hostio.HostMessageAuthorizationCreated {
+func (hs *HostIOService) sendAuthorizationsList() {
 	authorizations := hs.persistence.Authorization.GetAuthorizations()
 	statusAuthorizations := make([]hostio.HostMessageAuthorizationCreated, 0, len(authorizations))
 	for i := range authorizations {
@@ -165,22 +143,8 @@ func (hs *HostIOService) readAuthorizations() []hostio.HostMessageAuthorizationC
 			CreatedDate: auth.CreatedDate,
 		})
 	}
-
-	slices.SortFunc(statusAuthorizations, func(a, b hostio.HostMessageAuthorizationCreated) int {
-		if a.CreatedDate.Equal(b.CreatedDate) {
-			return 0
-		}
-		if a.CreatedDate.After(b.CreatedDate) {
-			return -1
-		}
-		return 1
-	})
-	return statusAuthorizations
-}
-
-func (hs *HostIOService) sendAuthorizationsList() {
 	hs.host.Send(hostio.HostMessageTypeAuthorizationsList, hostio.HostMessageAuthorizationsList{
-		Authorizations: hs.readAuthorizations(),
+		Authorizations: statusAuthorizations,
 	})
 }
 
@@ -190,5 +154,8 @@ type appHostContainerLogger struct {
 }
 
 func (l *appHostContainerLogger) Log(v string, args ...any) {
-	l.service.emitLog("container", l.namespace, fmt.Sprintf(v, args...))
+	l.service.host.Send(hostio.HostMessageTypeLogEvent, hostio.HostMessageLogEvent{
+		Namespace: l.namespace,
+		Message:   fmt.Sprintf(v, args...),
+	})
 }

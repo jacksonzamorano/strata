@@ -27,7 +27,7 @@ func newAppState() AppState {
 
 	if fresh {
 		auth := persistence.Authorization.NewAuthorization("core", "Master")
-		hostService.Info("Created initial token '%s'", auth.Secret)
+		hostService.Log("Created initial token '%s'", auth.Secret)
 		log.Printf("Initial token: %s", auth.Secret)
 	}
 

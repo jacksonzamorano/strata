@@ -18,7 +18,7 @@ func (c *Container) ReadFile(name string) ([]byte, bool) {
 
 	b, err := os.ReadFile(name)
 	if err != nil {
-		c.hostService.Info("Could not read '%s': '%s'", name, err.Error())
+		c.hostService.Log("Could not read '%s': '%s'", name, err.Error())
 		return []byte{}, false
 	}
 

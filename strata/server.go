@@ -48,7 +48,7 @@ func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*Configurati
 	for idx := range deps {
 		cmd, err := deps[idx].Setup()
 		if err != nil {
-			appState.host.Info("Failed to register component at index %d: '%s'", idx, err.Error())
+			appState.host.Log("Failed to register component at index %d: '%s'", idx, err.Error())
 			continue
 		}
 		name := cmd.CanonicalName
@@ -56,7 +56,7 @@ func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*Configurati
 
 		runner, err := RegisterComponent(cmd, cnt)
 		if err != nil {
-			appState.host.Info("Failed to register component '%s': '%s'", name, err.Error())
+			appState.host.Log("Failed to register component '%s': '%s'", name, err.Error())
 			continue
 		}
 
@@ -130,6 +130,6 @@ func (as *AppServer) Start() error {
 	default:
 	}
 
-	as.state.host.Info("Listening on %s", as.srv.Addr)
+	as.state.host.Log("Listening on %s", as.srv.Addr)
 	return as.srv.ListenAndServe()
 }
