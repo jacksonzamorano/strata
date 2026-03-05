@@ -110,7 +110,7 @@ func (cr *ComponentIO) HandleAPIRequests() {
 				if ev.Error {
 					return
 				}
-				cr.container.Logger.Log("Component: '%s'", ev.Payload.Message)
+				cr.container.Logger.Log("%s", ev.Payload.Message)
 			case <-cr.context.Done():
 				return
 			}

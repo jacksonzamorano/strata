@@ -11,39 +11,25 @@ import (
 	"github.com/jacksonzamorano/strata/internal/componentipc"
 )
 
-type RequestInfo struct {
-	Body          []byte
-	HasBody       bool
-	Headers       map[string][]string
-	Query         map[string][]string
-	Authorization *core.Authorization
-}
-
 type Runtime struct {
-	state           *AppState
-	srv             *http.Server
-	listener        *http.ServeMux
-	approvedActions []core.ApprovedComponentPermission
+	state      *AppState
+	httpServer *http.Server
 }
 
 func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*ConfigurationModification) Runtime {
-	var approvedActions []core.ApprovedComponentPermission
-	for _, op := range cfg {
-		if op.Permissions != nil {
-			approvedActions = append(approvedActions, op.Permissions...)
-		}
-	}
-
 	appState := newAppState()
 	mux := http.NewServeMux()
 
 	taskContainer := appState.buildContainer("tasks")
+	taskContext := TaskAttachContext{
+		mux:          mux,
+		authorizaton: appState.persistence.Authorization,
+		Container:    taskContainer,
+	}
 	for idx := range tasks {
-		url := fmt.Sprintf("/tasks/%s", tasks[idx].Name)
-		mux.HandleFunc(url, appState.handler(tasks[idx], taskContainer))
+		tasks[idx].Implementation.Attach(&taskContext)
 		appState.host.Emit(hostio.HostMessageTypeTaskRegistered, hostio.EventTaskRegisterPayload{
 			Name: tasks[idx].Name,
-			Url:  url,
 		})
 	}
 
@@ -114,13 +100,11 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 
 	as := Runtime{
 		state: &appState,
-		srv: &http.Server{
+		httpServer: &http.Server{
 			Addr:              addr,
 			Handler:           mux,
 			ReadHeaderTimeout: 5 * time.Second,
 		},
-		listener:        mux,
-		approvedActions: approvedActions,
 	}
 	return as
 }
@@ -132,6 +116,6 @@ func (as *Runtime) Start() error {
 	default:
 	}
 
-	as.state.host.Log("Listening on %s", as.srv.Addr)
-	return as.srv.ListenAndServe()
+	as.state.host.Log("Listening on %s", as.httpServer.Addr)
+	return as.httpServer.ListenAndServe()
 }

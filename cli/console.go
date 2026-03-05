@@ -10,7 +10,7 @@ import (
 )
 
 type ConsoleHost struct {
-	lines chan string
+	lines        chan string
 	outputLocked sync.RWMutex
 }
 
@@ -33,7 +33,7 @@ func (ch *ConsoleHost) Log(ev hostio.ReceivedEvent[hostio.HostMessageLogEvent]) 
 	if len(ev.Payload.Namespace) > 0 {
 		ns = ev.Payload.Namespace
 	}
-	ch.lines <- fmt.Sprintf("[%s.%s]: '%s'", ns, ev.Payload.Kind, ev.Payload.Message)
+	ch.lines <- fmt.Sprintf("[%s]: %s", ns, ev.Payload.Message)
 }
 
 func (ch *ConsoleHost) TaskRegistered(ev hostio.ReceivedEvent[hostio.HostMessageTaskRegistered]) {
@@ -66,7 +66,7 @@ func (ch *ConsoleHost) PermissionRequested(ev hostio.ReceivedEvent[hostio.HostMe
 	fmt.Scanln(&input)
 	ch.outputLocked.Unlock()
 	input = strings.TrimSpace(input)
-	appr :=  input == "y"
+	appr := input == "y"
 	if appr {
 		ch.lines <- "Approved."
 	} else {

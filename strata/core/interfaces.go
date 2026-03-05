@@ -94,6 +94,7 @@ func DefaultPersistence(initScript string) (PersistenceProvider, bool) {
 // A containerized logger.
 type Logger interface {
 	Log(v string, args ...any)
+	LogLiteral(v string)
 }
 
 type ForeignComponent interface {

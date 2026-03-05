@@ -23,7 +23,7 @@ type Visitor struct {
 	CountAtTime int
 }
 
-func sayHello(data SayHelloData, container *strata.Container) *strata.TaskResult {
+func sayHello(data SayHelloData, container *strata.Container) *strata.RouteResult {
 	oldName := container.Storage.GetString("username")
 	container.Storage.SetString("username", data.Name)
 
@@ -41,7 +41,7 @@ func sayHello(data SayHelloData, container *strata.Container) *strata.TaskResult
 		Name: data.Name,
 	})
 
-	return strata.Done(SayHelloResponse{
+	return strata.RouteResultSuccess(SayHelloResponse{
 		Name:          data.Name,
 		OldName:       oldName,
 		ComponentData: msg,
@@ -49,26 +49,26 @@ func sayHello(data SayHelloData, container *strata.Container) *strata.TaskResult
 	})
 }
 
-func getVisitorLog(data strata.NoTaskBody, container *strata.Container) *strata.TaskResult {
+func getVisitorLog(data strata.RouteTaskNoInput, container *strata.Container) *strata.RouteResult {
 	c, _ := container.ReadFile("../README.md")
 	entityContainer := strata.NewEntityStorage[Visitor](container)
 	allNonEmpty := entityContainer.Find(func(v Visitor) bool { return len(v.Name) > 0 })
-	return strata.Done(map[string]any{"v": allNonEmpty, "c": string(c)})
+	return strata.RouteResultSuccess(map[string]any{"v": allNonEmpty, "c": string(c)})
 }
 
-func reset(data strata.NoTaskBody, container *strata.Container) *strata.TaskResult {
+func reset(data strata.RouteTaskNoInput, container *strata.Container) *strata.RouteResult {
 	container.Storage.SetInt("count", 0)
 	container.Storage.SetString("username", "")
 	cex.Reset.Execute("example", container, cex.EmptyRequest{})
-	return strata.Done("Reset.")
+	return strata.RouteResultSuccess("Reset.")
 }
 
 func main() {
 	cd, _ := os.Getwd()
 	rt := strata.NewRuntime([]strata.Task{
-		strata.UsePublicTask(sayHello),
-		strata.UseTask(getVisitorLog),
-		strata.UseTask(reset),
+		strata.NewPublicRouteTask(sayHello),
+		strata.NewRouteTask(getVisitorLog),
+		strata.NewRouteTask(reset),
 	}, strata.Import(
 		// strata.Binary("component-example"),
 		strata.ImportLocal(path.Join(path.Dir(cd), "component-example")),

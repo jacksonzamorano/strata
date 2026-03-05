@@ -107,7 +107,6 @@ func (m *ComponentMount[I, O]) getName() string {
 }
 func (m *ComponentMount[I, O]) Execute(args []byte, ctx *ComponentContainer) *ComponentResultPayload {
 	var inputB I
-	ctx.Logger.Log("Recieve '%s'", string(args))
 	err := json.Unmarshal(args, &inputB)
 	if err != nil {
 		return &ComponentResultPayload{
@@ -121,13 +120,11 @@ func (m *ComponentMount[I, O]) Execute(args []byte, ctx *ComponentContainer) *Co
 	res := m.Function(input, ctx)
 	if res.Succeeded {
 		by, _ := json.Marshal(res.Result)
-		ctx.Logger.Log("Send success '%s'", string(by))
 		return &ComponentResultPayload{
 			Success:  true,
 			Response: by,
 		}
 	} else {
-		ctx.Logger.Log("Send error '%s'", res.Error)
 		return &ComponentResultPayload{
 			Success: false,
 			Error:   res.Error,

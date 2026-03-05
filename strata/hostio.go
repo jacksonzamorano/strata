@@ -71,9 +71,14 @@ func (hs *HostIO) RequestPermission(permission core.Permission) bool {
 			hs.lock.Unlock()
 		}()
 		go func() {
-			res, _ := hostio.SendAndReceive[hostio.HostMessageRespondPermission](hs.host.NewThread(), hostio.HostMessageTypePermissionRequest, hostio.HostMessageRequestPermission{
-				Permission: permission,
-			}, hostio.HostMessageTypeRespondPermission)
+			res, _ := hostio.SendAndReceive[hostio.HostMessageRespondPermission](
+				hs.host.NewThread(),
+				hostio.HostMessageTypePermissionRequest,
+				hostio.HostMessageRequestPermission{
+					Permission: permission,
+				},
+				hostio.HostMessageTypeRespondPermission,
+			)
 			waiter <- res.Approve
 		}()
 		hs.pendingPermissions[permission_hash] = &pendingPermissionRequest{
@@ -153,5 +158,12 @@ func (l *appHostContainerLogger) Log(v string, args ...any) {
 	l.service.host.Send(hostio.HostMessageTypeLogEvent, hostio.HostMessageLogEvent{
 		Namespace: l.namespace,
 		Message:   fmt.Sprintf(v, args...),
+	})
+}
+
+func (l *appHostContainerLogger) LogLiteral(v string) {
+	l.service.host.Send(hostio.HostMessageTypeLogEvent, hostio.HostMessageLogEvent{
+		Namespace: l.namespace,
+		Message:   v,
 	})
 }

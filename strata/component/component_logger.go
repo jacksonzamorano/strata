@@ -21,6 +21,12 @@ func (cl *ComponentLogger) Log(v string, args ...any) {
 	})
 }
 
+func (cl *ComponentLogger) LogLiteral(v string) {
+	cl.io.NewThread().Send(componentipc.ComponentMessageTypeLog, componentipc.ComponentMessageLog{
+		Message: v,
+	})
+}
+
 func (cl *ComponentLogger) Event(ev string, payload any) {
 	encoded, _ := json.Marshal(payload)
 	cl.Log("(%s): %s", ev, string(encoded))
