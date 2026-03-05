@@ -4,15 +4,19 @@ import Passport
 @Enum
 enum HostMessageType: String {
     case hello,
-         authorizationsList,
-         permissionRequest,
-         logEvent,
-         taskRegistered,
-         componentRegistered,
-         taskTriggered,
-         getAuthorizationsList,
-         createAuthorization,
-         respondPermission
+        authorizationsList,
+        permissionRequest,
+        logEvent,
+        taskRegistered,
+        componentRegistered,
+        taskTriggered,
+        getAuthorizationsList,
+        createAuthorization,
+        respondPermission,
+        requestOauth,
+        completeOauth,
+        requestSecret,
+        completeSecret
 }
 
 @Model
@@ -73,4 +77,27 @@ struct HostMessageGetAuthorizationsList {}
 @Model
 struct HostMessageCreateAuthorization {
     let nickname = Field(.string)
+}
+
+@Model
+struct HostMessageRequestOauth {
+    let namespace = Field(.string)
+    let url = Field(.string)
+    let destination = Field(.string)
+}
+
+@Model
+struct HostMessageCompleteOauth {
+    let url = Field(.string)
+}
+
+@Model
+struct HostMessageRequestSecret {
+    let namespace = Field(.string)
+    let prompt = Field(.string)
+}
+
+@Model
+struct HostMessageCompleteSecret {
+    let secret = Field(.string)
 }

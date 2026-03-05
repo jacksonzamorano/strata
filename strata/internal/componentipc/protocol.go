@@ -62,3 +62,20 @@ type ComponentMessageSendTrigger struct {
 	Name    string          `json:"name"`
 	Payload json.RawMessage `json:"payload"`
 }
+
+type ComponentMessageRequestOauthAuthentication struct {
+	Url      string `json:"url"`
+	Callback string `json:"callback"`
+}
+
+type ComponentMessageCompleteOauthAuthentication struct {
+	Url string `json:"url"`
+}
+
+type ComponentMessageRequestSecretAuthentication struct {
+	Prompt string `json:"prompt"`
+}
+
+type ComponentMessageCompleteSecretAuthentication struct {
+	Secret string `json:"secret"`
+}

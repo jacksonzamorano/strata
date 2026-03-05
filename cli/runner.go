@@ -61,6 +61,8 @@ func HandleHost(ctx context.Context, h Host, io *hostio.IO, t *hostio.Thread) {
 	componentRegistered := hostio.Receive[hostio.HostMessageComponentRegistered](io, hostio.HostMessageTypeComponentRegistered)
 	permissionRequest := hostio.Receive[hostio.HostMessageRequestPermission](io, hostio.HostMessageTypePermissionRequest)
 	authorizationList := hostio.Receive[hostio.HostMessageAuthorizationsList](io, hostio.HostMessageTypeAuthorizationsList)
+	secretRequested := hostio.Receive[hostio.HostMessageRequestSecret](io, hostio.HostMessageTypeRequestSecret)
+	oauthRequested := hostio.Receive[hostio.HostMessageRequestOauth](io, hostio.HostMessageTypeRequestOauth)
 
 	t.Send(hostio.HostMessageTypeHello, struct{}{})
 
@@ -85,6 +87,20 @@ func HandleHost(ctx context.Context, h Host, io *hostio.IO, t *hostio.Thread) {
 			}()
 		case ev := <-authorizationList:
 			h.AuthorizationsUpdated(ev)
+		case ev := <-secretRequested:
+			go func() {
+				sec := h.SecretRequested(ev)
+				ev.Thread.Send(hostio.HostMessageTypeCompleteSecret, hostio.HostMessageCompleteSecret{
+					Secret: sec,
+				})
+			}()
+		case ev := <-oauthRequested:
+			go func() {
+				url := h.OauthRequested(ev)
+				ev.Thread.Send(hostio.HostMessageTypeCompleteOauth, hostio.HostMessageCompleteOauth{
+					Url: url,
+				})
+			}()
 		case <-ctx.Done():
 			return
 		}

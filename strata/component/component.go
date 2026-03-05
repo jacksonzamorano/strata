@@ -14,7 +14,7 @@ import (
 type Component struct {
 	name      string
 	version   string
-	functions map[string]ComponentMountable
+	functions map[string]ComponentBindable
 	ctx       context.Context
 	cancel    context.CancelFunc
 	setupFn   ComponentSetupFn
@@ -23,11 +23,11 @@ type Component struct {
 
 type ComponentManifest = core.ComponentManifest
 
-func CreateComponent(manifest ComponentManifest, fns ...ComponentMountable) *Component {
+func CreateComponent(manifest ComponentManifest, fns ...ComponentBindable) *Component {
 	cmp := &Component{
 		name:      manifest.Name,
 		version:   manifest.Version,
-		functions: map[string]ComponentMountable{},
+		functions: map[string]ComponentBindable{},
 	}
 
 	for i := range fns {
@@ -89,19 +89,19 @@ func (c *Component) StartWithSetup(setup ComponentSetupFn) {
 	c.Start()
 }
 
-type ComponentMountable interface {
+type ComponentBindable interface {
 	getName() string
 	Execute(args []byte, context *ComponentContainer) *ComponentResultPayload
 }
 
-type ComponentMountableFn[I any, O any] = func(input *ComponentInput[I, O], ctx *ComponentContainer) *ComponentReturn[O]
+type ComponentBindableFn[I any, O any] = func(input *ComponentInput[I, O], ctx *ComponentContainer) *ComponentReturn[O]
 
 type ComponentDefinition[I any, O any] struct {
 	Name string
 }
 type ComponentMount[I any, O any] struct {
 	Definition *ComponentDefinition[I, O]
-	Function   ComponentMountableFn[I, O]
+	Function   ComponentBindableFn[I, O]
 }
 
 func (m *ComponentMount[I, O]) getName() string {
@@ -166,7 +166,7 @@ func Define[I any, O any](name string) *ComponentDefinition[I, O] {
 	}
 }
 
-func Mount[I any, O any](definition *ComponentDefinition[I, O], fn ComponentMountableFn[I, O]) *ComponentMount[I, O] {
+func Mount[I any, O any](definition *ComponentDefinition[I, O], fn ComponentBindableFn[I, O]) *ComponentMount[I, O] {
 	return &ComponentMount[I, O]{
 		Definition: definition,
 		Function:   fn,

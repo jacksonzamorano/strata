@@ -1,19 +1,23 @@
-import Passport
 import Foundation
+import Passport
 
 @Enum
 enum ComponentMessageType: String {
     case hello,
-         setup,
-         ready,
-         execute,
-         ret,
-         storeValueRequest,
-         getValueRequest,
-         getValueResponse,
-         storeKeychainRequest,
-         getKeychainRequest,
-         getKeychainResponse,
-         sendTrigger,
-         log
+        setup,
+        ready,
+        execute,
+        ret,
+        storeValueRequest,
+        getValueRequest,
+        getValueResponse,
+        storeKeychainRequest,
+        getKeychainRequest,
+        getKeychainResponse,
+        sendTrigger,
+        requestOauthAuthentication,
+        completeOauthAuthentication,
+        requestSecretAuthentication,
+        completeSecretAuthentication,
+        log
 }

@@ -27,4 +27,5 @@ type TriggerTest struct {
 
 var SayFeature = component.Define[SayRequest, SayResponse]("say")
 var Reset = component.Define[EmptyRequest, string]("reset")
+var GetSecret = component.Define[EmptyRequest, string]("get-secret")
 var TestTrigger = component.NewComponentTrigger[TriggerTest]("test")

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"time"
@@ -64,6 +65,11 @@ func reset(data strata.RouteTaskNoInput, container *strata.Container) *strata.Ro
 	return strata.RouteResultSuccess("Reset.")
 }
 
+func getSecret(data strata.RouteTaskNoInput, container *strata.Container) *strata.RouteResult {
+	res, ok := cex.GetSecret.Execute(cex.Manifest, container, cex.EmptyRequest{})
+	return strata.RouteResultSuccess(fmt.Sprintf("%s: %v", res, ok))
+}
+
 func testTime(container *strata.Container) {
 	container.Logger.LogLiteral("Timer hit!")
 }
@@ -78,6 +84,7 @@ func main() {
 		strata.NewPublicRouteTask(sayHello),
 		strata.NewRouteTask(getVisitorLog),
 		strata.NewRouteTask(reset),
+		strata.NewPublicRouteTask(getSecret),
 		strata.NewTimedTask(2*time.Minute, testTime),
 		strata.NewTriggerTask(cex.Manifest, cex.TestTrigger, testTrigger),
 	}, strata.Import(

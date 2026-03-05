@@ -74,3 +74,21 @@ func (ch *ConsoleHost) PermissionRequested(ev hostio.ReceivedEvent[hostio.HostMe
 	}
 	return appr
 }
+
+func (ch *ConsoleHost) SecretRequested(ev hostio.ReceivedEvent[hostio.HostMessageRequestSecret]) string {
+	ch.outputLocked.Lock()
+	fmt.Printf("'%s' wants to use the '%s' secret ", ev.Payload.Namespace, ev.Payload.Prompt)
+	var input string
+	fmt.Scanln(&input)
+	ch.outputLocked.Unlock()
+	return input
+}
+
+func (ch *ConsoleHost) OauthRequested(ev hostio.ReceivedEvent[hostio.HostMessageRequestOauth]) string {
+	ch.outputLocked.Lock()
+	fmt.Printf("'%s' wants to authenticate using '%s'. Please navigate there and then copy/paste the URL after authorizing: ", ev.Payload.Namespace, ev.Payload.Url)
+	var input string
+	fmt.Scanln(&input)
+	ch.outputLocked.Unlock()
+	return input
+}

@@ -1,5 +1,5 @@
-import Passport
 import Foundation
+import Passport
 
 let sql = SQLBuilder(SQLite())
 
@@ -24,7 +24,7 @@ try! Schema("schema") {
     StorageRowKeyNames.self
     EntityRow.self
     Authorization.self
-    
+
     PermissionAction.self
     Permission.self
 } routes: {
@@ -47,7 +47,7 @@ try! Schema("hostschema") {
     EventComponentRegisteredPayload.self
     EventTaskTriggeredPayload.self
 } routes: {
-    
+
 }
 .output(Go(sqlBuilder: sql, config: hostGoConfig)) {
     CodeBuilderConfiguration(
@@ -86,6 +86,10 @@ try! Schema("host_protocol") {
     HostMessageLogEvent.self
     HostMessageRequestPermission.self
     HostMessageRespondPermission.self
+    HostMessageRequestOauth.self
+    HostMessageCompleteOauth.self
+    HostMessageRequestSecret.self
+    HostMessageCompleteSecret.self
 } routes: {
 
 }

@@ -32,9 +32,20 @@ func reset(r *component.ComponentInput[d.EmptyRequest, string], ctx *component.C
 	ctx.Logger.Log("Reset!")
 	return r.Return("Done!")
 }
+func getSecret(r *component.ComponentInput[d.EmptyRequest, string], ctx *component.ComponentContainer) *component.ComponentReturn[string] {
+	sec, ok := ctx.RequestSecret("What's the secret?")
+	if ok {
+		ctx.Logger.Log("Got secret '%s'", sec)
+	} else {
+		ctx.Logger.Log("Didn't get secret")
+	}
+	return r.Return(sec)
+}
+
 func main() {
 	component.CreateComponent(d.Manifest,
 		component.Mount(d.SayFeature, sayFeature),
 		component.Mount(d.Reset, reset),
+		component.Mount(d.GetSecret, getSecret),
 	).Start()
 }

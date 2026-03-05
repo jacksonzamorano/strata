@@ -11,4 +11,7 @@ type Host interface {
 	ComponentRegistered(ev hostio.ReceivedEvent[hostio.HostMessageComponentRegistered])
 	TaskTriggered(ev hostio.ReceivedEvent[hostio.HostMessageTaskTriggered])
 	PermissionRequested(ev hostio.ReceivedEvent[hostio.HostMessageRequestPermission]) bool
+
+	SecretRequested(ev hostio.ReceivedEvent[hostio.HostMessageRequestSecret]) string
+	OauthRequested(ev hostio.ReceivedEvent[hostio.HostMessageRequestOauth]) string
 }
