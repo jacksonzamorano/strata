@@ -106,6 +106,15 @@ func (m *ComponentMount[I, O]) getName() string {
 	return m.Definition.Name
 }
 func (m *ComponentMount[I, O]) Execute(args []byte, ctx *ComponentContainer) *ComponentResultPayload {
+	defer func() {
+		if err := recover(); err != nil {
+			errorString := ""
+			if e, ok := err.(error); ok {
+				errorString = e.Error()
+			}
+			ctx.Logger.Log("Component function crashed with error %s", errorString)
+		}
+	}()
 	var inputB I
 	err := json.Unmarshal(args, &inputB)
 	if err != nil {

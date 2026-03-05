@@ -20,7 +20,7 @@ type AppState struct {
 	host        *HostIO
 }
 
-func newAppState() AppState {
+func newAppState() *AppState {
 	persistence, fresh := core.DefaultPersistence(string(initScript))
 	hostCtx, hostCancel := context.WithCancel(context.Background())
 	hostService := newAppHostService(persistence, hostio.NewIO(hostCtx, hostCancel, os.Stdin, os.Stdout))
@@ -31,7 +31,7 @@ func newAppState() AppState {
 		log.Printf("Initial token: %s", auth.Secret)
 	}
 
-	as := AppState{
+	as := &AppState{
 		persistence: persistence,
 		host:        hostService,
 		components:  map[string]*ComponentIO{},

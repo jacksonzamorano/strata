@@ -9,6 +9,12 @@ import (
 	"github.com/jacksonzamorano/strata/internal/componentipc"
 )
 
+type ComponentTrigger struct {
+	Namespace string
+	Name      string
+	Trigger   func(b []byte)
+}
+
 type ComponentIO struct {
 	transport *componentipc.IO
 	container *Container
@@ -16,6 +22,7 @@ type ComponentIO struct {
 	path      string
 	context   context.Context
 	cancel    context.CancelFunc
+	triggers  chan componentipc.ComponentMessageSendTrigger
 }
 
 func RegisterComponent(dep *core.ComponentExecuteCommand, container *Container) (*ComponentIO, error) {
@@ -53,6 +60,7 @@ func RegisterComponent(dep *core.ComponentExecuteCommand, container *Container) 
 		path:      dep.CanonicalName,
 		context:   ctx,
 		cancel:    cancel,
+		triggers:  make(chan componentipc.ComponentMessageSendTrigger, 64),
 	}
 
 	runner.HandleAPIRequests()
@@ -80,6 +88,7 @@ func (cr *ComponentIO) HandleAPIRequests() {
 		getKeychain := componentipc.Receive[componentipc.ComponentMessageGetKeychainRequest](cr.transport, componentipc.ComponentMessageTypeGetKeychainRequest)
 		setKeychain := componentipc.Receive[componentipc.ComponentMessageSetKeychainRequest](cr.transport, componentipc.ComponentMessageTypeStoreKeychainRequest)
 		log := componentipc.Receive[componentipc.ComponentMessageLog](cr.transport, componentipc.ComponentMessageTypeLog)
+		trigger := componentipc.Receive[componentipc.ComponentMessageSendTrigger](cr.transport, componentipc.ComponentMessageTypeSendTrigger)
 		for {
 			select {
 			case ev := <-getVal:
@@ -111,6 +120,8 @@ func (cr *ComponentIO) HandleAPIRequests() {
 					return
 				}
 				cr.container.Logger.Log("%s", ev.Payload.Message)
+			case ev := <-trigger:
+				cr.triggers <- ev.Payload
 			case <-cr.context.Done():
 				return
 			}

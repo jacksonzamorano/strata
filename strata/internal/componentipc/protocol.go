@@ -57,3 +57,8 @@ type ComponentMessageSetKeychainRequest struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
+
+type ComponentMessageSendTrigger struct {
+	Name    string          `json:"name"`
+	Payload json.RawMessage `json:"payload"`
+}

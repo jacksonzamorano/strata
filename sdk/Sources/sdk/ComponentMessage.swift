@@ -14,5 +14,6 @@ enum ComponentMessageType: String {
          storeKeychainRequest,
          getKeychainRequest,
          getKeychainResponse,
+         sendTrigger,
          log
 }

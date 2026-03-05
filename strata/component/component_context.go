@@ -1,11 +1,15 @@
 package component
 
-import "github.com/jacksonzamorano/strata/core"
+import (
+	"github.com/jacksonzamorano/strata/core"
+	"github.com/jacksonzamorano/strata/internal/componentipc"
+)
 
 type ComponentContainer struct {
 	Storage  core.Storage
 	Keychain core.Keychain
 	Logger   core.Logger
+	channel  *componentipc.IO
 }
 
 func (c *Component) buildContext() *ComponentContainer {
@@ -13,5 +17,6 @@ func (c *Component) buildContext() *ComponentContainer {
 		Storage:  newComponentStorage(c.ioChannel),
 		Keychain: newComponentKeychain(c.ioChannel),
 		Logger:   newComponentLogger(c.ioChannel),
+		channel:  c.ioChannel,
 	}
 }

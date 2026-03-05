@@ -1,6 +1,7 @@
 package strata
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,16 +15,26 @@ import (
 type Runtime struct {
 	state      *AppState
 	httpServer *http.Server
+
+	triggers *RuntimeTriggers
+
+	ctx    *context.Context
+	cancel context.CancelFunc
 }
 
-func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*ConfigurationModification) Runtime {
+func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*ConfigurationModification) *Runtime {
 	appState := newAppState()
 	mux := http.NewServeMux()
+
+	triggers := &RuntimeTriggers{}
+	runtimeContext, runtimeCancel := context.WithCancel(context.Background())
 
 	taskContainer := appState.buildContainer("tasks")
 	taskContext := TaskAttachContext{
 		mux:          mux,
 		authorizaton: appState.persistence.Authorization,
+		triggers:     triggers,
+		Context:      runtimeContext,
 		Container:    taskContainer,
 	}
 	for idx := range tasks {
@@ -59,12 +70,6 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 			continue
 		}
 		hello := ev.Payload
-		appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
-			Suceeded: true,
-			Name:     hello.Name,
-			Version:  hello.Version,
-			Path:     runner.path,
-		})
 		name = hello.Name
 		appState.components[name] = runner
 
@@ -80,14 +85,24 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 		}
 		if errMsgPtr == nil {
 			appState.components[name].available = true
-			continue
+			go func() {
+				for trigger := range appState.components[name].triggers {
+					triggers.Execute(name, &trigger, appState)
+				}
+			}()
+			appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
+				Suceeded: true,
+				Name:     hello.Name,
+				Version:  hello.Version,
+				Path:     runner.path,
+			})
+		} else {
+			appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
+				Suceeded: false,
+				Name:     name,
+				Error:    errMsgPtr,
+			})
 		}
-
-		appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
-			Suceeded: false,
-			Name:     name,
-			Error:    errMsgPtr,
-		})
 	}
 
 	port := os.Getenv("PORT")
@@ -99,14 +114,17 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 	addr := fmt.Sprintf("%s:%s", ns, port)
 
 	as := Runtime{
-		state: &appState,
+		state: appState,
 		httpServer: &http.Server{
 			Addr:              addr,
 			Handler:           mux,
 			ReadHeaderTimeout: 5 * time.Second,
 		},
+		ctx:      &runtimeContext,
+		cancel:   runtimeCancel,
+		triggers: triggers,
 	}
-	return as
+	return &as
 }
 
 func (as *Runtime) Start() error {

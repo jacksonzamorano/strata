@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path"
+	"time"
 
 	cex "github.com/jacksonzamorano/componentexample/types"
 	"github.com/jacksonzamorano/strata"
@@ -63,12 +64,22 @@ func reset(data strata.RouteTaskNoInput, container *strata.Container) *strata.Ro
 	return strata.RouteResultSuccess("Reset.")
 }
 
+func testTime(container *strata.Container) {
+	container.Logger.LogLiteral("Timer hit!")
+}
+
+func testTrigger(data cex.TriggerTest, container *strata.Container) {
+	container.Logger.Log("Got '%s'", data.Time.String())
+}
+
 func main() {
 	cd, _ := os.Getwd()
 	rt := strata.NewRuntime([]strata.Task{
 		strata.NewPublicRouteTask(sayHello),
 		strata.NewRouteTask(getVisitorLog),
 		strata.NewRouteTask(reset),
+		strata.NewTimedTask(2*time.Minute, testTime),
+		strata.NewTriggerTask("example", cex.TestTrigger, testTrigger),
 	}, strata.Import(
 		// strata.Binary("component-example"),
 		strata.ImportLocal(path.Join(path.Dir(cd), "component-example")),

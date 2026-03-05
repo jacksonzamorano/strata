@@ -54,9 +54,9 @@ func newRouteTask[T any](secured bool, fn RouteTaskFunction[T]) Task {
 	last_idx := strings.LastIndex(name_ugly, ".")
 	name := name_ugly[last_idx+1:]
 
-	return Task{
-		Name: name,
-		Implementation: &RouteTask{
+	return NewTask(
+		fn,
+		&RouteTask{
 			path:    fmt.Sprintf("/tasks/%s", name),
 			secured: secured,
 			handler: func(req *http.Request, container *Container) *RouteResult {
@@ -72,7 +72,7 @@ func newRouteTask[T any](secured bool, fn RouteTaskFunction[T]) Task {
 				return fn(input, container)
 			},
 		},
-	}
+	)
 }
 
 func NewRouteTask[T any](fn RouteTaskFunction[T]) Task {
