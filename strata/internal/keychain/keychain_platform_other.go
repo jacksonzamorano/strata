@@ -1,6 +1,6 @@
 //go:build !(darwin && cgo)
 
-package strata
+package keychain
 
 func newPlatformKeychain() KeychainProvider {
 	return &memoryKeychainProvider{

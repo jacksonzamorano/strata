@@ -9,7 +9,7 @@ import (
 	"github.com/jacksonzamorano/strata/internal/componentipc"
 )
 
-type ComponentRunner struct {
+type ComponentIO struct {
 	transport *componentipc.IO
 	container *Container
 	available bool
@@ -18,8 +18,7 @@ type ComponentRunner struct {
 	cancel    context.CancelFunc
 }
 
-
-func RegisterComponent(dep *core.ComponentExecuteCommand, container *Container) (*ComponentRunner, error) {
+func RegisterComponent(dep *core.ComponentExecuteCommand, container *Container) (*ComponentIO, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cmd, err := core.PlatformSandboxProvider().Execute(ctx, dep)
@@ -47,7 +46,7 @@ func RegisterComponent(dep *core.ComponentExecuteCommand, container *Container) 
 		return nil, err
 	}
 
-	runner := &ComponentRunner{
+	runner := &ComponentIO{
 		transport: transport,
 		container: container,
 		available: false,
@@ -61,7 +60,7 @@ func RegisterComponent(dep *core.ComponentExecuteCommand, container *Container) 
 	return runner, nil
 }
 
-func (cr *ComponentRunner) Execute(fname string, args any) *component.ComponentResultPayload {
+func (cr *ComponentIO) Execute(fname string, args any) *component.ComponentResultPayload {
 	thread := cr.transport.NewThread()
 	enc, _ := json.Marshal(args)
 	payload, _ := componentipc.SendAndReceive[component.ComponentResultPayload](
@@ -74,7 +73,7 @@ func (cr *ComponentRunner) Execute(fname string, args any) *component.ComponentR
 	return &payload
 }
 
-func (cr *ComponentRunner) HandleAPIRequests() {
+func (cr *ComponentIO) HandleAPIRequests() {
 	go func() {
 		getVal := componentipc.Receive[componentipc.ComponentMessageGetValueRequest](cr.transport, componentipc.ComponentMessageTypeGetValueRequest)
 		setVal := componentipc.Receive[componentipc.ComponentMessageSetValueRequest](cr.transport, componentipc.ComponentMessageTypeStoreValueRequest)

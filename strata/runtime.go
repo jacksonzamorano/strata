@@ -19,14 +19,14 @@ type RequestInfo struct {
 	Authorization *core.Authorization
 }
 
-type AppServer struct {
+type Runtime struct {
 	state           *AppState
 	srv             *http.Server
 	listener        *http.ServeMux
 	approvedActions []core.ApprovedComponentPermission
 }
 
-func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*ConfigurationModification) AppServer {
+func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*ConfigurationModification) Runtime {
 	var approvedActions []core.ApprovedComponentPermission
 	for _, op := range cfg {
 		if op.Permissions != nil {
@@ -112,7 +112,7 @@ func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*Configurati
 
 	addr := fmt.Sprintf("%s:%s", ns, port)
 
-	as := AppServer{
+	as := Runtime{
 		state: &appState,
 		srv: &http.Server{
 			Addr:              addr,
@@ -125,7 +125,7 @@ func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*Configurati
 	return as
 }
 
-func (as *AppServer) Start() error {
+func (as *Runtime) Start() error {
 	select {
 	case <-as.state.host.Done():
 		return fmt.Errorf("host rpc connection unavailable")

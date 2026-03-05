@@ -10,7 +10,7 @@ import (
 	"github.com/jacksonzamorano/strata/hostio"
 )
 
-type HostIOService struct {
+type HostIO struct {
 	persistence core.PersistenceProvider
 	host        *hostio.IO
 
@@ -23,8 +23,8 @@ type pendingPermissionRequest struct {
 	waiter     chan bool
 }
 
-func newAppHostService(persistence core.PersistenceProvider, host *hostio.IO) *HostIOService {
-	service := &HostIOService{
+func newAppHostService(persistence core.PersistenceProvider, host *hostio.IO) *HostIO {
+	service := &HostIO{
 		persistence: persistence,
 		host:        host,
 
@@ -34,29 +34,29 @@ func newAppHostService(persistence core.PersistenceProvider, host *hostio.IO) *H
 	return service
 }
 
-func (hs *HostIOService) Done() <-chan struct{} {
+func (hs *HostIO) Done() <-chan struct{} {
 	return hs.host.Done()
 }
 
-func (hs *HostIOService) Emit(typ hostio.HostMessageType, payload any) {
+func (hs *HostIO) Emit(typ hostio.HostMessageType, payload any) {
 	hs.host.Send(typ, payload)
 }
 
-func (hs *HostIOService) Log(v string, args ...any) {
+func (hs *HostIO) Log(v string, args ...any) {
 	hs.host.Send(hostio.HostMessageTypeLogEvent, hostio.HostMessageLogEvent{
 		Namespace: "global",
 		Message:   fmt.Sprintf(v, args...),
 	})
 }
 
-func (hs *HostIOService) Container(namespace string) core.Logger {
+func (hs *HostIO) Container(namespace string) core.Logger {
 	return &appHostContainerLogger{
 		service:   hs,
 		namespace: namespace,
 	}
 }
 
-func (hs *HostIOService) RequestPermission(permission core.Permission) bool {
+func (hs *HostIO) RequestPermission(permission core.Permission) bool {
 	var waiter chan bool
 
 	permission_hash := fmt.Sprintf("%s.%s.%s", permission.Container, permission.Action, *permission.Scope)
@@ -93,7 +93,7 @@ func (hs *HostIOService) RequestPermission(permission core.Permission) bool {
 	}
 }
 
-func (hs *HostIOService) listenForHostMessages() {
+func (hs *HostIO) listenForHostMessages() {
 	getAuthorizationsList := hostio.Receive[hostio.HostMessageGetAuthorizationsList](hs.host, hostio.HostMessageTypeGetAuthorizationsList)
 	createAuthorization := hostio.Receive[hostio.HostMessageCreateAuthorization](hs.host, hostio.HostMessageTypeCreateAuthorization)
 
@@ -115,7 +115,7 @@ func (hs *HostIOService) listenForHostMessages() {
 	}
 }
 
-func (hs *HostIOService) handleCreateAuthorization(ev hostio.ReceivedEvent[hostio.HostMessageCreateAuthorization]) {
+func (hs *HostIO) handleCreateAuthorization(ev hostio.ReceivedEvent[hostio.HostMessageCreateAuthorization]) {
 	nickname := strings.TrimSpace(ev.Payload.Nickname)
 	if len(nickname) == 0 {
 		hs.Log("Invalid payload: host requires a name")
@@ -125,7 +125,7 @@ func (hs *HostIOService) handleCreateAuthorization(ev hostio.ReceivedEvent[hosti
 	hs.persistence.Authorization.NewAuthorization("Host", nickname)
 }
 
-func (hs *HostIOService) sendAuthorizationsList() {
+func (hs *HostIO) sendAuthorizationsList() {
 	authorizations := hs.persistence.Authorization.GetAuthorizations()
 	statusAuthorizations := make([]hostio.HostMessageAuthorizationCreated, 0, len(authorizations))
 	for i := range authorizations {
@@ -143,7 +143,7 @@ func (hs *HostIOService) sendAuthorizationsList() {
 }
 
 type appHostContainerLogger struct {
-	service   *HostIOService
+	service   *HostIO
 	namespace string
 }
 

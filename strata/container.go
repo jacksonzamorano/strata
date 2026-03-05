@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/jacksonzamorano/strata/core"
+	"github.com/jacksonzamorano/strata/internal/keychain"
 )
 
 type Container struct {
@@ -14,8 +15,8 @@ type Container struct {
 
 	permissions map[string]bool
 	persistence core.PersistenceProvider
-	hostService *HostIOService
-	components  map[string]*ComponentRunner
+	hostService *HostIO
+	components  map[string]*ComponentIO
 	namespace   string
 }
 
@@ -51,7 +52,7 @@ func (as *AppState) buildContainer(namespace string) *Container {
 	return &Container{
 		Storage:     as.persistence.Storage.Container(namespace),
 		Logger:      as.host.Container(namespace),
-		Keychain:    newPlatformKeychain().Container(namespace),
+		Keychain:    keychain.PlatformKeychain.Container(namespace),
 		permissions: map[string]bool{},
 		persistence: as.persistence,
 		components:  as.components,

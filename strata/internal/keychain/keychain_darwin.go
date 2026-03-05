@@ -1,6 +1,6 @@
 //go:build darwin && cgo
 
-package strata
+package keychain
 
 /*
 #cgo darwin LDFLAGS: -framework Security

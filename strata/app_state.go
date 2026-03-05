@@ -16,8 +16,8 @@ var initScript []byte
 
 type AppState struct {
 	persistence core.PersistenceProvider
-	components  map[string]*ComponentRunner
-	host        *HostIOService
+	components  map[string]*ComponentIO
+	host        *HostIO
 }
 
 func newAppState() AppState {
@@ -34,7 +34,7 @@ func newAppState() AppState {
 	as := AppState{
 		persistence: persistence,
 		host:        hostService,
-		components:  map[string]*ComponentRunner{},
+		components:  map[string]*ComponentIO{},
 	}
 
 	return as

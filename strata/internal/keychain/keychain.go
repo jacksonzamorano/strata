@@ -1,4 +1,4 @@
-package strata
+package keychain
 
 import "github.com/jacksonzamorano/strata/core"
 

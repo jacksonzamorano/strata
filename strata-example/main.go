@@ -65,7 +65,7 @@ func reset(data strata.NoTaskBody, container *strata.Container) *strata.TaskResu
 
 func main() {
 	cd, _ := os.Getwd()
-	as := strata.NewAppServer([]strata.Task{
+	rt := strata.NewRuntime([]strata.Task{
 		strata.UsePublicTask(sayHello),
 		strata.UseTask(getVisitorLog),
 		strata.UseTask(reset),
@@ -74,6 +74,6 @@ func main() {
 		strata.ImportLocal(path.Join(path.Dir(cd), "component-example")),
 		// strata.ImportGitSubdirectory("git@github.com:jacksonzamorano/strata.git", "component-example"),
 	))
-	e := as.Start()
+	e := rt.Start()
 	panic(e)
 }
