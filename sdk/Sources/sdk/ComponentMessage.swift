@@ -2,7 +2,7 @@ import Passport
 import Foundation
 
 @Enum
-enum MessageType: String {
+enum ComponentMessageType: String {
     case hello,
          setup,
          ready,

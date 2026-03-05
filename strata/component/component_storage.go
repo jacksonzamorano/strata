@@ -19,15 +19,15 @@ func (c *ComponentStorage) getValue(k string) string {
 	thread := c.io.NewThread()
 	payload, _ := componentipc.SendAndReceive[componentipc.ComponentMessageGetValueResponse](
 		thread,
-		componentipc.MessageTypeGetValueRequest,
+		componentipc.ComponentMessageTypeGetValueRequest,
 		componentipc.ComponentMessageGetValueRequest{Key: k},
-		componentipc.MessageTypeGetValueResponse,
+		componentipc.ComponentMessageTypeGetValueResponse,
 	)
 	return payload.Value
 }
 
 func (c *ComponentStorage) setValue(k, v string) {
-	c.io.NewThread().Send(componentipc.MessageTypeStoreValueRequest, componentipc.ComponentMessageSetValueRequest{
+	c.io.NewThread().Send(componentipc.ComponentMessageTypeStoreValueRequest, componentipc.ComponentMessageSetValueRequest{
 		Key:   k,
 		Value: v,
 	})

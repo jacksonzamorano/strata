@@ -66,9 +66,9 @@ func (cr *ComponentRunner) Execute(fname string, args any) *component.ComponentR
 	enc, _ := json.Marshal(args)
 	payload, _ := componentipc.SendAndReceive[component.ComponentResultPayload](
 		thread,
-		componentipc.MessageTypeExecute,
+		componentipc.ComponentMessageTypeExecute,
 		componentipc.ComponentMessageExecute{Name: fname, Arguments: enc},
-		componentipc.MessageTypeRet,
+		componentipc.ComponentMessageTypeRet,
 	)
 
 	return &payload
@@ -76,18 +76,18 @@ func (cr *ComponentRunner) Execute(fname string, args any) *component.ComponentR
 
 func (cr *ComponentRunner) HandleAPIRequests() {
 	go func() {
-		getVal := componentipc.Receive[componentipc.ComponentMessageGetValueRequest](cr.transport, componentipc.MessageTypeGetValueRequest)
-		setVal := componentipc.Receive[componentipc.ComponentMessageSetValueRequest](cr.transport, componentipc.MessageTypeStoreValueRequest)
-		getKeychain := componentipc.Receive[componentipc.ComponentMessageGetKeychainRequest](cr.transport, componentipc.MessageTypeGetKeychainRequest)
-		setKeychain := componentipc.Receive[componentipc.ComponentMessageSetKeychainRequest](cr.transport, componentipc.MessageTypeStoreKeychainRequest)
-		log := componentipc.Receive[componentipc.ComponentMessageLog](cr.transport, componentipc.MessageTypeLog)
+		getVal := componentipc.Receive[componentipc.ComponentMessageGetValueRequest](cr.transport, componentipc.ComponentMessageTypeGetValueRequest)
+		setVal := componentipc.Receive[componentipc.ComponentMessageSetValueRequest](cr.transport, componentipc.ComponentMessageTypeStoreValueRequest)
+		getKeychain := componentipc.Receive[componentipc.ComponentMessageGetKeychainRequest](cr.transport, componentipc.ComponentMessageTypeGetKeychainRequest)
+		setKeychain := componentipc.Receive[componentipc.ComponentMessageSetKeychainRequest](cr.transport, componentipc.ComponentMessageTypeStoreKeychainRequest)
+		log := componentipc.Receive[componentipc.ComponentMessageLog](cr.transport, componentipc.ComponentMessageTypeLog)
 		for {
 			select {
 			case ev := <-getVal:
 				if ev.Error {
 					return
 				}
-				ev.Thread.Send(componentipc.MessageTypeGetValueResponse, componentipc.ComponentMessageGetValueResponse{
+				ev.Thread.Send(componentipc.ComponentMessageTypeGetValueResponse, componentipc.ComponentMessageGetValueResponse{
 					Value: cr.container.Storage.GetString(ev.Payload.Key),
 				})
 			case ev := <-setVal:
@@ -99,7 +99,7 @@ func (cr *ComponentRunner) HandleAPIRequests() {
 				if ev.Error {
 					return
 				}
-				ev.Thread.Send(componentipc.MessageTypeGetKeychainResponse, componentipc.ComponentMessageGetKeychainResponse{
+				ev.Thread.Send(componentipc.ComponentMessageTypeGetKeychainResponse, componentipc.ComponentMessageGetKeychainResponse{
 					Value: cr.container.Keychain.Get(ev.Payload.Key),
 				})
 			case ev := <-setKeychain:

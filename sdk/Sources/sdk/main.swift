@@ -60,7 +60,7 @@ try! Schema("hostschema") {
 .build()
 
 try! Schema("messagetypes") {
-    MessageType.self
+    ComponentMessageType.self
 } routes: {
 
 }

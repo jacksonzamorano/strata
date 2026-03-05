@@ -39,24 +39,12 @@ func (hs *HostIOService) Done() <-chan struct{} {
 	return hs.host.Done()
 }
 
-func (hs *HostIOService) sendMessage(id string, typ hostio.HostMessageType, payload any) bool {
-	if len(id) == 0 {
-		id = makeId()
-	}
-
-	msg, err := hostio.NewHostMessage(id, typ, payload)
-	if err != nil {
-		return false
-	}
-	return hs.host.Send(msg)
-}
-
 func (hs *HostIOService) Emit(typ hostio.HostMessageType, payload any) {
-	hs.sendMessage("", typ, payload)
+	hs.host.Send(typ, payload)
 }
 
 func (hs *HostIOService) emitLog(kind, namespace, message string) {
-	hs.sendMessage("", hostio.HostMessageTypeLogEvent, hostio.HostMessageLogEvent{
+	hs.host.Send(hostio.HostMessageTypeLogEvent, hostio.HostMessageLogEvent{
 		Kind:      kind,
 		Namespace: namespace,
 		Message:   message,
@@ -85,7 +73,7 @@ func (hs *HostIOService) RequestPermission(permission core.Permission) bool {
 	}
 	hs.lock.Unlock()
 
-	hs.sendMessage(requestID, hostio.HostMessageTypePermissionRequest, hostio.HostMessageRequestPermission{
+	hs.host.SendId(requestID, hostio.HostMessageTypePermissionRequest, hostio.HostMessageRequestPermission{
 		Permission: permission,
 	})
 
@@ -112,21 +100,24 @@ func (hs *HostIOService) listenForHostMessages() {
 	createAuthorization := hostio.Receive[hostio.HostMessageCreateAuthorization](hs.host, hostio.HostMessageTypeCreateAuthorization)
 	respondPermission := hostio.Receive[hostio.HostMessageRespondPermission](hs.host, hostio.HostMessageTypeRespondPermission)
 
+	hs.host.Send(hostio.HostMessageTypeHello, struct{}{})
+
 	for {
 		select {
 		case ev := <-getAuthorizationsList:
+			hs.emitLog("debug", "", "requested auth list")
 			if ev.Error {
-				return
+				continue
 			}
-			hs.sendAuthorizationsList(ev.Message.Id)
+			hs.sendAuthorizationsList()
 		case ev := <-createAuthorization:
 			if ev.Error {
-				return
+				continue
 			}
 			hs.handleCreateAuthorization(ev)
 		case ev := <-respondPermission:
 			if ev.Error {
-				return
+				continue
 			}
 			hs.handleRespondPermission(ev)
 		}
@@ -187,8 +178,8 @@ func (hs *HostIOService) readAuthorizations() []hostio.HostMessageAuthorizationC
 	return statusAuthorizations
 }
 
-func (hs *HostIOService) sendAuthorizationsList(id string) {
-	hs.sendMessage(id, hostio.HostMessageTypeAuthorizationsList, hostio.HostMessageAuthorizationsList{
+func (hs *HostIOService) sendAuthorizationsList() {
+	hs.host.Send(hostio.HostMessageTypeAuthorizationsList, hostio.HostMessageAuthorizationsList{
 		Authorizations: hs.readAuthorizations(),
 	})
 }

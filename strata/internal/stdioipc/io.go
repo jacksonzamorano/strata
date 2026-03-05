@@ -68,8 +68,21 @@ func (c *IO[MT]) Done() <-chan struct{} {
 	return c.transport.Done()
 }
 
-func (c *IO[MT]) Send(msg Message[MT]) bool {
-	return c.transport.Send(msg)
+func (c *IO[MT]) Send(typ MT, payload any) bool {
+	enc, _ := json.Marshal(payload)
+	return c.transport.Send(Message[MT]{
+		Id:      makeMessageID(),
+		Type:    typ,
+		Payload: enc,
+	})
+}
+func (c *IO[MT]) SendId(id string, typ MT, payload any) bool {
+	enc, _ := json.Marshal(payload)
+	return  c.transport.Send(Message[MT]{
+		Id:      id,
+		Type:    typ,
+		Payload: enc,
+	})
 }
 
 func (c *IO[MT]) NewThread() *Thread[MT] {
@@ -221,15 +234,7 @@ func (t *Thread[MT]) dropChannel(recvType MT) {
 }
 
 func (t *Thread[MT]) Send(typ MT, payload any) bool {
-	encodedPayload, err := encodePayload(payload)
-	if err != nil {
-		return false
-	}
-	return t.io.Send(Message[MT]{
-		Id:      t.id,
-		Type:    typ,
-		Payload: encodedPayload,
-	})
+	return t.io.SendId(t.id, typ, payload)
 }
 
 func SendAndReceive[T any, MT ~string](t *Thread[MT], sendType MT, sendPayload any, recvType MT) (T, Message[MT]) {
@@ -261,12 +266,3 @@ func SendAndReceive[T any, MT ~string](t *Thread[MT], sendType MT, sendPayload a
 	}
 }
 
-func encodePayload(payload any) ([]byte, error) {
-	if s, ok := payload.(string); ok {
-		return []byte(s), nil
-	}
-	if p, ok := payload.([]byte); ok {
-		return p, nil
-	}
-	return json.Marshal(payload)
-}

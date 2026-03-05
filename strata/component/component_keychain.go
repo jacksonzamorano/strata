@@ -14,15 +14,15 @@ func (c *ComponentKeychain) Get(k string) string {
 	thread := c.io.NewThread()
 	payload, _ := componentipc.SendAndReceive[componentipc.ComponentMessageGetKeychainResponse](
 		thread,
-		componentipc.MessageTypeGetKeychainRequest,
+		componentipc.ComponentMessageTypeGetKeychainRequest,
 		componentipc.ComponentMessageGetKeychainRequest{Key: k},
-		componentipc.MessageTypeGetKeychainResponse,
+		componentipc.ComponentMessageTypeGetKeychainResponse,
 	)
 	return payload.Value
 }
 
 func (c *ComponentKeychain) Set(k, v string) {
-	c.io.NewThread().Send(componentipc.MessageTypeStoreKeychainRequest, componentipc.ComponentMessageSetKeychainRequest{
+	c.io.NewThread().Send(componentipc.ComponentMessageTypeStoreKeychainRequest, componentipc.ComponentMessageSetKeychainRequest{
 		Key:   k,
 		Value: v,
 	})

@@ -60,7 +60,7 @@ func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*Configurati
 			continue
 		}
 
-		ev := componentipc.ReceiveOnce[componentipc.ComponentMessageHello](runner.transport, 5*time.Second, componentipc.MessageTypeHello)
+		ev := componentipc.ReceiveOnce[componentipc.ComponentMessageHello](runner.transport, 5*time.Second, componentipc.ComponentMessageTypeHello)
 		if ev.Error {
 			appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
 				Suceeded: false,
@@ -80,7 +80,12 @@ func NewAppServer(tasks []Task, deps []core.ComponentImport, cfg ...*Configurati
 		name = hello.Name
 		appState.components[name] = runner
 
-		rdy, _ := componentipc.SendAndReceive[componentipc.ComponentMessageReady](ev.Thread, componentipc.MessageTypeSetup, struct{}{}, componentipc.MessageTypeReady)
+		rdy, _ := componentipc.SendAndReceive[componentipc.ComponentMessageReady](
+			ev.Thread,
+			componentipc.ComponentMessageTypeSetup,
+			struct{}{},
+			componentipc.ComponentMessageTypeReady,
+		)
 		var errMsgPtr *string
 		if len(rdy.Error) > 0 {
 			errMsgPtr = &rdy.Error

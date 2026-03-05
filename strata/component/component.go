@@ -63,19 +63,19 @@ func (c *Component) Start() {
 	thread := c.ioChannel.NewThread()
 	_, _ = componentipc.SendAndReceive[struct{}](
 		thread,
-		componentipc.MessageTypeHello,
+		componentipc.ComponentMessageTypeHello,
 		componentipc.ComponentMessageHello{Name: c.name, Version: c.version},
-		componentipc.MessageTypeSetup,
+		componentipc.ComponentMessageTypeSetup,
 	)
 
 	var err string
 	if c.setupFn != nil {
 		err = c.setupFn(c.buildContext())
 	}
-	thread.Send(componentipc.MessageTypeReady, componentipc.ComponentMessageReady{Error: err})
+	thread.Send(componentipc.ComponentMessageTypeReady, componentipc.ComponentMessageReady{Error: err})
 
 	go func() {
-		cn := componentipc.Receive[componentipc.ComponentMessageExecute](c.ioChannel, componentipc.MessageTypeExecute)
+		cn := componentipc.Receive[componentipc.ComponentMessageExecute](c.ioChannel, componentipc.ComponentMessageTypeExecute)
 		for {
 			ev := <-cn
 			if ev.Error {
@@ -84,10 +84,10 @@ func (c *Component) Start() {
 			d := ev.Payload
 			if handler, ok := c.functions[d.Name]; ok {
 				ret := handler.Execute([]byte(d.Arguments), c.buildContext())
-				ev.Thread.Send(componentipc.MessageTypeRet, ret)
+				ev.Thread.Send(componentipc.ComponentMessageTypeRet, ret)
 				continue
 			}
-			ev.Thread.Send(componentipc.MessageTypeRet, componentipc.ComponentResultPayload{Error: "Function not found."})
+			ev.Thread.Send(componentipc.ComponentMessageTypeRet, componentipc.ComponentResultPayload{Error: "Function not found."})
 		}
 	}()
 

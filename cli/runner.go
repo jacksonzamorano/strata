@@ -5,6 +5,7 @@ import (
 	"io"
 	"os/exec"
 	"path"
+	"time"
 
 	"github.com/jacksonzamorano/strata/hostio"
 )
@@ -55,6 +56,13 @@ func HandleHost(ctx context.Context, h Host, io *hostio.IO) {
 	taskTriggered := hostio.Receive[hostio.HostMessageTaskTriggered](io, hostio.HostMessageTypeTaskTriggered)
 	componentRegistered := hostio.Receive[hostio.HostMessageComponentRegistered](io, hostio.HostMessageTypeComponentRegistered)
 	permissionRequest := hostio.Receive[hostio.HostMessageRequestPermission](io, hostio.HostMessageTypePermissionRequest)
+	authorizationList := hostio.Receive[hostio.HostMessageAuthorizationsList](io, hostio.HostMessageTypeAuthorizationsList)
+
+	rdy := hostio.ReceiveOnce[struct{}](io, time.Minute * 1, hostio.HostMessageTypeHello)
+	if rdy.Error { return }
+
+	io.Send(hostio.HostMessageTypeGetAuthorizationsList, hostio.HostMessageGetAuthorizationsList{})
+
 	for {
 		select {
 		case ev := <-eventRegistered:
@@ -72,6 +80,8 @@ func HandleHost(ctx context.Context, h Host, io *hostio.IO) {
 					Approve: allowed,
 				})
 			}()
+		case ev := <-authorizationList:
+			h.AuthorizationsUpdated(ev)
 		case <-ctx.Done():
 			return
 		}

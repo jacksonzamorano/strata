@@ -3,7 +3,8 @@ import Passport
 
 @Enum
 enum HostMessageType: String {
-    case authorizationsList,
+    case hello,
+         authorizationsList,
          permissionRequest,
          logEvent,
          taskRegistered,

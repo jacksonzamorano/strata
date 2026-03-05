@@ -52,6 +52,13 @@ func (ch *ConsoleHost) TaskTriggered(ev hostio.ReceivedEvent[hostio.HostMessageT
 	ch.lines <- fmt.Sprintf("Triggered task '%s'.", ev.Payload.Name)
 }
 
+func (ch *ConsoleHost) AuthorizationsUpdated(ev hostio.ReceivedEvent[hostio.HostMessageAuthorizationsList]) {
+	for r := range ev.Payload.Authorizations {
+		a := ev.Payload.Authorizations[r]
+		ch.lines <- fmt.Sprintf("Authorization: '%s' = '%s'", *a.Nickname, a.Secret)
+	}
+}
+
 func (ch *ConsoleHost) PermissionRequested(ev hostio.ReceivedEvent[hostio.HostMessageRequestPermission]) bool {
 	ch.outputLocked.Lock()
 	fmt.Printf("Allow '%s' to use '%s' on '%s'? ", ev.Payload.Permission.Container, ev.Payload.Permission.Action, *ev.Payload.Permission.Scope)

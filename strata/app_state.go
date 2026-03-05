@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"log"
+	"os"
 
 	"github.com/jacksonzamorano/strata/core"
 	"github.com/jacksonzamorano/strata/hostio"
@@ -22,7 +23,7 @@ type AppState struct {
 func newAppState() AppState {
 	persistence, fresh := core.DefaultPersistence(string(initScript))
 	hostCtx, hostCancel := context.WithCancel(context.Background())
-	hostService := newAppHostService(persistence, hostio.NewStdio(hostCtx, hostCancel))
+	hostService := newAppHostService(persistence, hostio.NewIO(hostCtx, hostCancel, os.Stdin, os.Stdout))
 
 	if fresh {
 		auth := persistence.Authorization.NewAuthorization("core", "Master")

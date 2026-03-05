@@ -16,7 +16,7 @@ func newComponentLogger(io *componentipc.IO) *ComponentLogger {
 }
 
 func (cl *ComponentLogger) Log(v string, args ...any) {
-	cl.io.NewThread().Send(componentipc.MessageTypeLog, componentipc.ComponentMessageLog{
+	cl.io.NewThread().Send(componentipc.ComponentMessageTypeLog, componentipc.ComponentMessageLog{
 		Message: fmt.Sprintf(v, args...),
 	})
 }
