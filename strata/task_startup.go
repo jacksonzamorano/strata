@@ -1,14 +1,14 @@
 package strata
 
 type StartupTask struct {
-	handler func(*Container)
+	handler func(*TaskContext)
 }
 
 func (tt *StartupTask) Attach(ctx *TaskAttachContext) {
-	tt.handler(ctx.Container)
+	tt.handler(ctx.TaskContextGlobal())
 }
 
-func NewStartupTask(handler func(*Container)) Task {
+func NewStartupTask(handler func(*TaskContext)) Task {
 	return NewTask(handler, &StartupTask{
 		handler,
 	})

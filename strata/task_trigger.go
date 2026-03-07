@@ -9,25 +9,25 @@ import (
 type TriggeredTask struct {
 	namespace string
 	trigger   string
-	execute   func([]byte, *Container)
+	execute   func([]byte, *TaskContext)
 }
 
-type TriggerTaskFn[T any] = func(input T, container *Container)
+type TriggerTaskFn[T any] = func(input T, container *TaskContext)
 
 func NewTriggerTask[T any](trigger component.ComponentTrigger[T], fn TriggerTaskFn[T]) Task {
 	return NewTask(fn, &TriggeredTask{
 		namespace: trigger.ComponentName,
 		trigger:   trigger.TriggerName,
-		execute: func(b []byte, container *Container) {
+		execute: func(b []byte, ctx *TaskContext) {
 			var input T
 			json.Unmarshal(b, &input)
-			fn(input, container)
+			fn(input, ctx)
 		},
 	})
 }
 
 func (tt *TriggeredTask) Attach(ctx *TaskAttachContext) {
 	ctx.Trigger(tt.namespace, tt.trigger, func(b []byte) {
-		tt.execute(b, ctx.Container)
+		tt.execute(b, ctx.TaskContextGlobal())
 	})
 }

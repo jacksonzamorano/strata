@@ -1,10 +1,13 @@
 package strata
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type TimedEveryTask struct {
 	duration time.Duration
-	handler  func(*Container)
+	handler  func(*TaskContext)
 }
 
 func (tt *TimedEveryTask) Attach(ctx *TaskAttachContext) {
@@ -13,7 +16,9 @@ func (tt *TimedEveryTask) Attach(ctx *TaskAttachContext) {
 		for {
 			select {
 			case <-timer:
-				tt.handler(ctx.Container)
+				cn, cnc := context.WithTimeout(ctx.Context, tt.duration)
+				defer cnc()
+				tt.handler(ctx.TaskContext(cn))
 			case <-ctx.Context.Done():
 				return
 			}
@@ -21,7 +26,7 @@ func (tt *TimedEveryTask) Attach(ctx *TaskAttachContext) {
 	}()
 }
 
-func NewTimedTask(duration time.Duration, handler func(*Container)) Task {
+func NewTimedTask(duration time.Duration, handler func(*TaskContext)) Task {
 	return NewTask(handler, &TimedEveryTask{
 		duration,
 		handler,

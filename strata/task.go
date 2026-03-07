@@ -18,6 +18,14 @@ type TaskAttachContext struct {
 	Context      context.Context
 }
 
+func (tac *TaskAttachContext) TaskContextGlobal() *TaskContext {
+	return BuildTaskContext(tac.Container, tac.Context)
+}
+
+func (tac *TaskAttachContext) TaskContext(ctx context.Context) *TaskContext {
+	return BuildTaskContext(tac.Container, ctx)
+}
+
 func (tac *TaskAttachContext) HTTP(path string, handler http.HandlerFunc) {
 	tac.mux.HandleFunc(path, handler)
 }

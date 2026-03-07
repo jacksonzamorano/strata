@@ -18,7 +18,7 @@ type RouteTask struct {
 
 type RouteTaskNoInput struct{}
 
-type RouteTaskFunction[T any] func(input T, container *Container) *RouteResult
+type RouteTaskFunction[T any] func(input T, container *TaskContext) *RouteResult
 type RouteResultStatus int
 
 const (
@@ -69,7 +69,7 @@ func newRouteTask[T any](secured bool, fn RouteTaskFunction[T]) Task {
 				json.Unmarshal(body, &input)
 				parseQuery(req.URL.Query(), req.Header, &input)
 
-				return fn(input, container)
+				return fn(input, BuildTaskContext(container, req.Context()))
 			},
 		},
 	)

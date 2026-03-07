@@ -25,21 +25,21 @@ type Visitor struct {
 	CountAtTime int
 }
 
-func sayHello(data SayHelloData, container *strata.Container) *strata.RouteResult {
-	oldName := container.Storage.GetString("username")
-	container.Storage.SetString("username", data.Name)
+func sayHello(data SayHelloData, context *strata.TaskContext) *strata.RouteResult {
+	oldName := context.Container.Storage.GetString("username")
+	context.Container.Storage.SetString("username", data.Name)
 
-	count := container.Storage.GetInt("count")
+	count := context.Container.Storage.GetInt("count")
 	count += 1
-	container.Storage.SetInt("count", count)
+	context.Container.Storage.SetInt("count", count)
 
-	entityContainer := strata.NewEntityStorage[Visitor](container)
+	entityContainer := strata.NewEntityStorage[Visitor](context.Container)
 	entityContainer.Insert(Visitor{
 		Name:        data.Name,
 		CountAtTime: count,
 	})
 
-	msg, _ := example.SayFeature.Execute(container, example.SayRequest{
+	msg, _ := example.SayFeature.Execute(context.Container, example.SayRequest{
 		Name: data.Name,
 	})
 
@@ -51,31 +51,31 @@ func sayHello(data SayHelloData, container *strata.Container) *strata.RouteResul
 	})
 }
 
-func getVisitorLog(data strata.RouteTaskNoInput, container *strata.Container) *strata.RouteResult {
-	c, _ := container.ReadFile("../README.md")
-	entityContainer := strata.NewEntityStorage[Visitor](container)
+func getVisitorLog(data strata.RouteTaskNoInput, context *strata.TaskContext) *strata.RouteResult {
+	c, _ := context.Container.ReadFile("../README.md")
+	entityContainer := strata.NewEntityStorage[Visitor](context.Container)
 	allNonEmpty := entityContainer.Find(func(v Visitor) bool { return len(v.Name) > 0 })
 	return strata.RouteResultSuccess(map[string]any{"v": allNonEmpty, "c": string(c)})
 }
 
-func reset(data strata.RouteTaskNoInput, container *strata.Container) *strata.RouteResult {
-	container.Storage.SetInt("count", 0)
-	container.Storage.SetString("username", "")
-	example.Reset.Execute(container, example.EmptyRequest{})
+func reset(data strata.RouteTaskNoInput, context *strata.TaskContext) *strata.RouteResult {
+	context.Container.Storage.SetInt("count", 0)
+	context.Container.Storage.SetString("username", "")
+	example.Reset.Execute(context.Container, example.EmptyRequest{})
 	return strata.RouteResultSuccess("Reset.")
 }
 
-func getSecret(data strata.RouteTaskNoInput, container *strata.Container) *strata.RouteResult {
-	res, ok := example.GetSecret.Execute(container, example.EmptyRequest{})
+func getSecret(data strata.RouteTaskNoInput, context *strata.TaskContext) *strata.RouteResult {
+	res, ok := example.GetSecret.Execute(context.Container, example.EmptyRequest{})
 	return strata.RouteResultSuccess(fmt.Sprintf("%s: %v", res, ok))
 }
 
-func testTime(container *strata.Container) {
-	container.Logger.LogLiteral("Timer hit!")
+func testTime(context *strata.TaskContext) {
+	context.Container.Logger.LogLiteral("Timer hit!")
 }
 
-func testTrigger(data example.TriggerTest, container *strata.Container) {
-	container.Logger.Log("Got '%s'", data.Time.String())
+func testTrigger(data example.TriggerTest, context *strata.TaskContext) {
+	context.Container.Logger.Log("Got '%s'", data.Time.String())
 }
 
 func main() {
