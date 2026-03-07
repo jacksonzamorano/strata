@@ -99,6 +99,15 @@ Install it with:
 go install github.com/jacksonzamorano/strata/cmd/strata@latest
 ```
 
+Create a starter project with the embedded templates:
+
+```bash
+strata new app my-strata-app
+strata new component my-component
+```
+
+By default, `strata new` infers the Go module path from the target directory name. You can override that with `--module`, and the CLI will run `go mod tidy` after writing the files.
+
 Then run an app with:
 
 ```bash
@@ -224,7 +233,16 @@ Use them like this:
 - `strata.NewEntityStorage[T](ctx.Container)` for persistent typed records
 - `ctx.Container.Keychain` for persistent secrets
 
-### 1. Create a Go module
+### 1. Create a starter project
+
+Fastest path:
+
+```bash
+strata new app my-strata-app
+cd my-strata-app
+```
+
+Manual path:
 
 ```bash
 mkdir my-strata-app
@@ -290,7 +308,16 @@ Inside tasks, prefer using the Strata container APIs instead of reaching directl
 
 Components are best when you want reusable typed functionality that can be shared across apps.
 
-### 1. Create a separate Go module for the component
+### 1. Create a starter project
+
+Fastest path:
+
+```bash
+strata new component my-component
+cd my-component
+```
+
+Manual path:
 
 ```bash
 mkdir my-component

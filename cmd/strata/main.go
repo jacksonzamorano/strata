@@ -7,7 +7,9 @@ import (
 var help string = `
 Strata CLI
 
-strata run [your_dir]
+strata run <your_dir> [--cli]
+strata new app <your_dir> [--module <module-path>]
+strata new component <your_dir> [--module <module-path>]
 `
 
 func showHelp() {
@@ -15,7 +17,12 @@ func showHelp() {
 }
 
 func main() {
-	args := ParseArgs()
+	args, err := ParseArgs()
+	if err != nil {
+		fmt.Printf("%s\n\n", err.Error())
+		showHelp()
+		return
+	}
 	if args == nil {
 		showHelp()
 		return
@@ -23,6 +30,8 @@ func main() {
 	switch args.command {
 	case "run":
 		RunApp(args)
+	case "new":
+		NewProject(args)
 	default:
 		showHelp()
 	}
