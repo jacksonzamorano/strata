@@ -2,6 +2,7 @@ package strata
 
 import (
 	"context"
+	"errors"
 	"runtime"
 	"time"
 
@@ -10,16 +11,20 @@ import (
 
 type TaskContext struct {
 	Container *Container
+	Logger    core.Logger
 
-	terminal core.Terminal
-	context  context.Context
+	terminal   core.Terminal
+	context    context.Context
+	components map[string]*ComponentIO
 }
 
-func BuildTaskContext(container *Container, ctx context.Context) *TaskContext {
+func BuildTaskContext(container *Container, logger core.Logger, cmps map[string]*ComponentIO, ctx context.Context) *TaskContext {
 	return &TaskContext{
-		Container: container,
-		terminal:  &NativeTerminal{},
-		context:   ctx,
+		Container:  container,
+		Logger:     logger,
+		components: cmps,
+		terminal:   &NativeTerminal{},
+		context:    ctx,
 	}
 }
 
@@ -48,4 +53,17 @@ func (c *TaskContext) RunInDirectory(maxTime time.Duration, wd, cmd string, args
 	ctx, cancel := context.WithTimeout(c.context, maxTime)
 	defer cancel()
 	return c.terminal.Execute(ctx, "", cmd, args...)
+}
+func (c *TaskContext) ExecuteFunction(cname, fname string, args any) ([]byte, error) {
+	if cmp, ok := c.components[cname]; ok {
+		res := cmp.Execute(fname, args)
+		if res == nil {
+			return nil, errors.New("Could not read response.")
+		}
+		if res.Success {
+			return res.Response, nil
+		}
+		return nil, errors.New(res.Error)
+	}
+	return nil, errors.New("Module not found.")
 }

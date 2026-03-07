@@ -49,7 +49,7 @@ func (hs *HostIO) Log(v string, args ...any) {
 	})
 }
 
-func (hs *HostIO) Container(namespace string) core.Logger {
+func (hs *HostIO) Logger(namespace string) core.Logger {
 	return &appHostContainerLogger{
 		service:   hs,
 		namespace: namespace,

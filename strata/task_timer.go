@@ -36,7 +36,7 @@ func NewTimedTask(duration time.Duration, handler func(*TaskContext)) Task {
 type HourSpecificTask struct {
 	hour    int
 	minute  int
-	handler func(*Container)
+	handler func(*TaskContext)
 }
 
 func (tt *HourSpecificTask) Attach(ctx *TaskAttachContext) {
@@ -48,7 +48,7 @@ func (tt *HourSpecificTask) Attach(ctx *TaskAttachContext) {
 			case <-timer:
 				now := time.Now()
 				if now.Minute() == tt.minute && now.Hour() == tt.hour && now.Day() != lastDay {
-					tt.handler(ctx.Container)
+					tt.handler(ctx.TaskContextGlobal())
 					lastDay = now.Day()
 				}
 			case <-ctx.Context.Done():
@@ -58,7 +58,7 @@ func (tt *HourSpecificTask) Attach(ctx *TaskAttachContext) {
 	}()
 }
 
-func NewTimeSpecificTask(hour int, minute int, handler func(*Container)) Task {
+func NewTimeSpecificTask(hour int, minute int, handler func(*TaskContext)) Task {
 	return NewTask(handler, &HourSpecificTask{
 		hour,
 		minute,

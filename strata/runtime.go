@@ -54,7 +54,7 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 		}
 
 		cnt := appState.buildContainer(ev.Payload.Name)
-		runner.Begin(cnt)
+		runner.Begin(cnt, appState.host.Logger(ev.Payload.Name))
 		appState.components[ev.Payload.Name] = runner
 
 		rdy, _ := componentipc.SendAndReceive[componentipc.ComponentMessageReady](
@@ -90,10 +90,13 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 	}
 
 	taskContainer := appState.buildContainer("tasks")
+	logger := appState.host.Logger("tasks")
 	taskContext := TaskAttachContext{
 		mux:          mux,
 		authorizaton: appState.persistence.Authorization,
 		triggers:     triggers,
+		components:   appState.components,
+		Logger:       logger,
 		Context:      runtimeContext,
 		Container:    taskContainer,
 	}

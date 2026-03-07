@@ -29,6 +29,7 @@ type ComponentIO struct {
 	cancel      context.CancelFunc
 	terminal    TerminalProvider
 	triggers    chan componentipc.ComponentMessageSendTrigger
+	logger      core.Logger
 }
 
 func RegisterComponent(dep *core.ComponentExecuteCommand) (*ComponentIO, error) {
@@ -72,9 +73,10 @@ func RegisterComponent(dep *core.ComponentExecuteCommand) (*ComponentIO, error) 
 	return runner, nil
 }
 
-func (cr *ComponentIO) Begin(cnt *Container) {
+func (cr *ComponentIO) Begin(cnt *Container, logger core.Logger) {
 	cr.container = cnt
 	cr.hostService = cnt.hostService.host
+	cr.logger = logger
 	cr.HandleAPIRequests()
 }
 
@@ -219,7 +221,7 @@ func (cr *ComponentIO) HandleAPIRequests() {
 				if ev.Error {
 					return
 				}
-				cr.container.Logger.Log("%s", ev.Payload.Message)
+				cr.logger.Log("%s", ev.Payload.Message)
 			case ev := <-trigger:
 				cr.triggers <- ev.Payload
 			case ev := <-executeCommandRequest:

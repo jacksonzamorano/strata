@@ -13,7 +13,7 @@ import (
 type RouteTask struct {
 	path    string
 	secured bool
-	handler func(*http.Request, *Container) *RouteResult
+	handler func(*http.Request, *TaskContext) *RouteResult
 }
 
 type RouteTaskNoInput struct{}
@@ -59,7 +59,7 @@ func newRouteTask[T any](secured bool, fn RouteTaskFunction[T]) Task {
 		&RouteTask{
 			path:    fmt.Sprintf("/tasks/%s", name),
 			secured: secured,
-			handler: func(req *http.Request, container *Container) *RouteResult {
+			handler: func(req *http.Request, container *TaskContext) *RouteResult {
 				body, err := io.ReadAll(req.Body)
 				if req.Body != http.NoBody && err != nil {
 					return RouteRequestInvalid("Could not read body.")
@@ -69,7 +69,7 @@ func newRouteTask[T any](secured bool, fn RouteTaskFunction[T]) Task {
 				json.Unmarshal(body, &input)
 				parseQuery(req.URL.Query(), req.Header, &input)
 
-				return fn(input, BuildTaskContext(container, req.Context()))
+				return fn(input, container)
 			},
 		},
 	)
@@ -90,7 +90,7 @@ func (tt *RouteTask) Attach(ctx *TaskAttachContext) {
 				if e, ok := err.(error); ok {
 					errorString = e.Error()
 				}
-				ctx.Container.Logger.Log("Task crashed with error %s", errorString)
+				ctx.Logger.Log("Task crashed with error %s", errorString)
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("Internal Server Error."))
 			}
@@ -103,7 +103,7 @@ func (tt *RouteTask) Attach(ctx *TaskAttachContext) {
 				return
 			}
 		}
-		res := tt.handler(r, ctx.Container)
+		res := tt.handler(r, ctx.TaskContext(r.Context()))
 		w.WriteHeader(int(res.status))
 		w.Write(res.response)
 	})

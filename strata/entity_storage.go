@@ -2,9 +2,20 @@ package strata
 
 import (
 	"encoding/json"
+	"reflect"
 
 	"github.com/jacksonzamorano/strata/core"
 )
+
+func NewEntityStorage[T any](c *Container) *ContainerEntityStorage[T] {
+	var zero T
+	t := reflect.TypeOf(zero)
+	return &ContainerEntityStorage[T]{
+		storage:   c.persistence.EntityStorage,
+		namespace: c.namespace,
+		kind:      t.String(),
+	}
+}
 
 type ContainerEntityStorage[T any] struct {
 	storage   core.EntityStorageProvider

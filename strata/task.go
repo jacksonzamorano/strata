@@ -13,17 +13,19 @@ import (
 type TaskAttachContext struct {
 	mux          *http.ServeMux
 	authorizaton core.AuthorizationProvider
+	components   map[string]*ComponentIO
 	triggers     *RuntimeTriggers
+	Logger       core.Logger
 	Container    *Container
 	Context      context.Context
 }
 
 func (tac *TaskAttachContext) TaskContextGlobal() *TaskContext {
-	return BuildTaskContext(tac.Container, tac.Context)
+	return BuildTaskContext(tac.Container, tac.Logger, tac.components, tac.Context)
 }
 
 func (tac *TaskAttachContext) TaskContext(ctx context.Context) *TaskContext {
-	return BuildTaskContext(tac.Container, ctx)
+	return BuildTaskContext(tac.Container, tac.Logger, tac.components, ctx)
 }
 
 func (tac *TaskAttachContext) HTTP(path string, handler http.HandlerFunc) {
