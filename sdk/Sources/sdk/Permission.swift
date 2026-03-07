@@ -1,9 +1,11 @@
-import Passport
 import Foundation
+import Passport
 
 @Enum
 enum PermissionAction: String {
-    case readFile
+    case readFile,
+        executeCommandLine,
+        launchUrl
 }
 
 @Model

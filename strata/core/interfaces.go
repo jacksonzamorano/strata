@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"time"
@@ -40,6 +41,16 @@ type PersistenceProvider struct {
 	KVStorage          KVStorageProvider
 	EntityStorage      EntityStorageProvider
 	TaskHistoryStorage TaskHistoryProvider
+}
+
+type TerminalResult struct {
+	Ok     bool
+	Error  string
+	Output string
+}
+
+type Terminal interface {
+	Execute(ctx context.Context, wd, cmd string, args ...string) TerminalResult
 }
 
 func isDatabaseEmpty(db *sql.DB) (bool, error) {

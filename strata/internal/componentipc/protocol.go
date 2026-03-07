@@ -79,3 +79,23 @@ type ComponentMessageRequestSecretAuthentication struct {
 type ComponentMessageCompleteSecretAuthentication struct {
 	Secret string `json:"secret"`
 }
+
+type ComponentMessageExecuteProgramRequest struct {
+	Program          string   `json:"program"`
+	Arguments        []string `json:"arguments"`
+	WorkingDirectory string   `json:"working_directory"`
+}
+
+type ComponentMessageExecuteProgramResponse struct {
+	Ok     bool   `json:"ok"`
+	Error  string `json:"error"`
+	Output string `json:"output"`
+}
+
+type ComponentMessageLaunchUrlRequest struct {
+	Url string `json:"url"`
+}
+
+type ComponentMessageLaunchUrlResponse struct {
+	Completed bool `json:"completed"`
+}

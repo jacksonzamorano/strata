@@ -106,7 +106,7 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
-		port = "10101"
+		port = "7700"
 	}
 	ns := os.Getenv("ADDRESS")
 

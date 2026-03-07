@@ -12,6 +12,7 @@ type Container struct {
 	Storage  core.Storage
 	Logger   core.Logger
 	Keychain core.Keychain
+	Terminal TerminalProvider
 
 	permissions map[string]bool
 	persistence core.PersistenceProvider
@@ -53,6 +54,7 @@ func (as *AppState) buildContainer(namespace string) *Container {
 		Storage:     as.persistence.Storage.Container(namespace),
 		Logger:      as.host.Container(namespace),
 		Keychain:    keychain.PlatformKeychain.Container(namespace),
+		Terminal:    TerminalProvider{&NativeTerminal{}},
 		permissions: map[string]bool{},
 		persistence: as.persistence,
 		components:  as.components,

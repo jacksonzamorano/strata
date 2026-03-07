@@ -3,6 +3,9 @@ package strata
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
+	"time"
 
 	"github.com/jacksonzamorano/strata/component"
 	"github.com/jacksonzamorano/strata/core"
@@ -24,6 +27,7 @@ type ComponentIO struct {
 	path        string
 	context     context.Context
 	cancel      context.CancelFunc
+	terminal    TerminalProvider
 	triggers    chan componentipc.ComponentMessageSendTrigger
 }
 
@@ -62,6 +66,7 @@ func RegisterComponent(dep *core.ComponentExecuteCommand) (*ComponentIO, error) 
 		context:   ctx,
 		cancel:    cancel,
 		triggers:  make(chan componentipc.ComponentMessageSendTrigger, 64),
+		terminal:  TerminalProvider{terminal: &NativeTerminal{}},
 	}
 
 	return runner, nil
@@ -125,6 +130,49 @@ func (cr *ComponentIO) requestOauthAuth(ev componentipc.ReceivedEvent[componenti
 	)
 }
 
+func (cr *ComponentIO) executeCommandRequest(ev componentipc.ReceivedEvent[componentipc.ComponentMessageExecuteProgramRequest]) {
+	pm := fmt.Sprintf("%s %s", ev.Payload.Program, strings.Join(ev.Payload.Arguments, " "))
+	if !cr.container.HasPermission(core.PermissionActionExecuteCommandLine, pm) {
+		ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramResponse, componentipc.ComponentMessageExecuteProgramResponse{
+			Error: "Permission denied.",
+			Ok:    false,
+		})
+		return
+	}
+
+	result := cr.terminal.RunInDirectory(
+		time.Minute*2,
+		ev.Payload.WorkingDirectory,
+		ev.Payload.Program,
+		ev.Payload.Arguments...,
+	)
+	if result.Ok {
+		ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramResponse, componentipc.ComponentMessageExecuteProgramResponse{
+			Output: result.Output,
+			Ok:     true,
+		})
+	} else {
+		ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramResponse, componentipc.ComponentMessageExecuteProgramResponse{
+			Error: result.Error + ": " + result.Output,
+			Ok:    false,
+		})
+	}
+}
+
+func (cr *ComponentIO) launchUrlRequest(ev componentipc.ReceivedEvent[componentipc.ComponentMessageLaunchUrlRequest]) {
+	if !cr.container.HasPermission(core.PermissionActionLaunchUrl, ev.Payload.Url) {
+		ev.Thread.Send(componentipc.ComponentMessageTypeLaunchUrlResponse, componentipc.ComponentMessageLaunchUrlResponse{
+			Completed: false,
+		})
+		return
+	}
+
+	res := cr.terminal.OpenUrl(ev.Payload.Url)
+	ev.Thread.Send(componentipc.ComponentMessageTypeLaunchUrlResponse, componentipc.ComponentMessageLaunchUrlResponse{
+		Completed: res,
+	})
+}
+
 func (cr *ComponentIO) HandleAPIRequests() {
 	go func() {
 		getVal := componentipc.Receive[componentipc.ComponentMessageGetValueRequest](cr.transport, componentipc.ComponentMessageTypeGetValueRequest)
@@ -135,6 +183,8 @@ func (cr *ComponentIO) HandleAPIRequests() {
 		trigger := componentipc.Receive[componentipc.ComponentMessageSendTrigger](cr.transport, componentipc.ComponentMessageTypeSendTrigger)
 		secretRequest := componentipc.Receive[componentipc.ComponentMessageRequestSecretAuthentication](cr.transport, componentipc.ComponentMessageTypeRequestSecretAuthentication)
 		oauthRequest := componentipc.Receive[componentipc.ComponentMessageRequestOauthAuthentication](cr.transport, componentipc.ComponentMessageTypeRequestOauthAuthentication)
+		executeCommandRequest := componentipc.Receive[componentipc.ComponentMessageExecuteProgramRequest](cr.transport, componentipc.ComponentMessageTypeExecuteProgramRequest)
+		launchUrlRequest := componentipc.Receive[componentipc.ComponentMessageLaunchUrlRequest](cr.transport, componentipc.ComponentMessageTypeLaunchUrlRequest)
 		for {
 			select {
 			case ev := <-getVal:
@@ -172,6 +222,10 @@ func (cr *ComponentIO) HandleAPIRequests() {
 				cr.container.Logger.Log("%s", ev.Payload.Message)
 			case ev := <-trigger:
 				cr.triggers <- ev.Payload
+			case ev := <-executeCommandRequest:
+				go cr.executeCommandRequest(ev)
+			case ev := <-launchUrlRequest:
+				go cr.launchUrlRequest(ev)
 			case <-cr.context.Done():
 				return
 			}
