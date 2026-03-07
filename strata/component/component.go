@@ -97,7 +97,8 @@ type ComponentBindable interface {
 type ComponentBindableFn[I any, O any] = func(input *ComponentInput[I, O], ctx *ComponentContainer) *ComponentReturn[O]
 
 type ComponentDefinition[I any, O any] struct {
-	Name string
+	componentName string
+	functionName  string
 }
 type ComponentMount[I any, O any] struct {
 	Definition *ComponentDefinition[I, O]
@@ -105,7 +106,7 @@ type ComponentMount[I any, O any] struct {
 }
 
 func (m *ComponentMount[I, O]) getName() string {
-	return m.Definition.Name
+	return m.Definition.functionName
 }
 func (m *ComponentMount[I, O]) Execute(args []byte, ctx *ComponentContainer) *ComponentResultPayload {
 	defer func() {
@@ -160,9 +161,10 @@ func (c *ComponentInput[I, O]) Error(msg string) *ComponentReturn[O] {
 	}
 }
 
-func Define[I any, O any](name string) *ComponentDefinition[I, O] {
+func Define[I any, O any](manifest core.ComponentManifest, name string) *ComponentDefinition[I, O] {
 	return &ComponentDefinition[I, O]{
-		Name: name,
+		componentName: manifest.Name,
+		functionName:  name,
 	}
 }
 
@@ -179,9 +181,9 @@ type ComponentReturn[O any] struct {
 	Succeeded bool
 }
 
-func (c *ComponentDefinition[I, O]) Execute(m core.ComponentManifest, mod core.ForeignComponent, input I) (O, bool) {
+func (c *ComponentDefinition[I, O]) Execute(mod core.ForeignComponent, input I) (O, bool) {
 	var output O
-	dec, err := mod.ExecuteFunction(m.Name, c.Name, input)
+	dec, err := mod.ExecuteFunction(c.componentName, c.functionName, input)
 	if err != nil {
 		return output, false
 	}

@@ -7,12 +7,14 @@ import (
 )
 
 type ComponentTrigger[T any] struct {
-	Name string
+	ComponentName string
+	TriggerName   string
 }
 
-func NewComponentTrigger[T any](name string) ComponentTrigger[T] {
+func NewComponentTrigger[T any](m ComponentManifest, name string) ComponentTrigger[T] {
 	return ComponentTrigger[T]{
-		Name: name,
+		ComponentName: name,
+		TriggerName:   m.Name,
 	}
 }
 
@@ -21,7 +23,7 @@ func (c *ComponentTrigger[T]) Send(cc *ComponentContainer, payload T) {
 	cc.channel.Send(
 		componentipc.ComponentMessageTypeSendTrigger,
 		componentipc.ComponentMessageSendTrigger{
-			Name:    c.Name,
+			Name:    c.ComponentName,
 			Payload: enc,
 		},
 	)

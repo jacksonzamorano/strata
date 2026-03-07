@@ -6,7 +6,7 @@ import (
 	"path"
 	"time"
 
-	cex "github.com/jacksonzamorano/componentexample/definitions"
+	example "github.com/jacksonzamorano/componentexample/definitions"
 	"github.com/jacksonzamorano/strata"
 )
 
@@ -16,7 +16,7 @@ type SayHelloData struct {
 type SayHelloResponse struct {
 	Name          string
 	OldName       string
-	ComponentData cex.SayResponse
+	ComponentData example.SayResponse
 	Counter       int
 }
 
@@ -39,7 +39,7 @@ func sayHello(data SayHelloData, container *strata.Container) *strata.RouteResul
 		CountAtTime: count,
 	})
 
-	msg, _ := cex.SayFeature.Execute(cex.Manifest, container, cex.SayRequest{
+	msg, _ := example.SayFeature.Execute(container, example.SayRequest{
 		Name: data.Name,
 	})
 
@@ -61,12 +61,12 @@ func getVisitorLog(data strata.RouteTaskNoInput, container *strata.Container) *s
 func reset(data strata.RouteTaskNoInput, container *strata.Container) *strata.RouteResult {
 	container.Storage.SetInt("count", 0)
 	container.Storage.SetString("username", "")
-	cex.Reset.Execute(cex.Manifest, container, cex.EmptyRequest{})
+	example.Reset.Execute(container, example.EmptyRequest{})
 	return strata.RouteResultSuccess("Reset.")
 }
 
 func getSecret(data strata.RouteTaskNoInput, container *strata.Container) *strata.RouteResult {
-	res, ok := cex.GetSecret.Execute(cex.Manifest, container, cex.EmptyRequest{})
+	res, ok := example.GetSecret.Execute(container, example.EmptyRequest{})
 	return strata.RouteResultSuccess(fmt.Sprintf("%s: %v", res, ok))
 }
 
@@ -74,7 +74,7 @@ func testTime(container *strata.Container) {
 	container.Logger.LogLiteral("Timer hit!")
 }
 
-func testTrigger(data cex.TriggerTest, container *strata.Container) {
+func testTrigger(data example.TriggerTest, container *strata.Container) {
 	container.Logger.Log("Got '%s'", data.Time.String())
 }
 
@@ -86,7 +86,7 @@ func main() {
 		strata.NewRouteTask(reset),
 		strata.NewPublicRouteTask(getSecret),
 		strata.NewTimedTask(2*time.Minute, testTime),
-		strata.NewTriggerTask(cex.Manifest, cex.TestTrigger, testTrigger),
+		strata.NewTriggerTask(example.TestTrigger, testTrigger),
 	}, strata.Import(
 		// strata.Binary("component-example"),
 		strata.ImportLocal(path.Join(path.Dir(cd), "component-example")),

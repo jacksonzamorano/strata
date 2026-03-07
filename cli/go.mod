@@ -1,4 +1,4 @@
-module github.com/jacksonzamorano/strata/cli
+module github.com/jacksonzamorano/strata/strata-cli
 
 go 1.26.0
 

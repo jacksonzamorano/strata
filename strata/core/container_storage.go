@@ -78,3 +78,7 @@ func (cs *ContainerStorage) GetDate(key string) time.Time {
 	}
 	return pVal
 }
+
+func (cs *ContainerStorage) SetDate(key string, value time.Time) error {
+	return cs.setValue(key, value.Format(time.RFC3339))
+}

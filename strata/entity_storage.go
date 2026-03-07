@@ -43,7 +43,7 @@ func (s *ContainerEntityStorage[T]) Find(filter FilterFn[T]) []T {
 		if err != nil {
 			continue
 		}
-		if filter != nil && filter(newVal) {
+		if filter == nil || filter(newVal) {
 			newEntities = append(newEntities, newVal)
 		}
 	}

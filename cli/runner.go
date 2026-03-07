@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os/exec"
 	"path"
@@ -13,7 +14,16 @@ import (
 func RunApp(args *AppArgs) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	cmd := exec.CommandContext(ctx, "go", "run", ".")
+	build := exec.CommandContext(ctx, "go", "build", "-o", "strata-app", ".")
+	if len(args.directory) > 0 {
+		build.Dir = path.Clean(args.directory)
+	}
+	v, err := build.CombinedOutput()
+	if err != nil {
+		fmt.Printf("Could not build application:\n%s", v)
+	}
+
+	cmd := exec.CommandContext(ctx, "./strata-app")
 	if len(args.directory) > 0 {
 		cmd.Dir = path.Clean(args.directory)
 	}

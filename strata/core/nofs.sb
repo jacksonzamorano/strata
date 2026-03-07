@@ -15,6 +15,17 @@
 
 ;; Allow networking (client + server). This does NOT imply filesystem access.
 (allow network*)
+;; DNS config files
+(allow file-read* (literal "/etc/resolv.conf"))
+(allow file-read* (literal "/etc/hosts"))
+(allow file-read* (literal "/private/etc/hosts"))
+(allow file-read* (literal "/private/etc/resolv.conf"))
+(allow file-read* (literal "/private/var/run/resolv.conf"))
+(allow system-socket)
+
+;; mDNSResponder socket (the actual DNS lookup mechanism on macOS)
+(allow network-outbound
+  (remote unix-socket (path "/private/var/run/mDNSResponder")))
 
 (allow file-read* (literal "/"))
 (allow file-read* (subpath "/usr/lib"))
@@ -22,3 +33,27 @@
 (allow file-read* (subpath "/Library"))
 (allow file-read* (literal "/dev/null"))
 (allow file-write* (literal "/dev/null"))
+;; Allow stat() on parent directories
+(allow file-read-metadata (literal "/var"))
+(allow file-read-metadata (literal "/etc"))
+(allow file-read-metadata (literal "/private/var"))
+(allow file-read-metadata (literal "/private/etc"))
+
+;; Cryptexes - macOS 13+ puts system dylibs here, needed for dynamic linking
+(allow file-read-metadata (subpath "/System/Cryptexes"))
+(allow file-read* (subpath "/System/Cryptexes"))
+
+;; Mach services - probably non-critical for DNS but will silence the noise
+(allow mach-lookup (global-name "com.apple.logd"))
+(allow mach-lookup (global-name "com.apple.diagnosticd"))
+(allow mach-lookup (global-name "com.apple.system.notification_center"))
+;; Trust daemon - handles cert validation on macOS
+(allow mach-lookup (global-name "com.apple.trustd"))
+(allow mach-lookup (global-name "com.apple.trustd.agent"))
+
+;; Certificate/keychain paths
+(allow file-read* (subpath "/private/var/db/DetachedSignatures"))
+(allow file-read* (literal "/private/var/db/SystemTrustStore"))
+(allow file-read* (subpath "/System/Library/Security"))
+(allow file-read* (subpath "/Library/Keychains"))
+(allow file-read* (subpath "/private/var/db/mds"))

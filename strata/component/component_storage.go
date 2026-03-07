@@ -81,3 +81,8 @@ func (c *ComponentStorage) GetDate(k string) time.Time {
 	}
 	return t
 }
+
+func (c *ComponentStorage) SetDate(key string, value time.Time) error {
+	c.setValue(key, value.Format(time.RFC3339))
+	return nil
+}

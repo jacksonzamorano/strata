@@ -25,7 +25,7 @@ type TriggerTest struct {
 	Time time.Time `json:"time"`
 }
 
-var SayFeature = component.Define[SayRequest, SayResponse]("say")
-var Reset = component.Define[EmptyRequest, string]("reset")
-var GetSecret = component.Define[EmptyRequest, string]("get-secret")
-var TestTrigger = component.NewComponentTrigger[TriggerTest]("test")
+var SayFeature = component.Define[SayRequest, SayResponse](Manifest, "say")
+var Reset = component.Define[EmptyRequest, string](Manifest, "reset")
+var GetSecret = component.Define[EmptyRequest, string](Manifest, "get-secret")
+var TestTrigger = component.NewComponentTrigger[TriggerTest](Manifest, "test")

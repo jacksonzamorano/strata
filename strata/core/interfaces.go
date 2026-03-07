@@ -18,6 +18,7 @@ type Storage interface {
 	GetFloat(key string) float64
 	GetBool(key string) bool
 	GetDate(key string) time.Time
+	SetDate(key string, value time.Time) error
 }
 
 type StorageProvider interface {

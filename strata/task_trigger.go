@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/jacksonzamorano/strata/component"
-	"github.com/jacksonzamorano/strata/core"
 )
 
 type TriggeredTask struct {
@@ -15,10 +14,10 @@ type TriggeredTask struct {
 
 type TriggerTaskFn[T any] = func(input T, container *Container)
 
-func NewTriggerTask[T any](m core.ComponentManifest, trigger component.ComponentTrigger[T], fn TriggerTaskFn[T]) Task {
+func NewTriggerTask[T any](trigger component.ComponentTrigger[T], fn TriggerTaskFn[T]) Task {
 	return NewTask(fn, &TriggeredTask{
-		namespace: m.Name,
-		trigger:   trigger.Name,
+		namespace: trigger.ComponentName,
+		trigger:   trigger.TriggerName,
 		execute: func(b []byte, container *Container) {
 			var input T
 			json.Unmarshal(b, &input)

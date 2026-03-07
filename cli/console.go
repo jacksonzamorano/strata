@@ -41,7 +41,7 @@ func (ch *ConsoleHost) TaskRegistered(ev hostio.ReceivedEvent[hostio.HostMessage
 }
 
 func (ch *ConsoleHost) ComponentRegistered(ev hostio.ReceivedEvent[hostio.HostMessageComponentRegistered]) {
-	if ev.Error {
+	if ev.Payload.Error != nil {
 		ch.lines <- fmt.Sprintf("Error while registering component '%s': '%s'", ev.Payload.Name, *ev.Payload.Error)
 		return
 	}

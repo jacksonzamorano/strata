@@ -29,21 +29,6 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 	triggers := &RuntimeTriggers{}
 	runtimeContext, runtimeCancel := context.WithCancel(context.Background())
 
-	taskContainer := appState.buildContainer("tasks")
-	taskContext := TaskAttachContext{
-		mux:          mux,
-		authorizaton: appState.persistence.Authorization,
-		triggers:     triggers,
-		Context:      runtimeContext,
-		Container:    taskContainer,
-	}
-	for idx := range tasks {
-		tasks[idx].Implementation.Attach(&taskContext)
-		appState.host.Emit(hostio.HostMessageTypeTaskRegistered, hostio.EventTaskRegisterPayload{
-			Name: tasks[idx].Name,
-		})
-	}
-
 	for idx := range deps {
 		cmd, err := deps[idx].Setup()
 		if err != nil {
@@ -59,7 +44,7 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 			continue
 		}
 
-		ev := componentipc.ReceiveOnce[componentipc.ComponentMessageHello](runner.transport, 5*time.Second, componentipc.ComponentMessageTypeHello)
+		ev := componentipc.ReceiveOnce[componentipc.ComponentMessageHello](runner.transport, 10*time.Second, componentipc.ComponentMessageTypeHello)
 		if ev.Error {
 			appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
 				Suceeded: false,
@@ -105,9 +90,24 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 		}
 	}
 
+	taskContainer := appState.buildContainer("tasks")
+	taskContext := TaskAttachContext{
+		mux:          mux,
+		authorizaton: appState.persistence.Authorization,
+		triggers:     triggers,
+		Context:      runtimeContext,
+		Container:    taskContainer,
+	}
+	for idx := range tasks {
+		tasks[idx].Implementation.Attach(&taskContext)
+		appState.host.Emit(hostio.HostMessageTypeTaskRegistered, hostio.EventTaskRegisterPayload{
+			Name: tasks[idx].Name,
+		})
+	}
+
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
-		port = "8080"
+		port = "10101"
 	}
 	ns := os.Getenv("ADDRESS")
 
