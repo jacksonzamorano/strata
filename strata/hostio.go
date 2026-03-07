@@ -102,7 +102,7 @@ func (hs *HostIO) listenForHostMessages() {
 	getAuthorizationsList := hostio.Receive[hostio.HostMessageGetAuthorizationsList](hs.host, hostio.HostMessageTypeGetAuthorizationsList)
 	createAuthorization := hostio.Receive[hostio.HostMessageCreateAuthorization](hs.host, hostio.HostMessageTypeCreateAuthorization)
 
-	hostio.SendAndReceive[any](hs.host.NewThread(), hostio.HostMessageTypeHello, struct{}{}, hostio.HostMessageTypeHello)
+	hostio.SendAndReceive[any](hs.host.NewThread(), hostio.HostMessageTypeInitialize, struct{}{}, hostio.HostMessageTypeInitialize)
 
 	go func() {
 		for {

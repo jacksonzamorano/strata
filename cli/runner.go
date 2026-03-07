@@ -13,6 +13,7 @@ import (
 
 func RunApp(args *AppArgs) {
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	build := exec.CommandContext(ctx, "go", "build", "-o", "strata-app", ".")
 	if len(args.directory) > 0 {
@@ -21,6 +22,7 @@ func RunApp(args *AppArgs) {
 	v, err := build.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Could not build application:\n%s", v)
+		return
 	}
 
 	cmd := exec.CommandContext(ctx, "./strata-app")
@@ -54,8 +56,9 @@ func RunApp(args *AppArgs) {
 	}
 
 	app := hostio.NewIO(ctx, cancel, out, in)
-	rdy := hostio.ReceiveOnce[any](app, time.Second*5, hostio.HostMessageTypeHello)
+	rdy := hostio.ReceiveOnce[any](app, time.Second*2, hostio.HostMessageTypeInitialize)
 	if rdy.Error {
+		fmt.Printf("Client application did not attach. Is it a Strata application?\nTip: Make sure you call NewRuntime(...).Start() in your main function.\n")
 		return
 	}
 	HandleHost(ctx, host, app, rdy.Thread)
@@ -74,7 +77,7 @@ func HandleHost(ctx context.Context, h Host, io *hostio.IO, t *hostio.Thread) {
 	secretRequested := hostio.Receive[hostio.HostMessageRequestSecret](io, hostio.HostMessageTypeRequestSecret)
 	oauthRequested := hostio.Receive[hostio.HostMessageRequestOauth](io, hostio.HostMessageTypeRequestOauth)
 
-	t.Send(hostio.HostMessageTypeHello, struct{}{})
+	t.Send(hostio.HostMessageTypeInitialize, struct{}{})
 
 	io.Send(hostio.HostMessageTypeGetAuthorizationsList, hostio.HostMessageGetAuthorizationsList{})
 

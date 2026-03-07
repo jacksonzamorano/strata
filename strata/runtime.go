@@ -35,12 +35,10 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 			appState.host.Log("Failed to register component at index %d: '%s'", idx, err.Error())
 			continue
 		}
-		name := cmd.CanonicalName
-		cnt := appState.buildContainer(cmd.CanonicalName)
 
-		runner, err := RegisterComponent(cmd, cnt)
+		runner, err := RegisterComponent(cmd)
 		if err != nil {
-			appState.host.Log("Failed to register component '%s': '%s'", name, err.Error())
+			appState.host.Log("Failed to register component '%s': '%s'", cmd.CanonicalName, err.Error())
 			continue
 		}
 
@@ -48,15 +46,16 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 		if ev.Error {
 			appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
 				Suceeded: false,
-				Name:     name,
+				Name:     cmd.CanonicalName,
 				Path:     runner.path,
 				Error:    new("Component didn't connect."),
 			})
 			continue
 		}
-		hello := ev.Payload
-		name = hello.Name
-		appState.components[name] = runner
+
+		cnt := appState.buildContainer(ev.Payload.Name)
+		runner.Begin(cnt)
+		appState.components[ev.Payload.Name] = runner
 
 		rdy, _ := componentipc.SendAndReceive[componentipc.ComponentMessageReady](
 			ev.Thread,
@@ -69,22 +68,22 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 			errMsgPtr = &rdy.Error
 		}
 		if errMsgPtr == nil {
-			appState.components[name].available = true
+			appState.components[ev.Payload.Name].available = true
 			go func() {
-				for trigger := range appState.components[name].triggers {
-					triggers.Execute(name, &trigger, appState)
+				for trigger := range appState.components[ev.Payload.Name].triggers {
+					triggers.Execute(ev.Payload.Name, &trigger, appState)
 				}
 			}()
 			appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
 				Suceeded: true,
-				Name:     hello.Name,
-				Version:  hello.Version,
+				Name:     ev.Payload.Name,
+				Version:  ev.Payload.Version,
 				Path:     runner.path,
 			})
 		} else {
 			appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
 				Suceeded: false,
-				Name:     name,
+				Name:     ev.Payload.Name,
 				Error:    errMsgPtr,
 			})
 		}

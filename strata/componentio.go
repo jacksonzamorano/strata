@@ -27,7 +27,7 @@ type ComponentIO struct {
 	triggers    chan componentipc.ComponentMessageSendTrigger
 }
 
-func RegisterComponent(dep *core.ComponentExecuteCommand, container *Container) (*ComponentIO, error) {
+func RegisterComponent(dep *core.ComponentExecuteCommand) (*ComponentIO, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cmd, err := core.PlatformSandboxProvider().Execute(ctx, dep)
@@ -56,19 +56,21 @@ func RegisterComponent(dep *core.ComponentExecuteCommand, container *Container) 
 	}
 
 	runner := &ComponentIO{
-		transport:   transport,
-		hostService: container.hostService.host,
-		container:   container,
-		available:   false,
-		path:        dep.CanonicalName,
-		context:     ctx,
-		cancel:      cancel,
-		triggers:    make(chan componentipc.ComponentMessageSendTrigger, 64),
+		transport: transport,
+		available: false,
+		path:      dep.CanonicalName,
+		context:   ctx,
+		cancel:    cancel,
+		triggers:  make(chan componentipc.ComponentMessageSendTrigger, 64),
 	}
 
-	runner.HandleAPIRequests()
-
 	return runner, nil
+}
+
+func (cr *ComponentIO) Begin(cnt *Container) {
+	cr.container = cnt
+	cr.hostService = cnt.hostService.host
+	cr.HandleAPIRequests()
 }
 
 func (cr *ComponentIO) Execute(fname string, args any) *component.ComponentResultPayload {

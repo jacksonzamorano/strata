@@ -2,26 +2,38 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/jacksonzamorano/strata/hostio"
 )
 
+type consoleEvent struct {
+	stamp time.Time
+	log   string
+}
+
+func log(v string, args ...any) consoleEvent {
+	return consoleEvent{
+		stamp: time.Now(),
+		log:   fmt.Sprintf(v, args...),
+	}
+}
+
 type ConsoleHost struct {
-	lines        chan string
+	lines        chan consoleEvent
 	outputLocked sync.RWMutex
 }
 
 func NewConsoleHost() *ConsoleHost {
 	ch := &ConsoleHost{
-		lines: make(chan string, 128),
+		lines: make(chan consoleEvent, 128),
 	}
 	go func() {
 		for l := range ch.lines {
 			ch.outputLocked.RLock()
-			log.Print(l)
+			fmt.Printf("(%s) %s\n", l.stamp.Format("2006-01-02 15:04:05.000"), l.log)
 			ch.outputLocked.RUnlock()
 		}
 	}()
@@ -33,29 +45,29 @@ func (ch *ConsoleHost) Log(ev hostio.ReceivedEvent[hostio.HostMessageLogEvent]) 
 	if len(ev.Payload.Namespace) > 0 {
 		ns = ev.Payload.Namespace
 	}
-	ch.lines <- fmt.Sprintf("[%s]: %s", ns, ev.Payload.Message)
+	ch.lines <- log("[%s]: %s", ns, ev.Payload.Message)
 }
 
 func (ch *ConsoleHost) TaskRegistered(ev hostio.ReceivedEvent[hostio.HostMessageTaskRegistered]) {
-	ch.lines <- fmt.Sprintf("Registered task '%s'", ev.Payload.Name)
+	ch.lines <- log("Registered task '%s'", ev.Payload.Name)
 }
 
 func (ch *ConsoleHost) ComponentRegistered(ev hostio.ReceivedEvent[hostio.HostMessageComponentRegistered]) {
 	if ev.Payload.Error != nil {
-		ch.lines <- fmt.Sprintf("Error while registering component '%s': '%s'", ev.Payload.Name, *ev.Payload.Error)
+		ch.lines <- log("Error while registering component '%s': '%s'", ev.Payload.Name, *ev.Payload.Error)
 		return
 	}
-	ch.lines <- fmt.Sprintf("Registered component '%s' version '%s'", ev.Payload.Name, ev.Payload.Version)
+	ch.lines <- log("Registered component '%s' version '%s'", ev.Payload.Name, ev.Payload.Version)
 }
 
 func (ch *ConsoleHost) TaskTriggered(ev hostio.ReceivedEvent[hostio.HostMessageTaskTriggered]) {
-	ch.lines <- fmt.Sprintf("Triggered task '%s'.", ev.Payload.Name)
+	ch.lines <- log("Triggered task '%s'.", ev.Payload.Name)
 }
 
 func (ch *ConsoleHost) AuthorizationsUpdated(ev hostio.ReceivedEvent[hostio.HostMessageAuthorizationsList]) {
 	for r := range ev.Payload.Authorizations {
 		a := ev.Payload.Authorizations[r]
-		ch.lines <- fmt.Sprintf("Authorization: '%s' = '%s'", *a.Nickname, a.Secret)
+		ch.lines <- log("Authorization: '%s' = '%s'", *a.Nickname, a.Secret)
 	}
 }
 
@@ -68,9 +80,9 @@ func (ch *ConsoleHost) PermissionRequested(ev hostio.ReceivedEvent[hostio.HostMe
 	input = strings.TrimSpace(input)
 	appr := input == "y"
 	if appr {
-		ch.lines <- "Approved."
+		ch.lines <- log("Approved '%s' to use '%s'.", ev.Payload.Permission.Container, ev.Payload.Permission.Action)
 	} else {
-		ch.lines <- "Denied."
+		ch.lines <- log("Denied '%s' to use '%s.", ev.Payload.Permission.Container, ev.Payload.Permission.Action)
 	}
 	return appr
 }
