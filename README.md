@@ -1,84 +1,404 @@
-# Strata
+<p align="center">
+  <img src="assets/Mark Round@250w.png" alt="Strata logo" width="120">
+</p>
 
-Strata is a Go library intended to be a foundation for personal automation. You write task functions; Strata handles the platform concerns around running them.
+<h1 align="center">Strata</h1>
 
-## Goals
+<p align="center">
+  Build personal automation apps in Go with typed tasks, reusable components, and a CLI-first runtime.
+</p>
 
-Strata is designed to make personal automation easy to ship as Go code without forcing every adopter to rebuild infrastructure. The primary goal is to keep task authoring simple so users can define typed Go functions and focus on automation logic while Strata handles HTTP handling, authentication, routing, storage and secret access, and component lifecycle management. Another goal is extensibility, which is why components are built around typed contracts that can be reused across projects.
+<p align="center">
+  Strata handles routing, auth, storage, secrets, task history, and component lifecycle so your app code can stay focused on automation logic.
+</p>
 
-## Status
+## Project Status
 
-The core Strata runtime is implemented in `strata/`, with a runnable task example in `strata-example/`, a runnable component example in `component-example/`, and a reference external host in `cli/`. Hosts are now external binaries: the runtime communicates with hosts over a typed IPC protocol on stdin/stdout (`strata/hostio`). Components run as subprocesses through the platform sandbox provider (`sandbox-exec` on macOS, privileged execution on other platforms today).
+Strata is usable today for building and running local automation projects, but it is still early and the APIs are still settling.
 
-## Architecture
+What is implemented now:
 
-Strata is organized around four layers: host interfaces, the Strata server runtime, user-authored tasks, and optional third-party components. The host is the management interface for the system. The server runtime registers and executes tasks, manages lifecycle and persistence concerns, and emits events to hosts. User tasks are application logic authored by adopters in their own Go binary. Components are separate subprocesses that integrate through Strata’s component APIs and IPC protocol.
+- The core runtime in `strata/`
+- An external host boundary over stdin/stdout via `strata/hostio`
+- A working CLI host in `cli/`
+- Typed HTTP task registration
+- SQLite-backed storage, task history, and authorization records
+- Keychain-backed secret storage
+- Typed out-of-process components
+- Timed tasks and component-triggered tasks
+
+What is still evolving:
+
+- The host experience beyond the CLI
+- Permission and capability management UX
+- Sandboxing on non-macOS platforms
+- Long-term API polish for adopters building apps and components
+
+Today, the CLI host is the primary way to run a Strata project.
+
+## How Strata Is Organized
+
+Strata is built around four layers:
+
+1. Host
+2. Server runtime
+3. User tasks
+4. Optional components
 
 ### Host
 
-Hosts are the operational interface for Strata and now run outside the runtime process. A host and app communicate over stdin/stdout using the `hostio` protocol. The repository currently includes a CLI host (`cli/`) as the reference implementation, and additional host surfaces (for example native UI hosts) can be built as separate binaries using the same protocol.
+The host is the management surface for a Strata app. Hosts run as separate binaries and communicate with the app over stdin/stdout using the typed `hostio` protocol.
 
-### Server (Strata runtime)
+This repository currently ships one host: the CLI in `cli/`. It is the default and recommended way to run projects right now. The CLI is responsible for:
 
-The server runtime registers task routes under `/tasks/{taskName}` and accepts all HTTP methods for those routes. For each request, it builds a `Container`, executes the target task, serializes the response, and records task history. It emits host messages for logs, task registration, component registration, task execution, and permission requests. It also handles host messages for authorization listing/creation and permission approvals. On a fresh database, the runtime initializes persistence and creates an initial authorization token.
+- Building and launching your app binary
+- Receiving runtime logs and registration events
+- Showing authorization tokens
+- Prompting for permission approvals
+- Handling secret and OAuth prompts from components
+
+### Server Runtime
+
+The Strata runtime lives in `strata/`. It:
+
+- Registers HTTP task routes under `/tasks/{taskName}`
+- Decodes request input and serializes responses
+- Verifies auth for protected tasks
+- Stores task history and app data
+- Launches and manages components
+- Emits host events for logs, registration, triggers, and permission requests
 
 ### User Tasks
 
-Tasks are authored in the adopter’s Go binary and registered with Strata by wrapping functions with `strata.UseTask` for authenticated routes or `strata.UsePublicTask` for public routes. Each task receives a `Container` that provides helper access to namespaced storage, keychain operations, logging, and component invocation.
+Your application code lives in your own Go binary. You register task functions with:
+
+- `strata.NewRouteTask(fn)` for authenticated tasks
+- `strata.NewPublicRouteTask(fn)` for public tasks
+- `strata.NewTimedTask(...)` for timers
+- `strata.NewTriggerTask(...)` for component-driven triggers
+
+Tasks receive a `*strata.TaskContext`, which gives access to a `Container` for storage, keychain access, logging, permissions, and component calls.
 
 ### Components
 
-Components are third-party binaries launched by Strata as subprocesses and connected through an IPC protocol over stdin and stdout. The recommended pattern is to place typed component function definitions in a shared package, implement handlers in the component `main`, and let callers import definitions so component calls stay type-safe.
+Components are optional third-party subprocesses that Strata launches alongside your app. They communicate with the runtime over the component IPC protocol and are meant for reusable integrations or isolated automation capabilities.
 
-## Getting Started
+The intended pattern is:
 
-### Prerequisites
+- Put typed component definitions in a shared package
+- Implement component handlers in the component's `main`
+- Import those definitions from your app so component calls stay typed
 
-This repository currently targets Go `1.26.0`, which matches the `go.mod` files in the included modules. The project includes darwin and non-darwin keychain paths in code.
+## The CLI Workflow
 
-### Run the example app
+The CLI host is the main entrypoint for running Strata apps today.
 
-From the repository root, run:
+From the repo's `cli/` directory:
+
+```bash
+go run . run ../strata-example --cli
+```
+
+What that does:
+
+- Builds the app in `../strata-example`
+- Launches it as a child process
+- Connects the CLI host to the app over stdin/stdout
+- Prints logs, registered tasks, registered components, and auth tokens
+- Prompts when the app or a component requests permission or a secret
+
+By default, the app listens on `:7700`. You can override that with:
+
+- `PORT`
+- `ADDRESS`
+
+Persistence defaults to a local SQLite database named `strata.db` in the app's working directory. You can override that with `DATABASE_URL`.
+
+## Run The Example App
+
+The example app lives in `strata-example/`, and the example component it imports lives in `component-example/`.
+
+Start it with the CLI:
 
 ```bash
 cd cli
 go run . run ../strata-example --cli
 ```
 
-This starts the CLI host, which launches the Strata app as a child process and connects to it over stdin/stdout. The app server listens on `:8080` by default (configurable with `ADDRESS` and `PORT`) and launches the local component project from `../component-example`. On first run against a fresh database, Strata creates and logs an initial token.
+On first run, the CLI will print an authorization token created by the runtime.
 
-### Call a task
+Example requests:
 
-The `strata-example` app registers three task routes named `sayHello`, `getVisitorLog`, and `reset`.
-
-You can call the public task with:
+Public task:
 
 ```bash
-curl -X POST "http://127.0.0.1:8080/tasks/sayHello?name=Jackson"
+curl -X POST "http://127.0.0.1:7700/tasks/sayHello?name=Jackson"
 ```
 
-For authenticated tasks, pass the token in the `Authorization` header.
+Authenticated task:
 
-## Tasks
+```bash
+curl -X POST \
+  -H "Authorization: YOUR_TOKEN" \
+  "http://127.0.0.1:7700/tasks/getVisitorLog"
+```
 
-Tasks are typed Go functions that return `*strata.TaskResult`, and route names are derived from function names. Request bodies are JSON-decoded into the task input type, and query and header tags can populate fields on that input struct. Non-public tasks validate that authorization is active before they execute.
+Other routes registered by the example include `reset` and `getSecret`.
 
-## Components
+## Build Your Own App
 
-Components provide reusable out-of-process automation capabilities. In current code, component dependencies can be loaded from a local binary, a local Go project, or a Git source including subdirectory targeting. At runtime, component code can use storage, keychain, and logging helpers through the component context APIs exposed by Strata.
+A Strata app is a normal Go `main` package that imports `github.com/jacksonzamorano/strata`, defines tasks, creates a runtime, and calls `Start()`.
 
-## Hosts
+### What A Task Is
 
-Hosts provide operational visibility and control as external binaries. The host protocol is defined in `strata/hostio` and includes runtime-to-host messages for logs, task/component registration, task triggers, permission requests, and authorization lists, plus host-to-runtime messages for authorization queries/creation and permission responses. The repository’s current host implementation is the CLI host in `cli/`.
+In Strata, a task is a Go function that the runtime registers and executes for you.
 
-## Storage & Data
+For an HTTP route task, the function signature is:
 
-By default, Strata persistence uses SQLite at `./strata.db`, and this can be changed through `DATABASE_URL`. The persistence layer currently includes namespaced key-value storage, entity storage, authorization records, and task history.
+```go
+func myTask(input MyInput, ctx *strata.TaskContext) *strata.RouteResult
+```
 
-## Security Model
+What those parameters mean:
 
-Task authorization is centralized in Strata task wrappers. Component execution goes through a platform sandbox provider (`sandbox-exec` on macOS in current code, privileged execution on non-macOS today). Host-managed capability approval flows are in place for container-level permission requests such as `Container.ReadFile`.
+- `input` is the decoded request payload for the task
+- `ctx *strata.TaskContext` is the per-run execution context
+- the return value must be `*strata.RouteResult`
+
+Notes:
+
+- The input type can be any Go struct or other decodable type
+- JSON request bodies are decoded into the input value
+- Query parameters and headers can also populate fields through struct tags such as `query:"name"`
+- If a task does not need input, use `strata.RouteTaskNoInput`
+- The route name is derived from the Go function name, so `sayHello` becomes `/tasks/sayHello`
+
+Example with input:
+
+```go
+type HelloInput struct {
+	Name string `query:"name"`
+}
+
+func sayHello(input HelloInput, ctx *strata.TaskContext) *strata.RouteResult {
+	return strata.RouteResultSuccess(map[string]any{
+		"message": "hello " + input.Name,
+	})
+}
+```
+
+Example with no input:
+
+```go
+func getVisitorLog(input strata.RouteTaskNoInput, ctx *strata.TaskContext) *strata.RouteResult {
+	return strata.RouteResultSuccess("ok")
+}
+```
+
+Strata also supports non-HTTP tasks with different handler shapes:
+
+- `strata.NewTimedTask(duration, func(ctx *strata.TaskContext))`
+- `strata.NewTriggerTask(trigger, func(input T, ctx *strata.TaskContext))`
+
+### TaskContext vs Container Lifetime
+
+`TaskContext` only exists for the duration of a single task run. You should treat it as ephemeral execution state and not store it for later use.
+
+The container-backed capabilities you access through `ctx.Container` are the persistent part of the model. In practice, that means data written through container APIs such as storage, entity storage, and keychain is meant to survive across task runs for that namespace.
+
+Use them like this:
+
+- `ctx.Logger` for logs during the current run
+- `ctx.Container.Storage` for persistent key-value state
+- `strata.NewEntityStorage[T](ctx.Container)` for persistent typed records
+- `ctx.Container.Keychain` for persistent secrets
+
+### 1. Create a Go module
+
+```bash
+mkdir my-strata-app
+cd my-strata-app
+go mod init github.com/you/my-strata-app
+go get github.com/jacksonzamorano/strata
+```
+
+### 2. Define one or more tasks
+
+```go
+package main
+
+import "github.com/jacksonzamorano/strata"
+
+type HelloInput struct {
+	Name string `query:"name"`
+}
+
+func sayHello(input HelloInput, ctx *strata.TaskContext) *strata.RouteResult {
+	ctx.Logger.Log("Saying hello to %s", input.Name)
+	return strata.RouteResultSuccess(map[string]any{
+		"message": "hello " + input.Name,
+	})
+}
+
+func main() {
+	rt := strata.NewRuntime([]strata.Task{
+		strata.NewPublicRouteTask(sayHello),
+	}, nil)
+
+	panic(rt.Start())
+}
+```
+
+### 3. Run the app through the CLI host
+
+From this repository's `cli/` directory:
+
+```bash
+go run . run /path/to/my-strata-app --cli
+```
+
+That is the primary supported workflow today. Your app should expect to be launched by a host, not run directly as a standalone terminal program.
+
+### 4. Add more platform features through `TaskContext`
+
+Inside tasks, prefer using the Strata container APIs instead of reaching directly into the filesystem or process environment:
+
+- `ctx.Container.Storage` for key-value state
+- `strata.NewEntityStorage[T](ctx.Container)` for JSON-backed entity records
+- `ctx.Container.Keychain` for secrets
+- `ctx.Logger` for logs
+- `ctx.Container.ReadFile(...)` when you need host-approved file access
+
+## Build Your Own Component
+
+Components are best when you want reusable typed functionality that can be shared across apps.
+
+### 1. Create a separate Go module for the component
+
+```bash
+mkdir my-component
+cd my-component
+go mod init github.com/you/my-component
+go get github.com/jacksonzamorano/strata
+```
+
+### 2. Define the shared component contract
+
+Put your manifest, request/response types, exported component definitions, and triggers in a package that callers can import.
+
+```go
+package definitions
+
+import "github.com/jacksonzamorano/strata/component"
+
+var Manifest = component.ComponentManifest{
+	Name:    "example",
+	Version: "0.1.0",
+}
+
+type EchoRequest struct {
+	Message string
+}
+
+type EchoResponse struct {
+	Message string
+}
+
+var Echo = component.Define[EchoRequest, EchoResponse](Manifest, "echo")
+```
+
+### 3. Implement the component binary
+
+```go
+package main
+
+import (
+	d "github.com/you/my-component/definitions"
+	"github.com/jacksonzamorano/strata/component"
+)
+
+func echo(
+	input *component.ComponentInput[d.EchoRequest, d.EchoResponse],
+	ctx *component.ComponentContainer,
+) *component.ComponentReturn[d.EchoResponse] {
+	ctx.Logger.Log("Echo called")
+	return input.Return(d.EchoResponse{
+		Message: input.Body.Message,
+	})
+}
+
+func main() {
+	component.CreateComponent(
+		d.Manifest,
+		component.Mount(d.Echo, echo),
+	).Start()
+}
+```
+
+### 4. Import the component into your app
+
+Your app can import components in a few ways:
+
+- `strata.ImportLocal("/path/to/component-project")`
+- `strata.ImportBinary("component-binary-name")`
+- `strata.ImportGit("repo-url")`
+- `strata.ImportGitSubdirectory("repo-url", "subdir")`
+
+Example:
+
+```go
+rt := strata.NewRuntime(
+	[]strata.Task{
+		strata.NewPublicRouteTask(sayHello),
+	},
+	strata.Import(
+		strata.ImportLocal("/path/to/my-component"),
+	),
+)
+```
+
+Once imported, your tasks can call the component through the shared typed definitions package:
+
+```go
+res, ok := definitions.Echo.Execute(ctx.Container, definitions.EchoRequest{
+	Message: "hello",
+})
+```
+
+Inside component code, prefer the provided context APIs:
+
+- `ctx.Storage`
+- `ctx.Keychain`
+- `ctx.Logger`
+- `ctx.RequestSecret(...)`
+
+## Security Notes
+
+Current security boundaries are intentionally conservative but still incomplete:
+
+- Task auth is enforced by Strata route wrappers
+- Some container operations go through host-mediated permission prompts
+- Components run through `sandbox-exec` on macOS
+- On non-macOS platforms, component execution is still more permissive than the long-term design
+
+The long-term direction is stronger host-managed capability control and tighter component isolation.
 
 ## Repository Layout
 
-The `strata/` directory contains the library runtime, `strata/hostio/` contains shared host IPC protocol types, `strata-example/` contains an example app that defines and runs tasks, `component-example/` contains a sample component and typed definitions package, and `cli/` contains a reference external host implementation. The `sdk/` directory contains the Passport schema sources used to generate runtime protocol models.
+- `strata/` - the runtime library
+- `strata/hostio/` - the typed host IPC contract
+- `cli/` - the current reference host and primary way to run apps
+- `strata-example/` - example Strata app
+- `component-example/` - example reusable component
+- `sdk/` - schema and generation sources for shared protocol models
+
+## Contributing
+
+When extending Strata, preserve the separation between:
+
+- External hosts
+- The runtime library
+- User-authored apps
+- Third-party components
+
+Avoid designs that push task or component authors toward direct filesystem coupling when a `Container` or component context API would keep the boundary explicit.
