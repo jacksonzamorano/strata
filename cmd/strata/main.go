@@ -7,7 +7,7 @@ import (
 var help string = `
 Strata CLI
 
-stratacli run [your_dir]
+strata run [your_dir]
 `
 
 func showHelp() {

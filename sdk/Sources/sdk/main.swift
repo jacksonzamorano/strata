@@ -3,8 +3,12 @@ import Passport
 
 let sql = SQLBuilder(SQLite())
 
-let projectRoot = URL.currentDirectory().deletingLastPathComponent()
-let strataRoot = projectRoot.appending(path: "strata")
+let sourceFile = URL(filePath: #filePath)
+let sdkRoot = sourceFile
+    .deletingLastPathComponent()
+    .deletingLastPathComponent()
+    .deletingLastPathComponent()
+let projectRoot = sdkRoot.deletingLastPathComponent()
 
 let goConfig = GoConfiguration { cfg in
     cfg.packageName = "core"
@@ -32,13 +36,13 @@ try! Schema("schema") {
 }
 .output(Go(sqlBuilder: sql, config: goConfig)) {
     CodeBuilderConfiguration(
-        root: strataRoot.appending(path: "core"),
+        root: projectRoot.appending(path: "core"),
         fileStrategy: .monolithic,
         generateRecords: .asRecords,
         generateModels: true
     )
 }
-.sql(sql, rootDirectory: strataRoot)
+.sql(sql, rootDirectory: projectRoot)
 .build()
 
 try! Schema("hostschema") {
@@ -51,7 +55,7 @@ try! Schema("hostschema") {
 }
 .output(Go(sqlBuilder: sql, config: hostGoConfig)) {
     CodeBuilderConfiguration(
-        root: strataRoot.appending(path: "hostio"),
+        root: projectRoot.appending(path: "hostio"),
         fileStrategy: .monolithic,
         generateRecords: .asRecords,
         generateModels: true
@@ -66,7 +70,7 @@ try! Schema("messagetypes") {
 }
 .output(Go(sqlBuilder: sql, config: ipcGoConfig)) {
     CodeBuilderConfiguration(
-        root: strataRoot.appending(path: "internal/componentipc"),
+        root: projectRoot.appending(path: "internal/componentipc"),
         fileStrategy: .monolithic,
         generateRecords: .none,
         generateModels: true
@@ -95,7 +99,7 @@ try! Schema("host_protocol") {
 }
 .output(Go(sqlBuilder: sql, config: hostGoConfig)) {
     CodeBuilderConfiguration(
-        root: strataRoot.appending(path: "hostio"),
+        root: projectRoot.appending(path: "hostio"),
         fileStrategy: .monolithic,
         generateRecords: .none,
         generateModels: true

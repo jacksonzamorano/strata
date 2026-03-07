@@ -18,9 +18,9 @@ Strata is usable today for building and running local automation projects, but i
 
 What is implemented now:
 
-- The core runtime in `strata/`
-- An external host boundary over stdin/stdout via `strata/hostio`
-- A working CLI host in `cli/`
+- The core runtime at the repo root
+- An external host boundary over stdin/stdout via `hostio/`
+- A working CLI host in `cmd/strata/`
 - Typed HTTP task registration
 - SQLite-backed storage, task history, and authorization records
 - Keychain-backed secret storage
@@ -49,7 +49,7 @@ Strata is built around four layers:
 
 The host is the management surface for a Strata app. Hosts run as separate binaries and communicate with the app over stdin/stdout using the typed `hostio` protocol.
 
-This repository currently ships one host: the CLI in `cli/`. It is the default and recommended way to run projects right now. The CLI is responsible for:
+This repository currently ships one host: the CLI in `cmd/strata/`. It is the default and recommended way to run projects right now. The CLI is responsible for:
 
 - Building and launching your app binary
 - Receiving runtime logs and registration events
@@ -59,7 +59,7 @@ This repository currently ships one host: the CLI in `cli/`. It is the default a
 
 ### Server Runtime
 
-The Strata runtime lives in `strata/`. It:
+The Strata runtime lives at the repository root. It:
 
 - Registers HTTP task routes under `/tasks/{taskName}`
 - Decodes request input and serializes responses
@@ -93,15 +93,27 @@ The intended pattern is:
 
 The CLI host is the main entrypoint for running Strata apps today.
 
-From the repo's `cli/` directory:
+Install it with:
 
 ```bash
-go run . run ../strata-example --cli
+go install github.com/jacksonzamorano/strata/cmd/strata@latest
+```
+
+Then run an app with:
+
+```bash
+strata run /path/to/my-strata-app --cli
+```
+
+Or, from this repo root:
+
+```bash
+go run ./cmd/strata run ./strata-example --cli
 ```
 
 What that does:
 
-- Builds the app in `../strata-example`
+- Builds the app in `./strata-example`
 - Launches it as a child process
 - Connects the CLI host to the app over stdin/stdout
 - Prints logs, registered tasks, registered components, and auth tokens
@@ -121,8 +133,7 @@ The example app lives in `strata-example/`, and the example component it imports
 Start it with the CLI:
 
 ```bash
-cd cli
-go run . run ../strata-example --cli
+go run ./cmd/strata run ./strata-example --cli
 ```
 
 On first run, the CLI will print an authorization token created by the runtime.
@@ -251,10 +262,16 @@ func main() {
 
 ### 3. Run the app through the CLI host
 
-From this repository's `cli/` directory:
+Using the installed CLI:
 
 ```bash
-go run . run /path/to/my-strata-app --cli
+strata run /path/to/my-strata-app --cli
+```
+
+Or from this repository's root:
+
+```bash
+go run ./cmd/strata run /path/to/my-strata-app --cli
 ```
 
 That is the primary supported workflow today. Your app should expect to be launched by a host, not run directly as a standalone terminal program.
@@ -385,9 +402,10 @@ The long-term direction is stronger host-managed capability control and tighter 
 
 ## Repository Layout
 
-- `strata/` - the runtime library
-- `strata/hostio/` - the typed host IPC contract
-- `cli/` - the current reference host and primary way to run apps
+- `./` - the runtime library root package
+- `hostio/` - the typed host IPC contract
+- `component/` - the reusable component library
+- `cmd/strata/` - the current reference host and primary way to run apps
 - `strata-example/` - example Strata app
 - `component-example/` - example reusable component
 - `sdk/` - schema and generation sources for shared protocol models

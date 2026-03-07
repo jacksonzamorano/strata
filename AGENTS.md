@@ -19,7 +19,7 @@ Strata has four primary parts:
 
 - A host is the management interface.
 - Hosts run as external binaries and communicate with Strata over stdin/stdout using `strata/hostio`.
-- The current in-repo host implementation is the CLI host in `cli/`.
+- The current in-repo host implementation is the CLI host in `cmd/strata/`.
 - Hosts are expected to become the permission-approval surface (for example, filesystem access).
 
 ### Server (Strata runtime)
