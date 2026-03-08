@@ -10,7 +10,7 @@ func makeSecret() string {
 	if _, err := rand.Read(b); err != nil {
 		panic(err)
 	}
-	return base64.StdEncoding.EncodeToString(b)
+	return base64.URLEncoding.EncodeToString(b)
 }
 
 type AuthorizationProvider interface {

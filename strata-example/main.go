@@ -39,7 +39,7 @@ func sayHello(data SayHelloData, context *strata.TaskContext) *strata.RouteResul
 		CountAtTime: count,
 	})
 
-	msg, _ := example.SayFeature.Execute(context.Container, example.SayRequest{
+	msg, _ := example.SayFeature.Execute(context, example.SayRequest{
 		Name: data.Name,
 	})
 
@@ -61,21 +61,34 @@ func getVisitorLog(data strata.RouteTaskNoInput, context *strata.TaskContext) *s
 func reset(data strata.RouteTaskNoInput, context *strata.TaskContext) *strata.RouteResult {
 	context.Container.Storage.SetInt("count", 0)
 	context.Container.Storage.SetString("username", "")
-	example.Reset.Execute(context.Container, example.EmptyRequest{})
+	example.Reset.Execute(context, example.EmptyRequest{})
 	return strata.RouteResultSuccess("Reset.")
 }
 
 func getSecret(data strata.RouteTaskNoInput, context *strata.TaskContext) *strata.RouteResult {
-	res, ok := example.GetSecret.Execute(context.Container, example.EmptyRequest{})
+	res, ok := example.GetSecret.Execute(context, example.EmptyRequest{})
 	return strata.RouteResultSuccess(fmt.Sprintf("%s: %v", res, ok))
 }
 
 func testTime(context *strata.TaskContext) {
-	context.Container.Logger.LogLiteral("Timer hit!")
+	context.Logger.LogLiteral("Timer hit!")
 }
 
 func testTrigger(data example.TriggerTest, context *strata.TaskContext) {
-	context.Container.Logger.Log("Got '%s'", data.Time.String())
+	context.Logger.Log("Got '%s'", data.Time.String())
+}
+
+type echo struct {
+	In  string `json:"in"`
+	Age int
+}
+
+func testEcho(in echo, ctx *strata.TaskContext) *strata.MCPToolResult {
+	return &strata.MCPToolResult{
+		// Response: fmt.Sprintf("Hello %s, age %d", in.In, in.Age),
+		Response: in,
+		Success:  true,
+	}
 }
 
 func main() {
@@ -87,6 +100,13 @@ func main() {
 		strata.NewPublicRouteTask(getSecret),
 		strata.NewTimedTask(2*time.Minute, testTime),
 		strata.NewTriggerTask(example.TestTrigger, testTrigger),
+		strata.NewMCPTask("strata-example", "1.0.0",
+			strata.NewMCPTool(testEcho, strata.MCPToolConfig{
+				Title:       "Echo",
+				Description: "Echoes content back.",
+				ToolType:    strata.MCPToolTypeIdempotent,
+			}),
+		),
 	}, strata.Import(
 		// strata.Binary("component-example"),
 		strata.ImportLocal(path.Join(path.Dir(cd), "component-example")),
