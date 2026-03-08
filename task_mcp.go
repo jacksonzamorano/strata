@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"time"
 )
 
 type jsonRpc struct {
@@ -64,6 +65,7 @@ type mcpInputSchema struct {
 }
 type mcpInputSchemaField struct {
 	Type        string `json:"type"`
+	Format      string `json:"format,omitempty"`
 	Description string `json:"description"`
 }
 type mcpToolCallRequest struct {
@@ -84,6 +86,18 @@ type MCPToolResult struct {
 	Response any
 	Success  bool
 	Error    string
+}
+
+type MCPDate struct{ time.Time }
+
+func (d *MCPDate) UnmarshalJSON(b []byte) error {
+	s := strings.Trim(string(b), `"`)
+	t, err := time.Parse("2006-01-02", s)
+	if err != nil {
+		return err
+	}
+	d.Time = t
+	return nil
 }
 
 type mcpToolFn = func(input json.RawMessage, ctx *TaskContext) *MCPToolResult
@@ -229,6 +243,20 @@ func NewMCPTask(name, version string, tools ...mcpTool) Task {
 	}
 }
 
+func ToolSuccess(res any) *MCPToolResult {
+	return &MCPToolResult{
+		Response: res,
+		Success:  true,
+	}
+}
+
+func ToolError(msg string) *MCPToolResult {
+	return &MCPToolResult{
+		Error:   msg,
+		Success: false,
+	}
+}
+
 type MCPToolType int
 
 const (
@@ -259,20 +287,28 @@ func NewMCPTool[T any](fn func(input T, t *TaskContext) *MCPToolResult, cfg MCPT
 	for i := range t.NumField() {
 		isOpt := false
 		resolvedType := ""
+		resolvedFormat := ""
 
 		field := t.Field(i)
-		typ := field.Type.Kind()
-		if typ == reflect.Ptr {
+		fieldTyp := field.Type
+		fieldKind := fieldTyp.Kind()
+		if fieldKind == reflect.Ptr {
 			isOpt = true
-			typ = field.Type.Elem().Kind()
+			fieldTyp = fieldTyp.Elem()
+			fieldKind = fieldTyp.Kind()
 		}
-		switch typ {
-		case reflect.String:
+		if fieldTyp == reflect.TypeOf(MCPDate{}) {
 			resolvedType = "string"
-		case reflect.Int:
-			resolvedType = "number"
-		default:
-			continue
+			resolvedFormat = "date"
+		} else {
+			switch fieldKind {
+			case reflect.String:
+				resolvedType = "string"
+			case reflect.Int:
+				resolvedType = "number"
+			default:
+				continue
+			}
 		}
 
 		name, _, _ := strings.Cut(field.Tag.Get("json"), ",")
@@ -284,6 +320,7 @@ func NewMCPTool[T any](fn func(input T, t *TaskContext) *MCPToolResult, cfg MCPT
 
 		schema.Properties[name] = mcpInputSchemaField{
 			Type:        resolvedType,
+			Format:      resolvedFormat,
 			Description: desc,
 		}
 		if !isOpt {
