@@ -60,7 +60,7 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 		rdy, _ := componentipc.SendAndReceive[componentipc.ComponentMessageReady](
 			ev.Thread,
 			componentipc.ComponentMessageTypeSetup,
-			struct{}{},
+			componentipc.ComponentMessageSetup{StorageDir: cnt.StorageDir},
 			componentipc.ComponentMessageTypeReady,
 		)
 		var errMsgPtr *string

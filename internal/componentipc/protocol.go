@@ -99,3 +99,7 @@ type ComponentMessageLaunchUrlRequest struct {
 type ComponentMessageLaunchUrlResponse struct {
 	Completed bool `json:"completed"`
 }
+
+type ComponentMessageSetup struct {
+	StorageDir string `json:"storage_dir"`
+}

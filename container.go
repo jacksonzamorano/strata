@@ -1,13 +1,17 @@
 package strata
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/jacksonzamorano/strata/core"
 	"github.com/jacksonzamorano/strata/internal/keychain"
 )
 
 type Container struct {
-	Storage  core.Storage
-	Keychain core.Keychain
+	Storage    core.Storage
+	Keychain   core.Keychain
+	StorageDir string
 
 	permissions map[string]bool
 	persistence core.PersistenceProvider
@@ -16,9 +20,13 @@ type Container struct {
 }
 
 func (as *AppState) buildContainer(namespace string) *Container {
+	base, _ := os.UserConfigDir()
+	storageDir := filepath.Join(base, "com.strata", "storage", namespace)
+	os.MkdirAll(storageDir, 0755)
 	return &Container{
 		Storage:     as.persistence.Storage.Container(namespace),
 		Keychain:    keychain.PlatformKeychain.Container(namespace),
+		StorageDir:  storageDir,
 		permissions: map[string]bool{},
 		persistence: as.persistence,
 		namespace:   namespace,

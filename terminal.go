@@ -4,6 +4,7 @@ import (
 	"context"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/jacksonzamorano/strata/core"
@@ -37,7 +38,7 @@ func (c *TerminalProvider) Run(maxTime time.Duration, cmd string, args ...string
 func (c *TerminalProvider) RunInDirectory(maxTime time.Duration, wd, cmd string, args ...string) core.TerminalResult {
 	ctx, cancel := context.WithTimeout(context.Background(), maxTime)
 	defer cancel()
-	return c.terminal.Execute(ctx, "", cmd, args...)
+	return c.terminal.Execute(ctx, wd, cmd, args...)
 }
 
 type NativeTerminal struct{}
@@ -48,15 +49,16 @@ func (t *NativeTerminal) Execute(ctx context.Context, wd, cm string, args ...str
 		cmd.Dir = wd
 	}
 	output, err := cmd.CombinedOutput()
+	outputS := strings.TrimSpace(string(output))
 	if err != nil {
 		return core.TerminalResult{
 			Error:  err.Error(),
-			Output: string(output),
+			Output: outputS,
 			Ok:     false,
 		}
 	}
 	return core.TerminalResult{
-		Output: string(output),
-		Ok:     false,
+		Output: outputS,
+		Ok:     true,
 	}
 }

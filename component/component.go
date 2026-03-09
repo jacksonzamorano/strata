@@ -12,13 +12,14 @@ import (
 )
 
 type Component struct {
-	name      string
-	version   string
-	functions map[string]ComponentBindable
-	ctx       context.Context
-	cancel    context.CancelFunc
-	setupFn   ComponentSetupFn
-	ioChannel *componentipc.IO
+	name       string
+	version    string
+	functions  map[string]ComponentBindable
+	ctx        context.Context
+	cancel     context.CancelFunc
+	setupFn    ComponentSetupFn
+	ioChannel  *componentipc.IO
+	storageDir string
 }
 
 type ComponentManifest = core.ComponentManifest
@@ -49,12 +50,13 @@ func (c *Component) Start() {
 	c.ioChannel = componentipc.NewIO(c.ctx, c.cancel, os.Stdin, os.Stdout)
 
 	thread := c.ioChannel.NewThread()
-	_, _ = componentipc.SendAndReceive[struct{}](
+	setup, _ := componentipc.SendAndReceive[componentipc.ComponentMessageSetup](
 		thread,
 		componentipc.ComponentMessageTypeHello,
 		componentipc.ComponentMessageHello{Name: c.name, Version: c.version},
 		componentipc.ComponentMessageTypeSetup,
 	)
+	c.storageDir = setup.StorageDir
 
 	var err string
 	if c.setupFn != nil {

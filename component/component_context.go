@@ -6,17 +6,19 @@ import (
 )
 
 type ComponentContainer struct {
-	Storage  core.Storage
-	Keychain core.Keychain
-	Logger   core.Logger
-	channel  *componentipc.IO
+	Storage    core.Storage
+	Keychain   core.Keychain
+	Logger     core.Logger
+	StorageDir string
+	channel    *componentipc.IO
 }
 
 func (c *Component) buildContext() *ComponentContainer {
 	return &ComponentContainer{
-		Storage:  newComponentStorage(c.ioChannel),
-		Keychain: newComponentKeychain(c.ioChannel),
-		Logger:   newComponentLogger(c.ioChannel),
-		channel:  c.ioChannel,
+		Storage:    newComponentStorage(c.ioChannel),
+		Keychain:   newComponentKeychain(c.ioChannel),
+		Logger:     newComponentLogger(c.ioChannel),
+		StorageDir: c.storageDir,
+		channel:    c.ioChannel,
 	}
 }

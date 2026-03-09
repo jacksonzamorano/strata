@@ -82,6 +82,10 @@ func (s *SeatbeltSandboxProvider) Execute(ctx context.Context, desc *ComponentEx
 			desc.WorkingDirectory,
 		)
 	}
+	sbContents = fmt.Appendf(sbContents,
+		"(allow file-read* (subpath %q))\n", desc.StorageDir)
+	sbContents = fmt.Appendf(sbContents,
+		"(allow file-write* (subpath %q))\n", desc.StorageDir)
 
 	sb := path.Join(tmp, "com.strata.cache", "strata-sandbox-def.sb")
 	if err := os.MkdirAll(path.Dir(sb), 0755); err != nil {
