@@ -52,7 +52,7 @@ func (c *TaskContext) Run(maxTime time.Duration, cmd string, args ...string) cor
 func (c *TaskContext) RunInDirectory(maxTime time.Duration, wd, cmd string, args ...string) core.TerminalResult {
 	ctx, cancel := context.WithTimeout(c.context, maxTime)
 	defer cancel()
-	return c.terminal.Execute(ctx, "", cmd, args...)
+	return c.terminal.Execute(ctx, wd, cmd, args...)
 }
 func (c *TaskContext) ExecuteFunction(cname, fname string, args any) ([]byte, error) {
 	if cmp, ok := c.components[cname]; ok {
