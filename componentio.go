@@ -151,11 +151,13 @@ func (cr *ComponentIO) executeCommandRequest(ev componentipc.ReceivedEvent[compo
 	if result.Ok {
 		ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramResponse, componentipc.ComponentMessageExecuteProgramResponse{
 			Output: result.Output,
+			Code:   result.Code,
 			Ok:     true,
 		})
 	} else {
 		ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramResponse, componentipc.ComponentMessageExecuteProgramResponse{
 			Error: result.Error + ": " + result.Output,
+			Code:  result.Code,
 			Ok:    false,
 		})
 	}

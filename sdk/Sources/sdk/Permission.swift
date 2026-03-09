@@ -12,5 +12,5 @@ enum PermissionAction: String {
 struct Permission {
     let container = Field(.string)
     let action = Field(.value(PermissionAction.self))
-    let scope = Field(.optional(.string))
+    let scope = Field(.string)
 }

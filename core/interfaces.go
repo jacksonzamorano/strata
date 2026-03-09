@@ -45,6 +45,7 @@ type PersistenceProvider struct {
 
 type TerminalResult struct {
 	Ok     bool
+	Code   int
 	Error  string
 	Output string
 }

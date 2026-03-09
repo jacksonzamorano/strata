@@ -5,6 +5,7 @@ import "github.com/jacksonzamorano/strata/internal/componentipc"
 type ComponentExecuteResponse struct {
 	Ok     bool
 	Output string
+	Code   int
 	Error  string
 }
 
@@ -22,6 +23,7 @@ func (c *ComponentContainer) Run(program string, args ...string) ComponentExecut
 	return ComponentExecuteResponse{
 		Ok:     result.Ok,
 		Output: result.Output,
+		Code:   result.Code,
 		Error:  result.Error,
 	}
 }

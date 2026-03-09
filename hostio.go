@@ -59,7 +59,7 @@ func (hs *HostIO) Logger(namespace string) core.Logger {
 func (hs *HostIO) RequestPermission(permission core.Permission) bool {
 	var waiter chan bool
 
-	permission_hash := fmt.Sprintf("%s.%s.%s", permission.Container, permission.Action, *permission.Scope)
+	permission_hash := fmt.Sprintf("%s.%s.%s", permission.Container, permission.Action, permission.Scope)
 	hs.lock.Lock()
 	if existing, ok := hs.pendingPermissions[permission_hash]; ok {
 		waiter = existing.waiter

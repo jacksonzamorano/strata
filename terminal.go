@@ -53,12 +53,14 @@ func (t *NativeTerminal) Execute(ctx context.Context, wd, cm string, args ...str
 	if err != nil {
 		return core.TerminalResult{
 			Error:  err.Error(),
+			Code:   cmd.ProcessState.ExitCode(),
 			Output: outputS,
 			Ok:     false,
 		}
 	}
 	return core.TerminalResult{
 		Output: outputS,
+		Code:   cmd.ProcessState.ExitCode(),
 		Ok:     true,
 	}
 }

@@ -22,7 +22,7 @@ type Runtime struct {
 	cancel context.CancelFunc
 }
 
-func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*ConfigurationModification) *Runtime {
+func NewRuntime(tasks []Task, deps []core.ComponentImport, approvedPermissions ...core.Permission) *Runtime {
 	appState := newAppState()
 	mux := http.NewServeMux()
 
@@ -53,7 +53,7 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 			continue
 		}
 
-		cnt := appState.buildContainer(ev.Payload.Name)
+		cnt := appState.buildContainer(ev.Payload.Name, approvedPermissions)
 		runner.Begin(cnt, appState.host.Logger(ev.Payload.Name))
 		appState.components[ev.Payload.Name] = runner
 
@@ -89,7 +89,7 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, cfg ...*Configuration
 		}
 	}
 
-	taskContainer := appState.buildContainer("tasks")
+	taskContainer := appState.buildContainer("tasks", approvedPermissions)
 	logger := appState.host.Logger("tasks")
 	taskContext := TaskAttachContext{
 		mux:          mux,
