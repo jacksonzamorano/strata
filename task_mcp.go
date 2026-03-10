@@ -1,9 +1,12 @@
 package strata
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"reflect"
 	"runtime"
 	"strings"
@@ -23,22 +26,16 @@ type jsonRpcInput struct {
 	Method string          `json:"method"`
 	Params json.RawMessage `json:"params"`
 }
-type mcpIntializeRequest struct {
-	ProtocolVersion string        `json:"protcolVersion"`
-	ClientInfo      mcpClientInfo `json:"clientInfo"`
-}
-type mcpClientInfo struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-}
 type mcpInitialize struct {
 	ProtocolVersion string          `json:"protocolVersion"`
 	ServerInfo      mcpServerInfo   `json:"serverInfo"`
 	Capabilities    mcpCapabilities `json:"capabilities"`
+	Instructions    string          `json:"instructions,omitempty"`
 }
 type mcpServerInfo struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
+	Name    string    `json:"name"`
+	Version string    `json:"version"`
+	Icons   []mcpIcon `json:"icons,omitempty"`
 }
 type mcpCapabilities struct {
 	Tools map[string]mcpToolDef `json:"tools"`
@@ -108,14 +105,31 @@ type mcpTool struct {
 	InputSchema json.RawMessage
 	Annotation  mcpToolAnnotation
 }
+type mcpIcon struct {
+	Source   string `json:"src"`
+	MimeType string `json:"mimeType"`
+}
+type mcpTaskIcon struct {
+	Bytes  []byte
+	Format string
+}
 
 type MCPTask struct {
-	Name    string
-	Version string
-	Tools   map[string]mcpTool
+	Name         string
+	Version      string
+	Instructions string
+	Icon         *mcpTaskIcon
+	Tools        map[string]mcpTool
 }
 
 func (tt *MCPTask) initialize(input *jsonRpcInput) jsonRpcResult[mcpInitialize] {
+	icons := []mcpIcon{}
+	if tt.Icon != nil {
+		encoded := base64.StdEncoding.EncodeToString(tt.Icon.Bytes)
+		icons = append(icons, mcpIcon{
+			Source: fmt.Sprintf("data:%s;base64,%s", tt.Icon.Format, encoded),
+		})
+	}
 	return jsonRpcResult[mcpInitialize]{
 		jsonRpc: input.jsonRpc,
 		Result: mcpInitialize{
@@ -123,10 +137,12 @@ func (tt *MCPTask) initialize(input *jsonRpcInput) jsonRpcResult[mcpInitialize] 
 			ServerInfo: mcpServerInfo{
 				Name:    tt.Name,
 				Version: tt.Version,
+				Icons:   icons,
 			},
 			Capabilities: mcpCapabilities{
 				Tools: map[string]mcpToolDef{},
 			},
+			Instructions: tt.Instructions,
 		},
 	}
 }
@@ -160,7 +176,7 @@ func (tt *MCPTask) callTool(input *jsonRpcInput, container *TaskContext) jsonRpc
 	if result.Success {
 		if str, ok := result.Response.(string); ok {
 			res.Content = []mcpToolCallResultContent{
-				mcpToolCallResultContent{
+				{
 					Type: "text",
 					Text: str,
 				},
@@ -168,7 +184,7 @@ func (tt *MCPTask) callTool(input *jsonRpcInput, container *TaskContext) jsonRpc
 		} else {
 			j, _ := json.Marshal(result.Response)
 			res.Content = []mcpToolCallResultContent{
-				mcpToolCallResultContent{
+				{
 					Type: "text",
 					Text: string(j),
 				},
@@ -177,7 +193,7 @@ func (tt *MCPTask) callTool(input *jsonRpcInput, container *TaskContext) jsonRpc
 		}
 	} else {
 		res.Content = []mcpToolCallResultContent{
-			mcpToolCallResultContent{
+			{
 				Type: "text",
 				Text: result.Error,
 			},
@@ -209,8 +225,10 @@ func (tt *MCPTask) Attach(ctx *TaskAttachContext) {
 			container.Logger.Log("Could not decode payload: %s", err.Error())
 		}
 
-		var out any
+		enc, _ := json.Marshal(input)
+		container.Logger.Log("Ip: '%s'", string(enc))
 
+		var out any
 		switch input.Method {
 		case "initialize":
 			out = tt.initialize(&input)
@@ -218,30 +236,33 @@ func (tt *MCPTask) Attach(ctx *TaskAttachContext) {
 			out = tt.listTools(&input)
 		case "tools/call":
 			out = tt.callTool(&input, container)
-		case "notifications/initialize":
+		case "notifications/initialized":
 			break
 		default:
 			container.Logger.Log("Unknown method: %s", input.Method)
 		}
 
 		encode, _ := json.Marshal(out)
+		container.Logger.Log("Op: '%s'", string(encode))
 		w.Header().Add("Content-Type", "application/json")
 		w.Write(encode)
 	})
 }
 
-func NewMCPTask(name, version string, tools ...mcpTool) Task {
-	toolDef := map[string]mcpTool{}
+type mcpModTask = func(tk *MCPTask)
+
+func NewMCPTask(name, version string, tools ...mcpModTask) Task {
+	tk := &MCPTask{
+		Name:    name,
+		Version: version,
+		Tools:   map[string]mcpTool{},
+	}
 	for t := range tools {
-		toolDef[tools[t].Name] = tools[t]
+		tools[t](tk)
 	}
 	return Task{
-		Name: name,
-		Implementation: &MCPTask{
-			Name:    name,
-			Version: version,
-			Tools:   toolDef,
-		},
+		Name:           name,
+		Implementation: tk,
 	}
 }
 
@@ -273,7 +294,7 @@ type MCPToolConfig struct {
 	ToolType    MCPToolType
 }
 
-func NewMCPTool[T any](fn func(input T, t *TaskContext) *MCPToolResult, cfg MCPToolConfig) mcpTool {
+func NewMCPTool[T any](fn func(input T, t *TaskContext) *MCPToolResult, cfg MCPToolConfig) mcpModTask {
 	name_ugly := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 	last_idx := strings.LastIndex(name_ugly, ".")
 	name := name_ugly[last_idx+1:]
@@ -286,20 +307,19 @@ func NewMCPTool[T any](fn func(input T, t *TaskContext) *MCPToolResult, cfg MCPT
 
 	var tI T
 	t := reflect.TypeOf(tI)
-	for i := range t.NumField() {
+	for field := range t.Fields() {
 		isOpt := false
 		resolvedType := ""
 		resolvedFormat := ""
 
-		field := t.Field(i)
 		fieldTyp := field.Type
 		fieldKind := fieldTyp.Kind()
-		if fieldKind == reflect.Ptr {
+		if fieldKind == reflect.Pointer {
 			isOpt = true
 			fieldTyp = fieldTyp.Elem()
 			fieldKind = fieldTyp.Kind()
 		}
-		if fieldTyp == reflect.TypeOf(MCPDate{}) {
+		if fieldTyp == reflect.TypeFor[MCPDate]() {
 			resolvedType = "string"
 			resolvedFormat = "date"
 		} else {
@@ -337,7 +357,7 @@ func NewMCPTool[T any](fn func(input T, t *TaskContext) *MCPToolResult, cfg MCPT
 		title = cfg.Title
 	}
 
-	return mcpTool{
+	tool := mcpTool{
 		Name:        name,
 		InputSchema: enc,
 		Description: cfg.Description,
@@ -358,5 +378,38 @@ func NewMCPTool[T any](fn func(input T, t *TaskContext) *MCPToolResult, cfg MCPT
 			}
 			return fn(ip, t)
 		},
+	}
+	return func(t *MCPTask) {
+		t.Tools[tool.Name] = tool
+	}
+}
+
+func MCPInstructions(ins string) mcpModTask {
+	return func(m *MCPTask) {
+		m.Instructions = ins
+	}
+}
+
+func MCPIcon(filename string) mcpModTask {
+	return func(m *MCPTask) {
+		extIdx := strings.LastIndex(filename, ".")
+		ext := filename[extIdx+1:]
+
+		contents, e := os.ReadFile(filename)
+		if e != nil {
+			return
+		}
+		switch ext {
+		case "png":
+			m.Icon = &mcpTaskIcon{
+				Bytes:  contents,
+				Format: "image/png",
+			}
+		case "jpeg":
+			m.Icon = &mcpTaskIcon{
+				Bytes:  contents,
+				Format: "image/jpeg",
+			}
+		}
 	}
 }

@@ -106,6 +106,8 @@ func main() {
 				Description: "Echoes content back.",
 				ToolType:    strata.MCPToolTypeIdempotent,
 			}),
+			strata.MCPInstructions("a demo!"),
+			strata.MCPIcon("mcp.png"),
 		),
 	}, strata.Import(
 		// strata.Binary("component-example"),
