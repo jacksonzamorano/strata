@@ -49,18 +49,9 @@ func RunApp(args *AppArgs) {
 	}
 
 	var host Host
-	var webHost *WebHost
-	if args.Specifies(AppOptionHostWeb) {
-		webHost = NewWebHost()
-		host = webHost
-	} else {
-		host = NewConsoleHost()
-	}
+	host = NewConsoleHost()
 
 	app := hostio.NewIO(ctx, cancel, out, in)
-	if webHost != nil {
-		webHost.io = app
-	}
 	rdy := hostio.ReceiveOnce[any](app, time.Second*2, hostio.HostMessageTypeInitialize)
 	if rdy.Error {
 		fmt.Printf("Client application did not attach. Is it a Strata application?\nTip: Make sure you call NewRuntime(...).Start() in your main function.\n")

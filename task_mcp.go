@@ -218,6 +218,8 @@ func (tt *MCPTask) Attach(ctx *TaskAttachContext) {
 			out = tt.listTools(&input)
 		case "tools/call":
 			out = tt.callTool(&input, container)
+		case "notifications/initialize":
+			break
 		default:
 			container.Logger.Log("Unknown method: %s", input.Method)
 		}

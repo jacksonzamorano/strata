@@ -11,7 +11,6 @@ type AppOptions string
 
 const (
 	AppOptionHostCli AppOptions = "cli"
-	AppOptionHostWeb AppOptions = "web"
 )
 
 type AppArgs struct {
@@ -46,8 +45,6 @@ func ParseArgList(input []string) (*AppArgs, error) {
 			switch trim {
 			case string(AppOptionHostCli):
 				args.opts = append(args.opts, AppOptionHostCli)
-			case string(AppOptionHostWeb):
-				args.opts = append(args.opts, AppOptionHostWeb)
 			case "module":
 				if i+1 >= len(input) {
 					return nil, errors.New("missing value for --module")
