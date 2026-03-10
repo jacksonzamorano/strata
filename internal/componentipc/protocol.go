@@ -104,3 +104,12 @@ type ComponentMessageLaunchUrlResponse struct {
 type ComponentMessageSetup struct {
 	StorageDir string `json:"storage_dir"`
 }
+
+type ComponentMessageReadFileRequest struct {
+	Path string `json:"path"`
+}
+type ComponentMessageReadFileResponse struct {
+	Succeeded bool   `json:"succeeded"`
+	Path      string `json:"path"`
+	Contents  []byte `json:"contents"`
+}

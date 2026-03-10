@@ -33,6 +33,9 @@ func reset(r *component.ComponentInput[d.EmptyRequest, string], ctx *component.C
 	return r.Return("Done!")
 }
 func getSecret(r *component.ComponentInput[d.EmptyRequest, string], ctx *component.ComponentContainer) *component.ComponentReturn[string] {
+	ct, ok := ctx.ReadFile("/Users/jacksonzamorano/Documents/strata/go.mod")
+	ctx.Logger.Log("ok: %s, ct: %s", ok, string(ct))
+
 	sec, ok := ctx.RequestSecret("What's the secret?")
 	if ok {
 		ctx.Logger.Log("Got secret '%s'", sec)

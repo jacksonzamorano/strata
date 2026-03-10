@@ -23,5 +23,7 @@ enum ComponentMessageType: String {
         executeProgramResponse,
         launchUrlRequest,
         launchUrlResponse,
+        readFileRequest,
+        readFileResponse,
         log
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -177,6 +178,31 @@ func (cr *ComponentIO) launchUrlRequest(ev componentipc.ReceivedEvent[componenti
 	})
 }
 
+func (cr *ComponentIO) readFile(ev componentipc.ReceivedEvent[componentipc.ComponentMessageReadFileRequest]) {
+	buf, ok := cr.container.ReadFile(ev.Payload.Path)
+	if !ok {
+		ev.Thread.Send(componentipc.ComponentMessageTypeReadFileResponse, componentipc.ComponentMessageReadFileResponse{
+			Succeeded: false,
+		})
+		return
+	}
+
+	if len(buf) > core.IPC_MAX_BUF_SIZE {
+		bufF := cr.container.TemporaryFile()
+		os.WriteFile(bufF, buf, 0755)
+		ev.Thread.Send(componentipc.ComponentMessageTypeReadFileResponse, componentipc.ComponentMessageReadFileResponse{
+			Succeeded: true,
+			Path:      bufF,
+		})
+		return
+	}
+
+	ev.Thread.Send(componentipc.ComponentMessageTypeReadFileResponse, componentipc.ComponentMessageReadFileResponse{
+		Succeeded: true,
+		Contents:  buf,
+	})
+}
+
 func (cr *ComponentIO) HandleAPIRequests() {
 	go func() {
 		getVal := componentipc.Receive[componentipc.ComponentMessageGetValueRequest](cr.transport, componentipc.ComponentMessageTypeGetValueRequest)
@@ -189,6 +215,7 @@ func (cr *ComponentIO) HandleAPIRequests() {
 		oauthRequest := componentipc.Receive[componentipc.ComponentMessageRequestOauthAuthentication](cr.transport, componentipc.ComponentMessageTypeRequestOauthAuthentication)
 		executeCommandRequest := componentipc.Receive[componentipc.ComponentMessageExecuteProgramRequest](cr.transport, componentipc.ComponentMessageTypeExecuteProgramRequest)
 		launchUrlRequest := componentipc.Receive[componentipc.ComponentMessageLaunchUrlRequest](cr.transport, componentipc.ComponentMessageTypeLaunchUrlRequest)
+		readFile := componentipc.Receive[componentipc.ComponentMessageReadFileRequest](cr.transport, componentipc.ComponentMessageTypeReadFileRequest)
 		for {
 			select {
 			case ev := <-getVal:
@@ -230,6 +257,8 @@ func (cr *ComponentIO) HandleAPIRequests() {
 				go cr.executeCommandRequest(ev)
 			case ev := <-launchUrlRequest:
 				go cr.launchUrlRequest(ev)
+			case ev := <-readFile:
+				go cr.readFile(ev)
 			case <-cr.context.Done():
 				return
 			}

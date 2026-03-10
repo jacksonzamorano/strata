@@ -4,6 +4,8 @@ import Passport
 @Enum
 enum PermissionAction: String {
     case readFile,
+        writeFile,
+        makeDirectory,
         executeCommandLine,
         launchUrl
 }

@@ -20,3 +20,31 @@ func (c *Container) ReadFile(name string) ([]byte, bool) {
 
 	return b, true
 }
+
+func (c *Container) WriteFile(name string, contents []byte) bool {
+	approved := c.HasPermission(core.PermissionActionWriteFile, name)
+	if !approved {
+		return false
+	}
+
+	err := os.WriteFile(name, contents, 0755)
+	if err != nil {
+		c.hostService.Log("Could not write file: %s", err.Error())
+		return false
+	}
+	return true
+}
+
+func (c *Container) MakeDirectory(name string) bool {
+	approved := c.HasPermission(core.PermissionActionMakeDirectory, name)
+	if !approved {
+		return false
+	}
+
+	err := os.MkdirAll(name, 0755)
+	if err != nil {
+		c.hostService.Log("Could not write file: %s", err.Error())
+		return false
+	}
+	return true
+}
