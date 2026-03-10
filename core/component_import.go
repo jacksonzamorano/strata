@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"strings"
 )
 
@@ -15,7 +14,6 @@ type ComponentExecuteCommand struct {
 	WorkingDirectory string
 	Command          string
 	Args             []string
-	StorageDir       string
 }
 
 type ComponentImport interface {
@@ -28,13 +26,9 @@ type ComponentBinaryImport struct {
 
 func (i *ComponentBinaryImport) Setup() (*ComponentExecuteCommand, error) {
 	proj := path.Base(i.BinaryName)
-	base, _ := os.UserConfigDir()
-	storageDir := filepath.Join(base, "com.strata", "storage", proj)
-	os.MkdirAll(storageDir, 0755)
 	return &ComponentExecuteCommand{
 		CanonicalName: proj,
 		Command:       i.BinaryName,
-		StorageDir:    storageDir,
 	}, nil
 }
 func ImportBinary(name string) *ComponentBinaryImport {
@@ -64,14 +58,10 @@ func (i *ComponentLocalProjectImport) Setup() (*ComponentExecuteCommand, error) 
 		return nil, err
 	}
 
-	base, _ := os.UserConfigDir()
-	storageDir := filepath.Join(base, "com.strata", "storage", nm)
-	os.MkdirAll(storageDir, 0755)
 	return &ComponentExecuteCommand{
 		Command:          "./" + nm,
 		CanonicalName:    nm,
 		WorkingDirectory: i.Path,
-		StorageDir:       storageDir,
 	}, nil
 }
 func ImportLocal(path string) *ComponentLocalProjectImport {
@@ -93,14 +83,10 @@ func (i *ComponentGitProjectImport) Setup() (*ComponentExecuteCommand, error) {
 		return nil, err
 	}
 
-	base, _ := os.UserConfigDir()
-	storageDir := filepath.Join(base, "com.strata", "storage", nm)
-	os.MkdirAll(storageDir, 0755)
 	return &ComponentExecuteCommand{
 		Command:          "./" + nm,
 		CanonicalName:    nm,
 		WorkingDirectory: path,
-		StorageDir:       storageDir,
 	}, nil
 }
 func ImportGit(repository string) *ComponentGitProjectImport {

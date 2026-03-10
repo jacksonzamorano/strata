@@ -33,10 +33,10 @@ type ComponentIO struct {
 	logger      core.Logger
 }
 
-func RegisterComponent(dep *core.ComponentExecuteCommand) (*ComponentIO, error) {
+func RegisterComponent(dep *core.ComponentExecuteCommand, storageDir, tempDir string) (*ComponentIO, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	cmd, err := core.PlatformSandboxProvider().Execute(ctx, dep)
+	cmd, err := core.PlatformSandboxProvider().Execute(ctx, storageDir, tempDir, dep)
 	if err != nil {
 		cancel()
 		return nil, err

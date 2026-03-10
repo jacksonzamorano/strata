@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/jacksonzamorano/strata/core"
@@ -24,16 +23,20 @@ type Container struct {
 }
 
 func (as *AppState) buildContainer(namespace string, pms []core.Permission) *Container {
-	base, _ := os.UserConfigDir()
-	storageDir := filepath.Join(base, "com.strata", "storage", namespace)
-	tmpDir := filepath.Join(os.TempDir(), "com.strata", namespace)
-	os.MkdirAll(tmpDir, 0755)
-	os.MkdirAll(storageDir, 0755)
+
+	cfgRoot, _ := os.UserConfigDir()
+	tmpRoot, _ := os.UserCacheDir()
+
+	cfgPath := path.Join(cfgRoot, "strata", "containers", namespace)
+	tmpPath := path.Join(tmpRoot, "strata", "containers", namespace)
+	os.MkdirAll(cfgPath, 0755)
+	os.MkdirAll(tmpPath, 0755)
+
 	cnt := &Container{
 		Storage:      as.persistence.Storage.Container(namespace),
 		Keychain:     keychain.PlatformKeychain.Container(namespace),
-		StorageDir:   storageDir,
-		temporaryDir: tmpDir,
+		StorageDir:   cfgPath,
+		temporaryDir: tmpPath,
 		permissions:  map[core.PermissionAction]map[string]bool{},
 		persistence:  as.persistence,
 		namespace:    namespace,

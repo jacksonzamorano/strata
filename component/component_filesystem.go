@@ -20,7 +20,7 @@ func (c *ComponentContainer) ReadFile(name string) ([]byte, bool) {
 		return nil, false
 	}
 	if len(r.Path) > 0 {
-		contents, err := os.ReadFile(name)
+		contents, err := os.ReadFile(r.Path)
 		if err != nil {
 			c.Logger.Log("ReadFile: Could not read linked file: %s", err.Error())
 			return nil, false

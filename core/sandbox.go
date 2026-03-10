@@ -16,7 +16,7 @@ import (
 var seatbelt []byte
 
 type SandboxProvider interface {
-	Execute(ctx context.Context, desc *ComponentExecuteCommand) (*exec.Cmd, error)
+	Execute(ctx context.Context, storageDir, tempDir string, desc *ComponentExecuteCommand) (*exec.Cmd, error)
 }
 
 func PlatformSandboxProvider() SandboxProvider {
@@ -29,7 +29,7 @@ func PlatformSandboxProvider() SandboxProvider {
 
 type SandboxPrivilegedProvider struct{}
 
-func (s *SandboxPrivilegedProvider) Execute(ctx context.Context, desc *ComponentExecuteCommand) (*exec.Cmd, error) {
+func (s *SandboxPrivilegedProvider) Execute(ctx context.Context, storageDir, tempDir string, desc *ComponentExecuteCommand) (*exec.Cmd, error) {
 	cmd := exec.CommandContext(ctx, desc.Command, desc.Args...)
 	if len(desc.WorkingDirectory) > 0 {
 		cmd.Dir = desc.WorkingDirectory
@@ -59,7 +59,7 @@ func resolveCommandPath(desc *ComponentExecuteCommand) (string, error) {
 	return exec.LookPath(desc.Command)
 }
 
-func (s *SeatbeltSandboxProvider) Execute(ctx context.Context, desc *ComponentExecuteCommand) (*exec.Cmd, error) {
+func (s *SeatbeltSandboxProvider) Execute(ctx context.Context, storageDir, tempDir string, desc *ComponentExecuteCommand) (*exec.Cmd, error) {
 	tmp, err := os.UserCacheDir()
 	if err != nil {
 		return nil, err
@@ -83,11 +83,16 @@ func (s *SeatbeltSandboxProvider) Execute(ctx context.Context, desc *ComponentEx
 		)
 	}
 	sbContents = fmt.Appendf(sbContents,
-		"(allow file-read* (subpath %q))\n", desc.StorageDir)
+		"(allow file-read* (subpath %q))\n", storageDir)
 	sbContents = fmt.Appendf(sbContents,
-		"(allow file-write* (subpath %q))\n", desc.StorageDir)
+		"(allow file-write* (subpath %q))\n", storageDir)
 
-	sb := path.Join(tmp, "com.strata.cache", "strata-sandbox-def.sb")
+	sbContents = fmt.Appendf(sbContents,
+		"(allow file-read* (subpath %q))\n", tempDir)
+	sbContents = fmt.Appendf(sbContents,
+		"(allow file-write* (subpath %q))\n", tempDir)
+
+	sb := path.Join(tmp, "com.strata.cache", fmt.Sprintf("strata-sandbox-%s-def.sb", desc.CanonicalName))
 	if err := os.MkdirAll(path.Dir(sb), 0755); err != nil {
 		return nil, err
 	}

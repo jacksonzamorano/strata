@@ -36,7 +36,8 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, approvedPermissions .
 			continue
 		}
 
-		runner, err := RegisterComponent(cmd)
+		cnt := appState.buildContainer(cmd.CanonicalName, approvedPermissions)
+		runner, err := RegisterComponent(cmd, cnt.StorageDir, cnt.temporaryDir)
 		if err != nil {
 			appState.host.Log("Failed to register component '%s': '%s'", cmd.CanonicalName, err.Error())
 			continue
@@ -53,7 +54,6 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, approvedPermissions .
 			continue
 		}
 
-		cnt := appState.buildContainer(ev.Payload.Name, approvedPermissions)
 		runner.Begin(cnt, appState.host.Logger(ev.Payload.Name))
 		appState.components[ev.Payload.Name] = runner
 
