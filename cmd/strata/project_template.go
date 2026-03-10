@@ -163,8 +163,8 @@ func writeTemplate(kind ProjectKind, targetDir, modulePath string) error {
 		if d.IsDir() {
 			return os.MkdirAll(destination, 0o755)
 		}
-		if strings.HasSuffix(destination, ".tpl") {
-			destination = strings.TrimSuffix(destination, ".tpl")
+		if before, ok := strings.CutSuffix(destination, ".tpl"); ok {
+			destination = before
 		}
 
 		content, readErr := fs.ReadFile(templateFS, name)

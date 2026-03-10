@@ -15,6 +15,7 @@ func makeSecret() string {
 
 type AuthorizationProvider interface {
 	GetAuthorization(sec string) *Authorization
+	DeleteAuthorization(sec string)
 	NewAuthorization(source string, nickname string) *Authorization
 	GetAuthorizations() []Authorization
 }
@@ -25,6 +26,10 @@ func (s *SQLiteStorage) GetAuthorization(sec string) *Authorization {
 		panic(err)
 	}
 	return a
+}
+
+func (s *SQLiteStorage) DeleteAuthorization(sec string) {
+	DeleteAuthorization(s.db, sec)
 }
 
 func (s *SQLiteStorage) NewAuthorization(source string, nickname string) *Authorization {

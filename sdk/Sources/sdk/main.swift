@@ -4,7 +4,8 @@ import Passport
 let sql = SQLBuilder(SQLite())
 
 let sourceFile = URL(filePath: #filePath)
-let sdkRoot = sourceFile
+let sdkRoot =
+    sourceFile
     .deletingLastPathComponent()
     .deletingLastPathComponent()
     .deletingLastPathComponent()
@@ -86,6 +87,7 @@ try! Schema("host_protocol") {
     HostMessageTaskTriggered.self
     HostMessageGetAuthorizationsList.self
     HostMessageCreateAuthorization.self
+    HostMessageDeleteAuthorization.self
     HostMessageAuthorizationCreated.self
     HostMessageLogEvent.self
     HostMessageRequestPermission.self
@@ -103,6 +105,37 @@ try! Schema("host_protocol") {
         fileStrategy: .monolithic,
         generateRecords: .none,
         generateModels: true
+    )
+}
+.build()
+
+try! Schema("HostProtocol") {
+    Permission.self
+    PermissionAction.self
+    HostMessageType.self
+    HostMessageAuthorizationsList.self
+    HostMessageTaskRegistered.self
+    HostMessageComponentRegistered.self
+    HostMessageTaskTriggered.self
+    HostMessageGetAuthorizationsList.self
+    HostMessageCreateAuthorization.self
+    HostMessageDeleteAuthorization.self
+    HostMessageAuthorizationCreated.self
+    HostMessageLogEvent.self
+    HostMessageRequestPermission.self
+    HostMessageRespondPermission.self
+    HostMessageRequestOauth.self
+    HostMessageCompleteOauth.self
+    HostMessageRequestSecret.self
+    HostMessageCompleteSecret.self
+} routes: {
+
+}
+.output(Swift(fileStrategy: .monolithic, standardizePropertyNames: true)) {
+    CodeBuilderConfiguration(
+        root: projectRoot.appending(path: "types/swift"),
+        fileStrategy: .monolithic,
+        generateModels: true,
     )
 }
 .build()

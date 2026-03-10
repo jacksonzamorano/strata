@@ -12,6 +12,7 @@ enum HostMessageType: String {
         taskTriggered,
         getAuthorizationsList,
         createAuthorization,
+        deleteAuthorization,
         respondPermission,
         requestOauth,
         completeOauth,
@@ -77,6 +78,11 @@ struct HostMessageGetAuthorizationsList {}
 @Model
 struct HostMessageCreateAuthorization {
     let nickname = Field(.string)
+}
+
+@Model
+struct HostMessageDeleteAuthorization {
+    let secret = Field(.string)
 }
 
 @Model

@@ -101,6 +101,7 @@ func (hs *HostIO) RequestPermission(permission core.Permission) bool {
 func (hs *HostIO) listenForHostMessages() {
 	getAuthorizationsList := hostio.Receive[hostio.HostMessageGetAuthorizationsList](hs.host, hostio.HostMessageTypeGetAuthorizationsList)
 	createAuthorization := hostio.Receive[hostio.HostMessageCreateAuthorization](hs.host, hostio.HostMessageTypeCreateAuthorization)
+	deleteAuthorization := hostio.Receive[hostio.HostMessageDeleteAuthorization](hs.host, hostio.HostMessageTypeDeleteAuthorization)
 
 	hostio.SendAndReceive[any](hs.host.NewThread(), hostio.HostMessageTypeInitialize, struct{}{}, hostio.HostMessageTypeInitialize)
 
@@ -111,12 +112,20 @@ func (hs *HostIO) listenForHostMessages() {
 				if ev.Error {
 					continue
 				}
-				hs.sendAuthorizationsList()
+				go hs.sendAuthorizationsList()
 			case ev := <-createAuthorization:
 				if ev.Error {
 					continue
 				}
-				hs.handleCreateAuthorization(ev)
+				go hs.handleCreateAuthorization(ev)
+			case ev := <-deleteAuthorization:
+				if ev.Error {
+					continue
+				}
+				go func() {
+					hs.persistence.Authorization.DeleteAuthorization(ev.Payload.Secret)
+					hs.sendAuthorizationsList()
+				}()
 			}
 		}
 	}()

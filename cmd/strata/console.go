@@ -73,7 +73,7 @@ func (ch *ConsoleHost) AuthorizationsUpdated(ev hostio.ReceivedEvent[hostio.Host
 
 func (ch *ConsoleHost) PermissionRequested(ev hostio.ReceivedEvent[hostio.HostMessageRequestPermission]) bool {
 	ch.outputLocked.Lock()
-	fmt.Printf("Allow '%s' to use '%s' on '%s'? ", ev.Payload.Permission.Container, ev.Payload.Permission.Action, *ev.Payload.Permission.Scope)
+	fmt.Printf("Allow '%s' to use '%s' on '%s'? ", ev.Payload.Permission.Container, ev.Payload.Permission.Action, ev.Payload.Permission.Scope)
 	var input string
 	fmt.Scanln(&input)
 	ch.outputLocked.Unlock()
