@@ -4,6 +4,6 @@ strata-example/strata-example
 strata-example/strata.db
 component-example/componentexample
 component-example/component-example
-hosts/web/node_modules
-hosts/web/dist
+cmd/strata/web/dist
+cmd/strata/web/node_modules
 strata-app

@@ -7,7 +7,7 @@ import (
 var help string = `
 Strata CLI
 
-strata run <your_dir> [--cli]
+strata run <your_dir> [--cli|--web]
 strata new app <your_dir> [--module <module-path>]
 strata new component <your_dir> [--module <module-path>]
 `

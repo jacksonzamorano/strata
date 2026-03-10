@@ -139,6 +139,7 @@ func (hs *HostIO) handleCreateAuthorization(ev hostio.ReceivedEvent[hostio.HostM
 	}
 
 	hs.persistence.Authorization.NewAuthorization("Host", nickname)
+	hs.sendAuthorizationsList()
 }
 
 func (hs *HostIO) sendAuthorizationsList() {
