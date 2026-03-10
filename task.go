@@ -8,13 +8,14 @@ import (
 	"strings"
 
 	"github.com/jacksonzamorano/strata/core"
+	"github.com/jacksonzamorano/strata/internal/runtimecomponent"
 )
 
 type TaskAttachContext struct {
 	mux          *http.ServeMux
 	authorizaton core.AuthorizationProvider
-	components   map[string]*ComponentIO
-	triggers     *RuntimeTriggers
+	components   map[string]*runtimecomponent.Runner
+	triggers     *runtimecomponent.Triggers
 	Logger       core.Logger
 	Container    *Container
 	Context      context.Context

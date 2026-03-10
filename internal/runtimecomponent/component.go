@@ -1,4 +1,4 @@
-package strata
+package runtimecomponent
 
 import (
 	"context"
@@ -14,26 +14,29 @@ import (
 	"github.com/jacksonzamorano/strata/internal/componentipc"
 )
 
-type ComponentTrigger struct {
-	Namespace string
-	Name      string
-	Trigger   func(b []byte)
+type ContainerAccess interface {
+	GetStorage() core.Storage
+	GetKeychain() core.Keychain
+	HasPermission(core.PermissionAction, string) bool
+	ReadFile(string) ([]byte, bool)
+	TemporaryFile() string
+	Namespace() string
 }
 
-type ComponentIO struct {
-	transport   *componentipc.IO
-	hostService *hostio.IO
-	container   *Container
-	available   bool
-	path        string
-	context     context.Context
-	cancel      context.CancelFunc
-	terminal    TerminalProvider
-	triggers    chan componentipc.ComponentMessageSendTrigger
-	logger      core.Logger
+type Runner struct {
+	transport     *componentipc.IO
+	hostTransport *hostio.IO
+	container     ContainerAccess
+	available     bool
+	path          string
+	context       context.Context
+	cancel        context.CancelFunc
+	terminal      terminalProvider
+	triggers      chan componentipc.ComponentMessageSendTrigger
+	logger        core.Logger
 }
 
-func RegisterComponent(dep *core.ComponentExecuteCommand, storageDir, tempDir string) (*ComponentIO, error) {
+func Register(dep *core.ComponentExecuteCommand, storageDir, tempDir string) (*Runner, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cmd, err := core.PlatformSandboxProvider().Execute(ctx, storageDir, tempDir, dep)
@@ -61,27 +64,47 @@ func RegisterComponent(dep *core.ComponentExecuteCommand, storageDir, tempDir st
 		return nil, err
 	}
 
-	runner := &ComponentIO{
+	runner := &Runner{
 		transport: transport,
 		available: false,
 		path:      dep.CanonicalName,
 		context:   ctx,
 		cancel:    cancel,
 		triggers:  make(chan componentipc.ComponentMessageSendTrigger, 64),
-		terminal:  TerminalProvider{terminal: &NativeTerminal{}},
+		terminal:  newTerminalProvider(),
 	}
 
 	return runner, nil
 }
 
-func (cr *ComponentIO) Begin(cnt *Container, logger core.Logger) {
-	cr.container = cnt
-	cr.hostService = cnt.hostService.host
-	cr.logger = logger
-	cr.HandleAPIRequests()
+func (cr *Runner) Transport() *componentipc.IO {
+	return cr.transport
 }
 
-func (cr *ComponentIO) Execute(fname string, args any) *component.ComponentResultPayload {
+func (cr *Runner) Path() string {
+	return cr.path
+}
+
+func (cr *Runner) Available() bool {
+	return cr.available
+}
+
+func (cr *Runner) SetAvailable(v bool) {
+	cr.available = v
+}
+
+func (cr *Runner) TriggerChannel() <-chan componentipc.ComponentMessageSendTrigger {
+	return cr.triggers
+}
+
+func (cr *Runner) Begin(cnt ContainerAccess, hostTransport *hostio.IO, logger core.Logger) {
+	cr.container = cnt
+	cr.hostTransport = hostTransport
+	cr.logger = logger
+	cr.handleAPIRequests()
+}
+
+func (cr *Runner) Execute(fname string, args any) *component.ComponentResultPayload {
 	thread := cr.transport.NewThread()
 	enc, _ := json.Marshal(args)
 	payload, _ := componentipc.SendAndReceive[component.ComponentResultPayload](
@@ -94,13 +117,13 @@ func (cr *ComponentIO) Execute(fname string, args any) *component.ComponentResul
 	return &payload
 }
 
-func (cr *ComponentIO) requestSecretAuth(ev componentipc.ReceivedEvent[componentipc.ComponentMessageRequestSecretAuthentication]) {
-	hostThread := cr.hostService.NewThread()
+func (cr *Runner) requestSecretAuth(ev componentipc.ReceivedEvent[componentipc.ComponentMessageRequestSecretAuthentication]) {
+	hostThread := cr.hostTransport.NewThread()
 	hostRes, _ := hostio.SendAndReceive[hostio.HostMessageCompleteSecret](
 		hostThread,
 		hostio.HostMessageTypeRequestSecret,
 		hostio.HostMessageRequestSecret{
-			Namespace: cr.container.namespace,
+			Namespace: cr.container.Namespace(),
 			Prompt:    ev.Payload.Prompt,
 		},
 		hostio.HostMessageTypeCompleteSecret,
@@ -113,13 +136,13 @@ func (cr *ComponentIO) requestSecretAuth(ev componentipc.ReceivedEvent[component
 	)
 }
 
-func (cr *ComponentIO) requestOauthAuth(ev componentipc.ReceivedEvent[componentipc.ComponentMessageRequestOauthAuthentication]) {
-	hostThread := cr.hostService.NewThread()
+func (cr *Runner) requestOauthAuth(ev componentipc.ReceivedEvent[componentipc.ComponentMessageRequestOauthAuthentication]) {
+	hostThread := cr.hostTransport.NewThread()
 	hostRes, _ := hostio.SendAndReceive[hostio.HostMessageCompleteOauth](
 		hostThread,
 		hostio.HostMessageTypeRequestSecret,
 		hostio.HostMessageRequestOauth{
-			Namespace:   cr.container.namespace,
+			Namespace:   cr.container.Namespace(),
 			Url:         ev.Payload.Url,
 			Destination: ev.Payload.Callback,
 		},
@@ -133,7 +156,7 @@ func (cr *ComponentIO) requestOauthAuth(ev componentipc.ReceivedEvent[componenti
 	)
 }
 
-func (cr *ComponentIO) executeCommandRequest(ev componentipc.ReceivedEvent[componentipc.ComponentMessageExecuteProgramRequest]) {
+func (cr *Runner) executeCommandRequest(ev componentipc.ReceivedEvent[componentipc.ComponentMessageExecuteProgramRequest]) {
 	pm := fmt.Sprintf("%s %s", ev.Payload.Program, strings.Join(ev.Payload.Arguments, " "))
 	if !cr.container.HasPermission(core.PermissionActionExecuteCommandLine, pm) {
 		ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramResponse, componentipc.ComponentMessageExecuteProgramResponse{
@@ -164,7 +187,7 @@ func (cr *ComponentIO) executeCommandRequest(ev componentipc.ReceivedEvent[compo
 	}
 }
 
-func (cr *ComponentIO) launchUrlRequest(ev componentipc.ReceivedEvent[componentipc.ComponentMessageLaunchUrlRequest]) {
+func (cr *Runner) launchUrlRequest(ev componentipc.ReceivedEvent[componentipc.ComponentMessageLaunchUrlRequest]) {
 	if !cr.container.HasPermission(core.PermissionActionLaunchUrl, ev.Payload.Url) {
 		ev.Thread.Send(componentipc.ComponentMessageTypeLaunchUrlResponse, componentipc.ComponentMessageLaunchUrlResponse{
 			Completed: false,
@@ -178,7 +201,7 @@ func (cr *ComponentIO) launchUrlRequest(ev componentipc.ReceivedEvent[componenti
 	})
 }
 
-func (cr *ComponentIO) readFile(ev componentipc.ReceivedEvent[componentipc.ComponentMessageReadFileRequest]) {
+func (cr *Runner) readFile(ev componentipc.ReceivedEvent[componentipc.ComponentMessageReadFileRequest]) {
 	buf, ok := cr.container.ReadFile(ev.Payload.Path)
 	if !ok {
 		ev.Thread.Send(componentipc.ComponentMessageTypeReadFileResponse, componentipc.ComponentMessageReadFileResponse{
@@ -203,7 +226,7 @@ func (cr *ComponentIO) readFile(ev componentipc.ReceivedEvent[componentipc.Compo
 	})
 }
 
-func (cr *ComponentIO) HandleAPIRequests() {
+func (cr *Runner) handleAPIRequests() {
 	go func() {
 		getVal := componentipc.Receive[componentipc.ComponentMessageGetValueRequest](cr.transport, componentipc.ComponentMessageTypeGetValueRequest)
 		setVal := componentipc.Receive[componentipc.ComponentMessageSetValueRequest](cr.transport, componentipc.ComponentMessageTypeStoreValueRequest)
@@ -223,25 +246,25 @@ func (cr *ComponentIO) HandleAPIRequests() {
 					return
 				}
 				ev.Thread.Send(componentipc.ComponentMessageTypeGetValueResponse, componentipc.ComponentMessageGetValueResponse{
-					Value: cr.container.Storage.GetString(ev.Payload.Key),
+					Value: cr.container.GetStorage().GetString(ev.Payload.Key),
 				})
 			case ev := <-setVal:
 				if ev.Error {
 					return
 				}
-				cr.container.Storage.SetString(ev.Payload.Key, ev.Payload.Value)
+				cr.container.GetStorage().SetString(ev.Payload.Key, ev.Payload.Value)
 			case ev := <-getKeychain:
 				if ev.Error {
 					return
 				}
 				ev.Thread.Send(componentipc.ComponentMessageTypeGetKeychainResponse, componentipc.ComponentMessageGetKeychainResponse{
-					Value: cr.container.Keychain.Get(ev.Payload.Key),
+					Value: cr.container.GetKeychain().Get(ev.Payload.Key),
 				})
 			case ev := <-setKeychain:
 				if ev.Error {
 					return
 				}
-				cr.container.Keychain.Set(ev.Payload.Key, ev.Payload.Value)
+				cr.container.GetKeychain().Set(ev.Payload.Key, ev.Payload.Value)
 			case ev := <-secretRequest:
 				go cr.requestSecretAuth(ev)
 			case ev := <-oauthRequest:

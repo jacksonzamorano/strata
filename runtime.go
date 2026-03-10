@@ -10,13 +10,14 @@ import (
 	"github.com/jacksonzamorano/strata/core"
 	"github.com/jacksonzamorano/strata/hostio"
 	"github.com/jacksonzamorano/strata/internal/componentipc"
+	"github.com/jacksonzamorano/strata/internal/runtimecomponent"
 )
 
 type Runtime struct {
-	state      *AppState
+	state      *appState
 	httpServer *http.Server
 
-	triggers *RuntimeTriggers
+	triggers *runtimecomponent.Triggers
 
 	ctx    *context.Context
 	cancel context.CancelFunc
@@ -26,7 +27,7 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, approvedPermissions .
 	appState := newAppState()
 	mux := http.NewServeMux()
 
-	triggers := &RuntimeTriggers{}
+	triggers := &runtimecomponent.Triggers{}
 	runtimeContext, runtimeCancel := context.WithCancel(context.Background())
 
 	for idx := range deps {
@@ -36,25 +37,25 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, approvedPermissions .
 			continue
 		}
 
-		cnt := appState.buildContainer(cmd.CanonicalName, approvedPermissions)
-		runner, err := RegisterComponent(cmd, cnt.StorageDir, cnt.temporaryDir)
+		cnt := buildContainer(appState.host, appState.persistence, cmd.CanonicalName, approvedPermissions)
+		runner, err := runtimecomponent.Register(cmd, cnt.StorageDir, cnt.temporaryDir)
 		if err != nil {
 			appState.host.Log("Failed to register component '%s': '%s'", cmd.CanonicalName, err.Error())
 			continue
 		}
 
-		ev := componentipc.ReceiveOnce[componentipc.ComponentMessageHello](runner.transport, 10*time.Second, componentipc.ComponentMessageTypeHello)
+		ev := componentipc.ReceiveOnce[componentipc.ComponentMessageHello](runner.Transport(), 10*time.Second, componentipc.ComponentMessageTypeHello)
 		if ev.Error {
 			appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
 				Suceeded: false,
 				Name:     cmd.CanonicalName,
-				Path:     runner.path,
+				Path:     runner.Path(),
 				Error:    new("Component didn't connect."),
 			})
 			continue
 		}
 
-		runner.Begin(cnt, appState.host.Logger(ev.Payload.Name))
+		runner.Begin(cnt, appState.host.Transport(), appState.host.Logger(ev.Payload.Name))
 		appState.components[ev.Payload.Name] = runner
 
 		rdy, _ := componentipc.SendAndReceive[componentipc.ComponentMessageReady](
@@ -68,17 +69,17 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, approvedPermissions .
 			errMsgPtr = &rdy.Error
 		}
 		if errMsgPtr == nil {
-			appState.components[ev.Payload.Name].available = true
+			appState.components[ev.Payload.Name].SetAvailable(true)
 			go func() {
-				for trigger := range appState.components[ev.Payload.Name].triggers {
-					triggers.Execute(ev.Payload.Name, &trigger, appState)
+				for trigger := range appState.components[ev.Payload.Name].TriggerChannel() {
+					triggers.Execute(ev.Payload.Name, &trigger)
 				}
 			}()
 			appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
 				Suceeded: true,
 				Name:     ev.Payload.Name,
 				Version:  ev.Payload.Version,
-				Path:     runner.path,
+				Path:     runner.Path(),
 			})
 		} else {
 			appState.host.Emit(hostio.HostMessageTypeComponentRegistered, hostio.HostMessageComponentRegistered{
@@ -89,7 +90,7 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, approvedPermissions .
 		}
 	}
 
-	taskContainer := appState.buildContainer("tasks", approvedPermissions)
+	taskContainer := buildContainer(appState.host, appState.persistence, "tasks", approvedPermissions)
 	logger := appState.host.Logger("tasks")
 	taskContext := TaskAttachContext{
 		mux:          mux,

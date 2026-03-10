@@ -8,6 +8,7 @@ import (
 
 	"github.com/jacksonzamorano/strata/core"
 	"github.com/jacksonzamorano/strata/internal/keychain"
+	"github.com/jacksonzamorano/strata/internal/runtimehost"
 )
 
 type Container struct {
@@ -18,11 +19,11 @@ type Container struct {
 
 	permissions map[core.PermissionAction]map[string]bool
 	persistence core.PersistenceProvider
-	hostService *HostIO
+	hostService *runtimehost.HostService
 	namespace   string
 }
 
-func (as *AppState) buildContainer(namespace string, pms []core.Permission) *Container {
+func buildContainer(host *runtimehost.HostService, persistence core.PersistenceProvider, namespace string, pms []core.Permission) *Container {
 
 	cfgRoot, _ := os.UserConfigDir()
 	tmpRoot, _ := os.UserCacheDir()
@@ -33,14 +34,14 @@ func (as *AppState) buildContainer(namespace string, pms []core.Permission) *Con
 	os.MkdirAll(tmpPath, 0755)
 
 	cnt := &Container{
-		Storage:      as.persistence.Storage.Container(namespace),
+		Storage:      persistence.Storage.Container(namespace),
 		Keychain:     keychain.PlatformKeychain.Container(namespace),
 		StorageDir:   cfgPath,
 		temporaryDir: tmpPath,
 		permissions:  map[core.PermissionAction]map[string]bool{},
-		persistence:  as.persistence,
+		persistence:  persistence,
 		namespace:    namespace,
-		hostService:  as.host,
+		hostService:  host,
 	}
 
 	for i := range pms {
@@ -85,4 +86,16 @@ func (c *Container) HasPermission(act core.PermissionAction, scope string) bool 
 func (c *Container) TemporaryFile() string {
 	rand_name := rand.Text()
 	return path.Join(c.temporaryDir, rand_name)
+}
+
+func (c *Container) GetStorage() core.Storage {
+	return c.Storage
+}
+
+func (c *Container) GetKeychain() core.Keychain {
+	return c.Keychain
+}
+
+func (c *Container) Namespace() string {
+	return c.namespace
 }

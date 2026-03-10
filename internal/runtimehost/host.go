@@ -1,4 +1,4 @@
-package strata
+package runtimehost
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/jacksonzamorano/strata/hostio"
 )
 
-type HostIO struct {
+type HostService struct {
 	persistence core.PersistenceProvider
 	host        *hostio.IO
 
@@ -23,40 +23,43 @@ type pendingPermissionRequest struct {
 	waiter     chan bool
 }
 
-func newAppHostService(persistence core.PersistenceProvider, host *hostio.IO) *HostIO {
-	service := &HostIO{
-		persistence: persistence,
-		host:        host,
-
+func NewHostService(persistence core.PersistenceProvider, host *hostio.IO) *HostService {
+	service := &HostService{
+		persistence:        persistence,
+		host:               host,
 		pendingPermissions: map[string]*pendingPermissionRequest{},
 	}
 	service.listenForHostMessages()
 	return service
 }
 
-func (hs *HostIO) Done() <-chan struct{} {
+func (hs *HostService) Transport() *hostio.IO {
+	return hs.host
+}
+
+func (hs *HostService) Done() <-chan struct{} {
 	return hs.host.Done()
 }
 
-func (hs *HostIO) Emit(typ hostio.HostMessageType, payload any) {
+func (hs *HostService) Emit(typ hostio.HostMessageType, payload any) {
 	hs.host.Send(typ, payload)
 }
 
-func (hs *HostIO) Log(v string, args ...any) {
+func (hs *HostService) Log(v string, args ...any) {
 	hs.host.Send(hostio.HostMessageTypeLogEvent, hostio.HostMessageLogEvent{
 		Namespace: "global",
 		Message:   fmt.Sprintf(v, args...),
 	})
 }
 
-func (hs *HostIO) Logger(namespace string) core.Logger {
-	return &appHostContainerLogger{
+func (hs *HostService) Logger(namespace string) core.Logger {
+	return &hostContainerLogger{
 		service:   hs,
 		namespace: namespace,
 	}
 }
 
-func (hs *HostIO) RequestPermission(permission core.Permission) bool {
+func (hs *HostService) RequestPermission(permission core.Permission) bool {
 	var waiter chan bool
 
 	permission_hash := fmt.Sprintf("%s.%s.%s", permission.Container, permission.Action, permission.Scope)
@@ -98,7 +101,7 @@ func (hs *HostIO) RequestPermission(permission core.Permission) bool {
 	}
 }
 
-func (hs *HostIO) listenForHostMessages() {
+func (hs *HostService) listenForHostMessages() {
 	getAuthorizationsList := hostio.Receive[hostio.HostMessageGetAuthorizationsList](hs.host, hostio.HostMessageTypeGetAuthorizationsList)
 	createAuthorization := hostio.Receive[hostio.HostMessageCreateAuthorization](hs.host, hostio.HostMessageTypeCreateAuthorization)
 	deleteAuthorization := hostio.Receive[hostio.HostMessageDeleteAuthorization](hs.host, hostio.HostMessageTypeDeleteAuthorization)
@@ -131,7 +134,7 @@ func (hs *HostIO) listenForHostMessages() {
 	}()
 }
 
-func (hs *HostIO) handleCreateAuthorization(ev hostio.ReceivedEvent[hostio.HostMessageCreateAuthorization]) {
+func (hs *HostService) handleCreateAuthorization(ev hostio.ReceivedEvent[hostio.HostMessageCreateAuthorization]) {
 	nickname := strings.TrimSpace(ev.Payload.Nickname)
 	if len(nickname) == 0 {
 		hs.Log("Invalid payload: host requires a name")
@@ -142,7 +145,7 @@ func (hs *HostIO) handleCreateAuthorization(ev hostio.ReceivedEvent[hostio.HostM
 	hs.sendAuthorizationsList()
 }
 
-func (hs *HostIO) sendAuthorizationsList() {
+func (hs *HostService) sendAuthorizationsList() {
 	authorizations := hs.persistence.Authorization.GetAuthorizations()
 	statusAuthorizations := make([]hostio.HostMessageAuthorizationCreated, 0, len(authorizations))
 	for i := range authorizations {
@@ -159,19 +162,19 @@ func (hs *HostIO) sendAuthorizationsList() {
 	})
 }
 
-type appHostContainerLogger struct {
-	service   *HostIO
+type hostContainerLogger struct {
+	service   *HostService
 	namespace string
 }
 
-func (l *appHostContainerLogger) Log(v string, args ...any) {
+func (l *hostContainerLogger) Log(v string, args ...any) {
 	l.service.host.Send(hostio.HostMessageTypeLogEvent, hostio.HostMessageLogEvent{
 		Namespace: l.namespace,
 		Message:   fmt.Sprintf(v, args...),
 	})
 }
 
-func (l *appHostContainerLogger) LogLiteral(v string) {
+func (l *hostContainerLogger) LogLiteral(v string) {
 	l.service.host.Send(hostio.HostMessageTypeLogEvent, hostio.HostMessageLogEvent{
 		Namespace: l.namespace,
 		Message:   v,

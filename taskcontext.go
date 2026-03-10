@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/jacksonzamorano/strata/core"
+	"github.com/jacksonzamorano/strata/internal/runtimecomponent"
+	"github.com/jacksonzamorano/strata/internal/terminal"
 )
 
 type TaskContext struct {
@@ -15,15 +17,15 @@ type TaskContext struct {
 
 	terminal   core.Terminal
 	context    context.Context
-	components map[string]*ComponentIO
+	components map[string]*runtimecomponent.Runner
 }
 
-func BuildTaskContext(container *Container, logger core.Logger, cmps map[string]*ComponentIO, ctx context.Context) *TaskContext {
+func BuildTaskContext(container *Container, logger core.Logger, cmps map[string]*runtimecomponent.Runner, ctx context.Context) *TaskContext {
 	return &TaskContext{
 		Container:  container,
 		Logger:     logger,
 		components: cmps,
-		terminal:   &NativeTerminal{},
+		terminal:   &terminal.NativeTerminal{},
 		context:    ctx,
 	}
 }
