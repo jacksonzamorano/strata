@@ -3,6 +3,7 @@ package strata
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -137,6 +138,12 @@ func (as *Runtime) Start() error {
 	default:
 	}
 
+	ln, err := net.Listen("tcp", as.httpServer.Addr)
+	if err != nil {
+		as.state.host.Log("Failed to listen on %s: %s", as.httpServer.Addr, err.Error())
+		<-as.state.host.Done()
+		return err
+	}
 	as.state.host.Log("Listening on %s", as.httpServer.Addr)
-	return as.httpServer.ListenAndServe()
+	return as.httpServer.Serve(ln)
 }
