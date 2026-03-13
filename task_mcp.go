@@ -225,9 +225,6 @@ func (tt *MCPTask) Attach(ctx *TaskAttachContext) {
 			container.Logger.Log("Could not decode payload: %s", err.Error())
 		}
 
-		enc, _ := json.Marshal(input)
-		container.Logger.Log("Ip: '%s'", string(enc))
-
 		var out any
 		switch input.Method {
 		case "initialize":
@@ -243,7 +240,6 @@ func (tt *MCPTask) Attach(ctx *TaskAttachContext) {
 		}
 
 		encode, _ := json.Marshal(out)
-		container.Logger.Log("Op: '%s'", string(encode))
 		w.Header().Add("Content-Type", "application/json")
 		w.Write(encode)
 	})
