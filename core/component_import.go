@@ -117,12 +117,22 @@ func checkoutGit(url, ref, subdir string) (string, error) {
 	}
 	directoryName := path.Base(url)
 	directoryName = strings.TrimSuffix(directoryName, ".git")
-	checkout := path.Join(tmp, "com.strata.cache", directoryName)
 
+	importCachePath := path.Join(tmp, "com.strata.import-cache")
+	_, err = os.Stat(importCachePath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			os.MkdirAll(importCachePath, 0755)
+		} else {
+			return "", err
+		}
+	}
+
+	checkout := path.Join(importCachePath, directoryName)
 	_, err = os.Stat(checkout)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			err := runGit(tmp, "clone", url, checkout)
+			err := runGit(importCachePath, "clone", url, checkout)
 			if err != nil {
 				return checkout, err
 			}

@@ -35,8 +35,8 @@ func (c *ComponentContainer) RunInDirectory(wd string, program string, args ...s
 		componentipc.ComponentMessageTypeExecuteProgramRequest,
 		componentipc.ComponentMessageExecuteProgramRequest{
 			WorkingDirectory: wd,
-			Program:   program,
-			Arguments: args,
+			Program:          program,
+			Arguments:        args,
 		},
 		componentipc.ComponentMessageTypeExecuteProgramResponse,
 	)
@@ -45,6 +45,46 @@ func (c *ComponentContainer) RunInDirectory(wd string, program string, args ...s
 		Output: result.Output,
 		Code:   result.Code,
 		Error:  result.Error,
+	}
+}
+
+type ComponentDaemonConfig struct {
+	WorkingDirectory string
+	Program          string
+	Args             []string
+	Exited           func(ComponentExecuteResponse)
+}
+
+func (c *ComponentContainer) StartDaemonInDirectory(cfg ComponentDaemonConfig) ComponentExecuteResponse {
+	thread := c.channel.NewThread()
+	start, _ := componentipc.SendAndReceive[componentipc.ComponentMessageExecuteProgramStartedResponse](
+		thread,
+		componentipc.ComponentMessageTypeExecuteProgramRequest,
+		componentipc.ComponentMessageExecuteProgramRequest{
+			WorkingDirectory: cfg.WorkingDirectory,
+			Program:          cfg.Program,
+			Arguments:        cfg.Args,
+			Background:       true,
+		},
+		componentipc.ComponentMessageTypeExecuteProgramResponse,
+	)
+
+	go func() {
+		result, _ := componentipc.WaitFor[componentipc.ComponentMessageExecuteProgramResponse](
+			thread,
+			componentipc.ComponentMessageTypeExecuteProgramResponse,
+		)
+
+		cfg.Exited(ComponentExecuteResponse{
+			Ok:     result.Ok,
+			Output: result.Output,
+			Code:   result.Code,
+			Error:  result.Error,
+		})
+	}()
+	return ComponentExecuteResponse{
+		Ok:    start.Ok,
+		Error: start.Error,
 	}
 }
 

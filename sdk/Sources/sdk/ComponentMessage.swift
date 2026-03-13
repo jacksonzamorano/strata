@@ -21,6 +21,7 @@ enum ComponentMessageType: String {
         completeSecretAuthentication,
         executeProgramRequest,
         executeProgramResponse,
+        executeProgramStartedResponse,
         launchUrlRequest,
         launchUrlResponse,
         readFileRequest,

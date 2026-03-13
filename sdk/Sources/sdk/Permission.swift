@@ -7,6 +7,7 @@ enum PermissionAction: String {
         writeFile,
         makeDirectory,
         executeCommandLine,
+        executeDaemon,
         launchUrl
 }
 

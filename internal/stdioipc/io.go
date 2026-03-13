@@ -237,6 +237,30 @@ func (t *Thread[MT]) Send(typ MT, payload any) bool {
 	return t.io.SendId(t.id, typ, payload)
 }
 
+func WaitFor[T any, MT ~string](t *Thread[MT], recvType MT) (T, Message[MT]) {
+	child, cancel := context.WithTimeout(context.Background(), t.timeout)
+	defer cancel()
+	cn := t.loadChannel(recvType)
+	defer t.dropChannel(recvType)
+
+	for {
+		select {
+		case msg := <-cn:
+			var payload T
+			if err := json.Unmarshal(msg.Payload, &payload); err != nil {
+				continue
+			}
+			return payload, msg
+		case <-t.io.Done():
+			var payload T
+			return payload, Message[MT]{}
+		case <-child.Done():
+			var payload T
+			return payload, Message[MT]{}
+		}
+	}
+}
+
 func SendAndReceive[T any, MT ~string](t *Thread[MT], sendType MT, sendPayload any, recvType MT) (T, Message[MT]) {
 	child, cancel := context.WithTimeout(context.Background(), t.timeout)
 	defer cancel()

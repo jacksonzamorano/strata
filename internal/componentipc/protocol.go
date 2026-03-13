@@ -84,6 +84,12 @@ type ComponentMessageExecuteProgramRequest struct {
 	Program          string   `json:"program"`
 	Arguments        []string `json:"arguments"`
 	WorkingDirectory string   `json:"working_directory"`
+	Background       bool     `json:"is_background"`
+}
+
+type ComponentMessageExecuteProgramStartedResponse struct {
+	Ok     bool   `json:"ok"`
+	Error  string `json:"error"`
 }
 
 type ComponentMessageExecuteProgramResponse struct {

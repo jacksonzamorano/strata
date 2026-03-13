@@ -44,3 +44,7 @@ func (c *terminalProvider) RunInDirectory(maxTime time.Duration, wd, cmd string,
 	defer cancel()
 	return c.terminal.Execute(ctx, wd, cmd, args...)
 }
+
+func (c* terminalProvider) RunInDirectoryWithContext(ctx context.Context, wd, cmd string, args ...string) core.TerminalResult {
+	return c.terminal.Execute(ctx, wd, cmd, args...)
+}

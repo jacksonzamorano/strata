@@ -27,6 +27,10 @@ func Receive[T any](c *IO, recvType MessageType) chan ReceivedEvent[T] {
 	return stdioipc.Receive[T](c, recvType)
 }
 
+func WaitFor[T any](t *Thread, rcvTyp MessageType) (T, Message) {
+	return stdioipc.WaitFor[T](t, rcvTyp)
+}
+
 func SendAndReceive[T any](t *Thread, sendType MessageType, sendPayload any, recvType MessageType) (T, Message) {
 	return stdioipc.SendAndReceive[T](t, sendType, sendPayload, recvType)
 }

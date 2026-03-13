@@ -157,7 +157,12 @@ func (cr *Runner) requestOauthAuth(ev componentipc.ReceivedEvent[componentipc.Co
 }
 
 func (cr *Runner) executeCommandRequest(ev componentipc.ReceivedEvent[componentipc.ComponentMessageExecuteProgramRequest]) {
+	if ev.Payload.Background {
+		cr.executeBackgroundRequest(ev)
+		return
+	}
 	pm := fmt.Sprintf("%s %s", ev.Payload.Program, strings.Join(ev.Payload.Arguments, " "))
+
 	if !cr.container.HasPermission(core.PermissionActionExecuteCommandLine, pm) {
 		ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramResponse, componentipc.ComponentMessageExecuteProgramResponse{
 			Error: "Permission denied.",
@@ -168,6 +173,40 @@ func (cr *Runner) executeCommandRequest(ev componentipc.ReceivedEvent[componenti
 
 	result := cr.terminal.RunInDirectory(
 		time.Minute*2,
+		ev.Payload.WorkingDirectory,
+		ev.Payload.Program,
+		ev.Payload.Arguments...,
+	)
+	if result.Ok {
+		ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramResponse, componentipc.ComponentMessageExecuteProgramResponse{
+			Output: result.Output,
+			Code:   result.Code,
+			Ok:     true,
+		})
+	} else {
+		ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramResponse, componentipc.ComponentMessageExecuteProgramResponse{
+			Error: result.Error + ": " + result.Output,
+			Code:  result.Code,
+			Ok:    false,
+		})
+	}
+}
+func (cr *Runner) executeBackgroundRequest(ev componentipc.ReceivedEvent[componentipc.ComponentMessageExecuteProgramRequest]) {
+	pm := fmt.Sprintf("%s %s", ev.Payload.Program, strings.Join(ev.Payload.Arguments, " "))
+
+	if !cr.container.HasPermission(core.PermissionActionExecuteDaemon, pm) {
+		ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramStartedResponse, componentipc.ComponentMessageExecuteProgramStartedResponse{
+			Error: "Permission denied.",
+			Ok:    false,
+		})
+		return
+	}
+	ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramStartedResponse, componentipc.ComponentMessageExecuteProgramStartedResponse{
+		Ok: true,
+	})
+
+	result := cr.terminal.RunInDirectoryWithContext(
+		cr.context,
 		ev.Payload.WorkingDirectory,
 		ev.Payload.Program,
 		ev.Payload.Arguments...,
