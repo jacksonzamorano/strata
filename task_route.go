@@ -33,6 +33,12 @@ type RouteResult struct {
 }
 
 func RouteResultSuccess(data any) *RouteResult {
+	if str, ok := data.(string); ok {
+		return &RouteResult{
+			status: RouteResultStatusSuccess,
+			response: []byte(str),
+		}
+	}
 	enc, err := json.Marshal(data)
 	if err != nil {
 		return RouteRequestInvalid("Could not encode data: " + err.Error())
