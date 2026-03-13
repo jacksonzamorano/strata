@@ -66,7 +66,7 @@ func (c *ComponentContainer) StartDaemonInDirectory(cfg ComponentDaemonConfig) C
 			Arguments:        cfg.Args,
 			Background:       true,
 		},
-		componentipc.ComponentMessageTypeExecuteProgramResponse,
+		componentipc.ComponentMessageTypeExecuteProgramStartedResponse,
 	)
 
 	go func() {
