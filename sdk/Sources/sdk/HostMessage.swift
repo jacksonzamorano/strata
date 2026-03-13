@@ -17,7 +17,9 @@ enum HostMessageType: String {
         requestOauth,
         completeOauth,
         requestSecret,
-        completeSecret
+        completeSecret,
+        daemonStarted,
+        daemonStopped
 }
 
 @Model
@@ -106,4 +108,19 @@ struct HostMessageRequestSecret {
 @Model
 struct HostMessageCompleteSecret {
     let secret = Field(.string)
+}
+
+@Model
+struct HostMessageDaemonStarted {
+    let id = Field(.string)
+    let namespace = Field(.string)
+    let command = Field(.string)
+}
+
+@Model
+struct HostMessageDaemonStopped {
+    let id = Field(.string)
+    let output = Field(.string)
+    let exitCode = Field(.int64)
+    let fieldSeconds = Field(.double)
 }

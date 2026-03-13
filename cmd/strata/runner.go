@@ -72,6 +72,8 @@ func HandleHost(ctx context.Context, h Host, io *hostio.IO, t *hostio.Thread) {
 	authorizationList := hostio.Receive[hostio.HostMessageAuthorizationsList](io, hostio.HostMessageTypeAuthorizationsList)
 	secretRequested := hostio.Receive[hostio.HostMessageRequestSecret](io, hostio.HostMessageTypeRequestSecret)
 	oauthRequested := hostio.Receive[hostio.HostMessageRequestOauth](io, hostio.HostMessageTypeRequestOauth)
+	daemonStarted := hostio.Receive[hostio.HostMessageDaemonStarted](io, hostio.HostMessageTypeDaemonStarted)
+	daemonStopped := hostio.Receive[hostio.HostMessageDaemonStopped](io, hostio.HostMessageTypeDaemonStopped)
 
 	t.Send(hostio.HostMessageTypeInitialize, struct{}{})
 
@@ -110,6 +112,10 @@ func HandleHost(ctx context.Context, h Host, io *hostio.IO, t *hostio.Thread) {
 					Url: url,
 				})
 			}()
+		case ev := <-daemonStarted:
+			h.DaemonStarted(ev)
+		case ev := <-daemonStopped:
+			h.DaemonStopped(ev)
 		case <-ctx.Done():
 			return
 		}

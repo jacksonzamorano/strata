@@ -87,6 +87,18 @@ func (ch *ConsoleHost) PermissionRequested(ev hostio.ReceivedEvent[hostio.HostMe
 	return appr
 }
 
+func (ch *ConsoleHost) DaemonStarted(ev hostio.ReceivedEvent[hostio.HostMessageDaemonStarted]) {
+	ch.lines <- log("%s started daemon '%s' (%s)", ev.Payload.Namespace, ev.Payload.Command, ev.Payload.Id)
+}
+func (ch *ConsoleHost) DaemonStopped(ev hostio.ReceivedEvent[hostio.HostMessageDaemonStopped]) {
+	ch.lines <- log("Daemon '%s' stopped after %.1f seconds with exit code %d. Output: %s",
+		ev.Payload.Id,
+		ev.Payload.FieldSeconds,
+		ev.Payload.ExitCode,
+		ev.Payload.Output,
+	)
+}
+
 func (ch *ConsoleHost) SecretRequested(ev hostio.ReceivedEvent[hostio.HostMessageRequestSecret]) string {
 	ch.outputLocked.Lock()
 	fmt.Printf("'%s' wants to use the '%s' secret ", ev.Payload.Namespace, ev.Payload.Prompt)

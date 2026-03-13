@@ -204,6 +204,15 @@ func (cr *Runner) executeBackgroundRequest(ev componentipc.ReceivedEvent[compone
 	ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramStartedResponse, componentipc.ComponentMessageExecuteProgramStartedResponse{
 		Ok: true,
 	})
+	thread := cr.hostTransport.NewThread()
+	daemon_id := core.Identifier()
+
+	thread.Send(hostio.HostMessageTypeDaemonStarted, hostio.HostMessageDaemonStarted{
+		Id:        daemon_id,
+		Namespace: cr.container.Namespace(),
+		Command:   ev.Payload.Program,
+	})
+	start := time.Now()
 
 	result := cr.terminal.RunInDirectoryWithContext(
 		cr.context,
@@ -211,6 +220,15 @@ func (cr *Runner) executeBackgroundRequest(ev componentipc.ReceivedEvent[compone
 		ev.Payload.Program,
 		ev.Payload.Arguments...,
 	)
+	dur := time.Since(start)
+
+	thread.Send(hostio.HostMessageTypeDaemonStopped, hostio.HostMessageDaemonStopped{
+		Id:           daemon_id,
+		Output:       result.Output,
+		ExitCode:     int64(result.Code),
+		FieldSeconds: dur.Seconds(),
+	})
+
 	if result.Ok {
 		ev.Thread.Send(componentipc.ComponentMessageTypeExecuteProgramResponse, componentipc.ComponentMessageExecuteProgramResponse{
 			Output: result.Output,

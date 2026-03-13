@@ -96,6 +96,8 @@ try! Schema("host_protocol") {
     HostMessageCompleteOauth.self
     HostMessageRequestSecret.self
     HostMessageCompleteSecret.self
+    HostMessageDaemonStarted.self
+    HostMessageDaemonStopped.self
 } routes: {
 
 }
