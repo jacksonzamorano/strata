@@ -182,7 +182,6 @@ func ReceiveOnce[T any, MT ~string](c *IO[MT], timeout time.Duration, recvType M
 type Thread[MT ~string] struct {
 	id      string
 	io      *IO[MT]
-	timeout time.Duration
 
 	lock     sync.Mutex
 	incoming chan Message[MT]
@@ -193,7 +192,6 @@ func NewThread[MT ~string](id string, io *IO[MT]) *Thread[MT] {
 	t := &Thread[MT]{
 		id:       id,
 		io:       io,
-		timeout:  2 * time.Minute,
 		incoming: make(chan Message[MT]),
 		outgoing: map[MT]chan Message[MT]{},
 	}
@@ -238,8 +236,6 @@ func (t *Thread[MT]) Send(typ MT, payload any) bool {
 }
 
 func WaitFor[T any, MT ~string](t *Thread[MT], recvType MT) (T, Message[MT]) {
-	child, cancel := context.WithTimeout(context.Background(), t.timeout)
-	defer cancel()
 	cn := t.loadChannel(recvType)
 	defer t.dropChannel(recvType)
 
@@ -254,16 +250,11 @@ func WaitFor[T any, MT ~string](t *Thread[MT], recvType MT) (T, Message[MT]) {
 		case <-t.io.Done():
 			var payload T
 			return payload, Message[MT]{}
-		case <-child.Done():
-			var payload T
-			return payload, Message[MT]{}
 		}
 	}
 }
 
 func SendAndReceive[T any, MT ~string](t *Thread[MT], sendType MT, sendPayload any, recvType MT) (T, Message[MT]) {
-	child, cancel := context.WithTimeout(context.Background(), t.timeout)
-	defer cancel()
 	cn := t.loadChannel(recvType)
 	defer t.dropChannel(recvType)
 
@@ -281,9 +272,6 @@ func SendAndReceive[T any, MT ~string](t *Thread[MT], sendType MT, sendPayload a
 			}
 			return payload, msg
 		case <-t.io.Done():
-			var payload T
-			return payload, Message[MT]{}
-		case <-child.Done():
 			var payload T
 			return payload, Message[MT]{}
 		}
