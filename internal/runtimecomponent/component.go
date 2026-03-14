@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/jacksonzamorano/strata/component"
@@ -36,14 +37,16 @@ type Runner struct {
 	logger        core.Logger
 }
 
-func Register(dep *core.ComponentExecuteCommand, storageDir, tempDir string) (*Runner, error) {
-	ctx, cancel := context.WithCancel(context.Background())
+func Register(parentCtx context.Context, dep *core.ComponentExecuteCommand, storageDir, tempDir string) (*Runner, error) {
+	ctx, cancel := context.WithCancel(parentCtx)
 
 	cmd, err := core.PlatformSandboxProvider().Execute(ctx, storageDir, tempDir, dep)
 	if err != nil {
 		cancel()
 		return nil, err
 	}
+	cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGTERM) }
+	cmd.WaitDelay = core.ShutdownGracePeriod
 
 	in, err := cmd.StdinPipe()
 	if err != nil {
@@ -71,7 +74,7 @@ func Register(dep *core.ComponentExecuteCommand, storageDir, tempDir string) (*R
 		context:   ctx,
 		cancel:    cancel,
 		triggers:  make(chan componentipc.ComponentMessageSendTrigger, 64),
-		terminal:  newTerminalProvider(),
+		terminal:  newTerminalProvider(ctx),
 	}
 
 	return runner, nil

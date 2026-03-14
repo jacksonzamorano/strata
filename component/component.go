@@ -46,7 +46,8 @@ type ComponentFunctionFn = func(body []byte, ctx *ComponentContainer) *Component
 type ComponentSetupFn = func(ctx *ComponentContainer) string
 
 func (c *Component) Start() {
-	c.ctx, c.cancel = context.WithCancel(context.Background())
+	c.ctx, c.cancel = signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer c.cancel()
 	c.ioChannel = componentipc.NewIO(c.ctx, c.cancel, os.Stdin, os.Stdout)
 
 	thread := c.ioChannel.NewThread()
@@ -81,9 +82,10 @@ func (c *Component) Start() {
 		}
 	}()
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-	<-stop
+	select {
+	case <-c.ctx.Done():
+	case <-c.ioChannel.Done():
+	}
 }
 
 func (c *Component) StartWithSetup(setup ComponentSetupFn) {

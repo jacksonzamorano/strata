@@ -10,15 +10,16 @@ import (
 )
 
 type terminalProvider struct {
-	terminal core.Terminal
+	terminal  core.Terminal
+	parentCtx context.Context
 }
 
-func newTerminalProvider() terminalProvider {
-	return terminalProvider{terminal: &terminal.NativeTerminal{}}
+func newTerminalProvider(parentCtx context.Context) terminalProvider {
+	return terminalProvider{terminal: &terminal.NativeTerminal{}, parentCtx: parentCtx}
 }
 
 func (c *terminalProvider) OpenUrl(url string) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	ctx, cancel := context.WithTimeout(c.parentCtx, time.Second*20)
 	defer cancel()
 	var command string
 	switch runtime.GOOS {
@@ -34,17 +35,17 @@ func (c *terminalProvider) OpenUrl(url string) bool {
 }
 
 func (c *terminalProvider) Run(maxTime time.Duration, cmd string, args ...string) core.TerminalResult {
-	ctx, cancel := context.WithTimeout(context.Background(), maxTime)
+	ctx, cancel := context.WithTimeout(c.parentCtx, maxTime)
 	defer cancel()
 	return c.terminal.Execute(ctx, "", cmd, args...)
 }
 
 func (c *terminalProvider) RunInDirectory(maxTime time.Duration, wd, cmd string, args ...string) core.TerminalResult {
-	ctx, cancel := context.WithTimeout(context.Background(), maxTime)
+	ctx, cancel := context.WithTimeout(c.parentCtx, maxTime)
 	defer cancel()
 	return c.terminal.Execute(ctx, wd, cmd, args...)
 }
 
-func (c* terminalProvider) RunInDirectoryWithContext(ctx context.Context, wd, cmd string, args ...string) core.TerminalResult {
+func (c *terminalProvider) RunInDirectoryWithContext(ctx context.Context, wd, cmd string, args ...string) core.TerminalResult {
 	return c.terminal.Execute(ctx, wd, cmd, args...)
 }

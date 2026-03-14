@@ -22,9 +22,9 @@ type appState struct {
 	host        *runtimehost.HostService
 }
 
-func newAppState() *appState {
+func newAppState(parentCtx context.Context) *appState {
 	persistence, fresh := core.DefaultPersistence(string(initScript))
-	hostCtx, hostCancel := context.WithCancel(context.Background())
+	hostCtx, hostCancel := context.WithCancel(parentCtx)
 	hostService := runtimehost.NewHostService(persistence, hostio.NewIO(hostCtx, hostCancel, os.Stdin, os.Stdout))
 
 	if fresh {

@@ -4,15 +4,19 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"os/signal"
 	"path"
+	"syscall"
 	"time"
 
+	"github.com/jacksonzamorano/strata/core"
 	"github.com/jacksonzamorano/strata/hostio"
 )
 
 func RunApp(args *AppArgs) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	build := exec.CommandContext(ctx, "go", "build", "-o", "strata-app", ".")
@@ -26,6 +30,8 @@ func RunApp(args *AppArgs) {
 	}
 
 	cmd := exec.CommandContext(ctx, "./strata-app")
+	cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGTERM) }
+	cmd.WaitDelay = core.ShutdownGracePeriod
 	if len(args.directory) > 0 {
 		cmd.Dir = path.Clean(args.directory)
 	}

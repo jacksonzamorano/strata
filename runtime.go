@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/jacksonzamorano/strata/core"
@@ -25,11 +27,12 @@ type Runtime struct {
 }
 
 func NewRuntime(tasks []Task, deps []core.ComponentImport, approvedPermissions ...core.Permission) *Runtime {
-	appState := newAppState()
+	runtimeContext, runtimeCancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
+	appState := newAppState(runtimeContext)
 	mux := http.NewServeMux()
 
 	triggers := &runtimecomponent.Triggers{}
-	runtimeContext, runtimeCancel := context.WithCancel(context.Background())
 
 	for idx := range deps {
 		cmd, err := deps[idx].Setup()
@@ -39,7 +42,7 @@ func NewRuntime(tasks []Task, deps []core.ComponentImport, approvedPermissions .
 		}
 
 		cnt := buildContainer(appState.host, appState.persistence, cmd.CanonicalName, approvedPermissions)
-		runner, err := runtimecomponent.Register(cmd, cnt.StorageDir, cnt.temporaryDir)
+		runner, err := runtimecomponent.Register(runtimeContext, cmd, cnt.StorageDir, cnt.temporaryDir)
 		if err != nil {
 			appState.host.Log("Failed to register component '%s': '%s'", cmd.CanonicalName, err.Error())
 			continue
@@ -145,5 +148,20 @@ func (as *Runtime) Start() error {
 		return err
 	}
 	as.state.host.Log("Listening on %s", as.httpServer.Addr)
-	return as.httpServer.Serve(ln)
+
+	serverErr := make(chan error, 1)
+	go func() {
+		serverErr <- as.httpServer.Serve(ln)
+	}()
+
+	select {
+	case err := <-serverErr:
+		return err
+	case <-(*as.ctx).Done():
+	case <-as.state.host.Done():
+	}
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), core.ShutdownGracePeriod)
+	defer shutdownCancel()
+	return as.httpServer.Shutdown(shutdownCtx)
 }

@@ -129,6 +129,8 @@ func (hs *HostService) listenForHostMessages() {
 					hs.persistence.Authorization.DeleteAuthorization(ev.Payload.Secret)
 					hs.sendAuthorizationsList()
 				}()
+			case <-hs.host.Done():
+				return
 			}
 		}
 	}()
