@@ -233,14 +233,20 @@ func (tt *MCPTask) Attach(ctx *TaskAttachContext) {
 			out = tt.listTools(&input)
 		case "tools/call":
 			out = tt.callTool(&input, container)
+		case "ping":
+			out = jsonRpcResult[map[string]any]{
+				jsonRpc: input.jsonRpc,
+				Result:  map[string]any{},
+			}
 		case "notifications/initialized":
-			break
+			return
 		default:
 			container.Logger.Log("Unknown method: %s", input.Method)
+			return
 		}
 
 		encode, _ := json.Marshal(out)
-		w.Header().Add("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json")
 		w.Write(encode)
 	})
 }
