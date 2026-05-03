@@ -98,14 +98,14 @@ type ComponentBindable interface {
 	Execute(args []byte, context *ComponentContainer) *ComponentResultPayload
 }
 
-type ComponentBindableFn[I any, O any] = func(input *ComponentInput[I, O], ctx *ComponentContainer) *ComponentReturn[O]
+type ComponentBindableFn[I any, O any] = func(input I, ctx *ComponentContainer) (*O, error)
 
 type ComponentDefinition[I any, O any] struct {
 	componentName string
 	functionName  string
 }
 type ComponentMount[I any, O any] struct {
-	Definition *ComponentDefinition[I, O]
+	Definition ComponentDefinition[I, O]
 	Function   ComponentBindableFn[I, O]
 }
 
@@ -130,12 +130,9 @@ func (m *ComponentMount[I, O]) Execute(args []byte, ctx *ComponentContainer) *Co
 			Error:   err.Error(),
 		}
 	}
-	input := &ComponentInput[I, O]{
-		Body: inputB,
-	}
-	res := m.Function(input, ctx)
-	if res.Succeeded {
-		by, _ := json.Marshal(res.Result)
+	res, err := m.Function(inputB, ctx)
+	if err == nil {
+		by, _ := json.Marshal(res)
 		return &ComponentResultPayload{
 			Success:  true,
 			Response: by,
@@ -143,7 +140,7 @@ func (m *ComponentMount[I, O]) Execute(args []byte, ctx *ComponentContainer) *Co
 	} else {
 		return &ComponentResultPayload{
 			Success: false,
-			Error:   res.Error,
+			Error:   err.Error(),
 		}
 	}
 }
@@ -165,16 +162,16 @@ func (c *ComponentInput[I, O]) Error(msg string) *ComponentReturn[O] {
 	}
 }
 
-func Define[I any, O any](manifest core.ComponentManifest, name string) *ComponentDefinition[I, O] {
-	return &ComponentDefinition[I, O]{
+func Define[I any, O any](manifest core.ComponentManifest, name string) ComponentDefinition[I, O] {
+	return ComponentDefinition[I, O]{
 		componentName: manifest.Name,
 		functionName:  name,
 	}
 }
 
-func Mount[I any, O any](definition *ComponentDefinition[I, O], fn ComponentBindableFn[I, O]) *ComponentMount[I, O] {
+func Mount[I any, O any](defintion ComponentDefinition[I, O], fn ComponentBindableFn[I, O]) *ComponentMount[I, O] {
 	return &ComponentMount[I, O]{
-		Definition: definition,
+		Definition: defintion,
 		Function:   fn,
 	}
 }

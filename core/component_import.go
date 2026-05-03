@@ -1,11 +1,14 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -46,6 +49,15 @@ func buildGoProject(dir string) (string, error) {
 		return proj, fmt.Errorf("Build: '%s': '%s'", err.Error(), string(b))
 	}
 	return proj, nil
+}
+
+func buildGoPackage(pkg, output string) error {
+	e := exec.Command("go", "build", "-o", output, pkg)
+	b, err := e.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("Build: '%s': '%s'", err.Error(), string(b))
+	}
+	return nil
 }
 
 type ComponentLocalProjectImport struct {
@@ -99,6 +111,108 @@ func ImportGitSubdirectory(repository, subdir string) *ComponentGitProjectImport
 		Repository:   repository,
 		Subdirectory: subdir,
 	}
+}
+
+type ComponentModuleImport struct {
+	ModulePath   string
+	Subdirectory string
+}
+
+type goModuleInfo struct {
+	Path    string
+	Version string
+	Dir     string
+	Replace *goModuleInfo
+}
+
+var componentBinarySafeName = regexp.MustCompile(`[^A-Za-z0-9._-]+`)
+
+func (i *ComponentModuleImport) Setup() (*ComponentExecuteCommand, error) {
+	info, err := goModule(i.ModulePath)
+	if err != nil {
+		return nil, err
+	}
+
+	importPath := i.ModulePath
+	if i.Subdirectory != "" {
+		importPath = path.Join(importPath, i.Subdirectory)
+	}
+
+	cacheDir, err := componentBuildCacheDir()
+	if err != nil {
+		return nil, err
+	}
+
+	proj := path.Base(importPath)
+	if proj == "." || proj == "/" {
+		return nil, fmt.Errorf("invalid component import path %q", importPath)
+	}
+	version := info.Version
+	if version == "" {
+		version = "dev"
+	}
+	binaryName := componentBinarySafeName.ReplaceAllString(importPath+"@"+version, "_")
+	output := filepath.Join(cacheDir, binaryName)
+
+	if err := buildGoPackage(importPath, output); err != nil {
+		return nil, err
+	}
+
+	workingDirectory := info.Dir
+	if i.Subdirectory != "" {
+		workingDirectory = filepath.Join(workingDirectory, filepath.FromSlash(i.Subdirectory))
+	}
+
+	return &ComponentExecuteCommand{
+		Command:          output,
+		CanonicalName:    proj,
+		WorkingDirectory: workingDirectory,
+	}, nil
+}
+
+func ImportModule(modulePath string) *ComponentModuleImport {
+	return &ComponentModuleImport{
+		ModulePath: modulePath,
+	}
+}
+
+func ImportModuleSubdirectory(modulePath, subdir string) *ComponentModuleImport {
+	return &ComponentModuleImport{
+		ModulePath:   modulePath,
+		Subdirectory: subdir,
+	}
+}
+
+func goModule(modulePath string) (*goModuleInfo, error) {
+	cmd := exec.Command("go", "list", "-m", "-json", modulePath)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("Go module lookup: '%s': '%s'", err.Error(), string(out))
+	}
+
+	var info goModuleInfo
+	if err := json.Unmarshal(out, &info); err != nil {
+		return nil, err
+	}
+	if info.Replace != nil && info.Replace.Dir != "" {
+		info.Dir = info.Replace.Dir
+	}
+	if info.Dir == "" {
+		return nil, fmt.Errorf("Go module lookup: module %q has no local directory; make sure it is required in go.mod", modulePath)
+	}
+	return &info, nil
+}
+
+func componentBuildCacheDir() (string, error) {
+	tmp, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(tmp, "com.strata.component-build-cache")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+	return dir, nil
 }
 
 func runGit(p string, args ...string) error {

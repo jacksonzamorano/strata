@@ -385,6 +385,8 @@ Your app can import components in a few ways:
 
 - `strata.ImportLocal("/path/to/component-project")`
 - `strata.ImportBinary("component-binary-name")`
+- `strata.ImportModule("github.com/you/my-component")`
+- `strata.ImportModuleSubdirectory("github.com/you/components", "my-component")`
 - `strata.ImportGit("repo-url")`
 - `strata.ImportGitSubdirectory("repo-url", "subdir")`
 
@@ -396,10 +398,12 @@ rt := strata.NewRuntime(
 		strata.NewPublicRouteTask(sayHello),
 	},
 	strata.Import(
-		strata.ImportLocal("/path/to/my-component"),
+		strata.ImportModule("github.com/you/my-component"),
 	),
 )
 ```
+
+`ImportModule` uses the version already selected by your app's `go.mod`, including `replace` directives. That keeps the runtime component binary aligned with the definitions package your app compiled against.
 
 Once imported, your tasks can call the component through the shared typed definitions package:
 

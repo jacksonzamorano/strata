@@ -26,7 +26,9 @@ type Runtime struct {
 	cancel context.CancelFunc
 }
 
-func NewRuntime(tasks []Task, deps []core.ComponentImport, approvedPermissions ...core.Permission) *Runtime {
+type ComponentImport = core.ComponentImport
+
+func NewRuntime(tasks []Task, deps []ComponentImport, approvedPermissions ...core.Permission) *Runtime {
 	runtimeContext, runtimeCancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	appState := newAppState(runtimeContext)
