@@ -25,15 +25,12 @@ A handler has this shape:
 
 ```go
 func echo(
-	input *component.ComponentInput[definitions.EchoRequest, definitions.EchoResponse],
+	input definitions.EchoRequest,
 	ctx *component.ComponentContainer,
-) *component.ComponentReturn[definitions.EchoResponse]
+) (*definitions.EchoResponse, error)
 ```
 
-Use `input.Body` for the decoded request. Return with:
-
-- `input.Return(value)` for success.
-- `input.Error(message)` for failure.
+The first argument is the decoded request. Return a pointer to the response for success, or a non-nil error for failure.
 
 ## Mounting
 

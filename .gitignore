@@ -7,3 +7,4 @@ component-example/component-example
 cmd/strata/web/dist
 cmd/strata/web/node_modules
 strata-app
+strata

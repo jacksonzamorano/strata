@@ -16,9 +16,8 @@ func sayHello(input HelloInput, ctx *strata.TaskContext) *strata.RouteResult {
 func main() {
 	runtime := strata.NewRuntime([]strata.Task{
 		strata.NewPublicRouteTask(sayHello),
-	}, nil)
+	})
 
-	// To add a component later, see the repo's component-example and pass
-	// strata.Import(strata.ImportLocal("../your-component")) to NewRuntime.
+	// To add a component later, run `strata add <module-path>` from this app.
 	panic(runtime.Start())
 }

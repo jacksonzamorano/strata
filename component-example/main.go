@@ -7,10 +7,10 @@ import (
 	"github.com/jacksonzamorano/strata/component"
 )
 
-func sayFeature(r *component.ComponentInput[d.SayRequest, d.SayResponse], ctx *component.ComponentContainer) *component.ComponentReturn[d.SayResponse] {
+func sayFeature(r d.SayRequest, ctx *component.ComponentContainer) (*d.SayResponse, error) {
 	last := ctx.Storage.GetString("last")
-	ctx.Storage.SetString("last", r.Body.Name)
-	ctx.Keychain.Set("last", r.Body.Name)
+	ctx.Storage.SetString("last", r.Name)
+	ctx.Keychain.Set("last", r.Name)
 
 	tenx := ctx.Storage.GetInt("tenx")
 	tenx += 10
@@ -20,19 +20,20 @@ func sayFeature(r *component.ComponentInput[d.SayRequest, d.SayResponse], ctx *c
 		Time: time.Now(),
 	})
 
-	return r.Return(d.SayResponse{
-		CurrentValue: r.Body.Name,
+	return &d.SayResponse{
+		CurrentValue: r.Name,
 		LastValue:    last,
 		TenXValue:    tenx,
-	})
+	}, nil
 }
-func reset(r *component.ComponentInput[d.EmptyRequest, string], ctx *component.ComponentContainer) *component.ComponentReturn[string] {
+func reset(r d.EmptyRequest, ctx *component.ComponentContainer) (*string, error) {
 	ctx.Storage.SetString("last", "")
 	ctx.Storage.SetInt("tenx", 0)
 	ctx.Logger.Log("Reset!")
-	return r.Return("Done!")
+	result := "Done!"
+	return &result, nil
 }
-func getSecret(r *component.ComponentInput[d.EmptyRequest, string], ctx *component.ComponentContainer) *component.ComponentReturn[string] {
+func getSecret(r d.EmptyRequest, ctx *component.ComponentContainer) (*string, error) {
 	ct, ok := ctx.ReadFile("/Users/jacksonzamorano/Downloads/Unknown.pdf")
 	ctx.Logger.Log("ok: %s, ct: %s", ok, string(ct))
 
@@ -42,7 +43,7 @@ func getSecret(r *component.ComponentInput[d.EmptyRequest, string], ctx *compone
 	} else {
 		ctx.Logger.Log("Didn't get secret")
 	}
-	return r.Return(sec)
+	return &sec, nil
 }
 
 func main() {

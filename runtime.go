@@ -2,11 +2,14 @@ package strata
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -26,9 +29,7 @@ type Runtime struct {
 	cancel context.CancelFunc
 }
 
-type ComponentImport = core.ComponentImport
-
-func NewRuntime(tasks []Task, deps []ComponentImport, approvedPermissions ...core.Permission) *Runtime {
+func NewRuntime(tasks []Task, approvedPermissions ...core.Permission) *Runtime {
 	runtimeContext, runtimeCancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	appState := newAppState(runtimeContext)
@@ -36,8 +37,29 @@ func NewRuntime(tasks []Task, deps []ComponentImport, approvedPermissions ...cor
 
 	triggers := &runtimecomponent.Triggers{}
 
+	var deps []string
+	depFile, err := os.OpenFile("components.txt", os.O_RDONLY, 0644)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			appState.host.Log("No components manifest detected.")
+		} else {
+			appState.host.Log("Could not open components manifest: %s", err.Error())
+		}
+	} else {
+		defer depFile.Close()
+		depFileContents, err := io.ReadAll(depFile)
+		if err != nil {
+			appState.host.Log("Could not read components manifest: %s", err.Error())
+		}
+		deps = strings.Split(string(depFileContents), "\n")
+	}
+
 	for idx := range deps {
-		cmd, err := deps[idx].Setup()
+		componentModule := strings.TrimSpace(deps[idx])
+		if componentModule == "" {
+			continue
+		}
+		cmd, err := core.PrepareComponent(componentModule, "")
 		if err != nil {
 			appState.host.Log("Failed to register component at index %d: '%s'", idx, err.Error())
 			continue

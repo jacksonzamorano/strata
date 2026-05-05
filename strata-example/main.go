@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"path"
 	"time"
 
 	example "github.com/jacksonzamorano/componentexample/definitions"
@@ -92,7 +90,6 @@ func testEcho(in echo, ctx *strata.TaskContext) *strata.MCPToolResult {
 }
 
 func main() {
-	cd, _ := os.Getwd()
 	rt := strata.NewRuntime([]strata.Task{
 		strata.NewPublicRouteTask(sayHello),
 		strata.NewRouteTask(getVisitorLog),
@@ -109,11 +106,7 @@ func main() {
 			strata.MCPInstructions("a demo!"),
 			strata.MCPIcon("mcp.png"),
 		),
-	}, strata.Import(
-		// strata.Binary("component-example"),
-		strata.ImportLocal(path.Join(path.Dir(cd), "component-example")),
-		// strata.ImportGitSubdirectory("git@github.com:jacksonzamorano/strata.git", "component-example"),
-	))
+	})
 	e := rt.Start()
 	panic(e)
 }

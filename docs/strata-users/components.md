@@ -17,26 +17,26 @@ Components usually provide:
 
 The shared definitions package is the part your app code normally sees. It contains the manifest, request and response types, function definitions, and trigger definitions.
 
-## Importing Components
+## Adding Components
 
-Register component imports when you create the runtime:
+Add a component from your app directory:
 
-```go
-rt := strata.NewRuntime(tasks, strata.Import(
-	strata.ImportLocal("/path/to/component"),
-))
+```bash
+strata add github.com/you/my-component
 ```
 
-Strata supports:
+This does two things:
 
-- `strata.ImportLocal(path)` for a local Go component project.
-- `strata.ImportBinary(name)` for an existing binary on the system path or a direct binary name.
-- `strata.ImportModule(modulePath)` for the Go module version selected by the app's `go.mod`.
-- `strata.ImportModuleSubdirectory(modulePath, subdir)` for a component inside that selected module.
-- `strata.ImportGit(repository)` for a Git repository.
-- `strata.ImportGitSubdirectory(repository, subdir)` for a component inside a repository.
+- Runs `go get` so your app can import the component definitions package.
+- Appends the component module path to `components.txt` so the runtime can build and launch it.
 
-Local, module, and Git imports are built by Strata before launch. Module imports use `go list -m` from the app directory, so they respect the version and any `replace` directive already selected by the app.
+Your app still creates the runtime with tasks only:
+
+```go
+rt := strata.NewRuntime(tasks)
+```
+
+When the runtime starts, it reads `components.txt`. Each non-blank line is treated as a Go module path, built from the version selected by the app's `go.mod`, and launched as a component process. `replace` directives work because the module lookup happens from the app directory.
 
 ## Calling Component Functions
 

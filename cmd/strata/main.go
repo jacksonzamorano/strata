@@ -7,9 +7,10 @@ import (
 var help string = `
 Strata CLI
 
-strata run <your_dir> [--cli|--web]
+strata run [<your_dir>]
 strata new app <your_dir> [--module <module-path>]
 strata new component <your_dir> [--module <module-path>]
+strata add <module-path>
 `
 
 func showHelp() {
@@ -30,6 +31,8 @@ func main() {
 	switch args.command {
 	case "run":
 		RunApp(args)
+	case "add":
+		AddDependancy(args)
 	case "new":
 		NewProject(args)
 	default:

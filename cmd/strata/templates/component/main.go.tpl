@@ -5,14 +5,11 @@ import (
 	"github.com/jacksonzamorano/strata/component"
 )
 
-func echo(
-	input *component.ComponentInput[d.EchoRequest, d.EchoResponse],
-	ctx *component.ComponentContainer,
-) *component.ComponentReturn[d.EchoResponse] {
+func echo(input d.EchoRequest, ctx *component.ComponentContainer) (*d.EchoResponse, error) {
 	ctx.Logger.Log("Echo called")
-	return input.Return(d.EchoResponse{
-		Message: input.Body.Message,
-	})
+	return &d.EchoResponse{
+		Message: input.Message,
+	}, nil
 }
 
 func main() {

@@ -20,8 +20,8 @@ func RunApp(args *AppArgs) {
 	defer cancel()
 
 	build := exec.CommandContext(ctx, "go", "build", "-o", "strata-app", ".")
-	if len(args.directory) > 0 {
-		build.Dir = path.Clean(args.directory)
+	if len(args.target) > 0 {
+		build.Dir = path.Clean(args.target)
 	}
 	v, err := build.CombinedOutput()
 	if err != nil {
@@ -32,8 +32,8 @@ func RunApp(args *AppArgs) {
 	cmd := exec.CommandContext(ctx, "./strata-app")
 	cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGTERM) }
 	cmd.WaitDelay = core.ShutdownGracePeriod
-	if len(args.directory) > 0 {
-		cmd.Dir = path.Clean(args.directory)
+	if len(args.target) > 0 {
+		cmd.Dir = path.Clean(args.target)
 	}
 
 	in, err := cmd.StdinPipe()

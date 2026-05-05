@@ -11,7 +11,7 @@ func NewProject(args *AppArgs) {
 	kind := ProjectKind(args.subcommand)
 	result, err := GenerateProject(context.Background(), GenerateProjectOptions{
 		Kind:       kind,
-		Directory:  args.directory,
+		Directory:  args.target,
 		ModulePath: args.modulePath,
 	})
 	if err != nil {
@@ -47,7 +47,7 @@ func nextSteps(result GenerateProjectResult) string {
 	}
 
 	if result.Kind == ProjectKindApp {
-		lines = append(lines, "  strata run . --cli")
+		lines = append(lines, "  strata run .")
 	} else {
 		lines = append(lines, "  go build .")
 	}

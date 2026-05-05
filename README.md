@@ -111,13 +111,13 @@ By default, `strata new` infers the Go module path from the target directory nam
 Then run an app with:
 
 ```bash
-strata run /path/to/my-strata-app --cli
+strata run /path/to/my-strata-app
 ```
 
 Or, from this repo root:
 
 ```bash
-go run ./cmd/strata run ./strata-example --cli
+go run ./cmd/strata run ./strata-example
 ```
 
 What that does:
@@ -137,12 +137,12 @@ Persistence defaults to a local SQLite database named `strata.db` in the app's w
 
 ## Run The Example App
 
-The example app lives in `strata-example/`, and the example component it imports lives in `component-example/`.
+The example app lives in `strata-example/`, and the example component it uses lives in `component-example/`. The app imports the component definitions as a Go dependency, and `strata-example/components.txt` tells the runtime which component module to build and launch.
 
 Start it with the CLI:
 
 ```bash
-go run ./cmd/strata run ./strata-example --cli
+go run ./cmd/strata run ./strata-example
 ```
 
 On first run, the CLI will print an authorization token created by the runtime.
@@ -272,7 +272,7 @@ func sayHello(input HelloInput, ctx *strata.TaskContext) *strata.RouteResult {
 func main() {
 	rt := strata.NewRuntime([]strata.Task{
 		strata.NewPublicRouteTask(sayHello),
-	}, nil)
+	})
 
 	panic(rt.Start())
 }
@@ -283,13 +283,13 @@ func main() {
 Using the installed CLI:
 
 ```bash
-strata run /path/to/my-strata-app --cli
+strata run /path/to/my-strata-app
 ```
 
 Or from this repository's root:
 
 ```bash
-go run ./cmd/strata run /path/to/my-strata-app --cli
+go run ./cmd/strata run /path/to/my-strata-app
 ```
 
 That is the primary supported workflow today. Your app should expect to be launched by a host, not run directly as a standalone terminal program.
@@ -361,14 +361,11 @@ import (
 	"github.com/jacksonzamorano/strata/component"
 )
 
-func echo(
-	input *component.ComponentInput[d.EchoRequest, d.EchoResponse],
-	ctx *component.ComponentContainer,
-) *component.ComponentReturn[d.EchoResponse] {
+func echo(input d.EchoRequest, ctx *component.ComponentContainer) (*d.EchoResponse, error) {
 	ctx.Logger.Log("Echo called")
-	return input.Return(d.EchoResponse{
-		Message: input.Body.Message,
-	})
+	return &d.EchoResponse{
+		Message: input.Message,
+	}, nil
 }
 
 func main() {
@@ -379,33 +376,30 @@ func main() {
 }
 ```
 
-### 4. Import the component into your app
+### 4. Add the component to your app
 
-Your app can import components in a few ways:
+Apps use two separate dependencies for a component:
 
-- `strata.ImportLocal("/path/to/component-project")`
-- `strata.ImportBinary("component-binary-name")`
-- `strata.ImportModule("github.com/you/my-component")`
-- `strata.ImportModuleSubdirectory("github.com/you/components", "my-component")`
-- `strata.ImportGit("repo-url")`
-- `strata.ImportGitSubdirectory("repo-url", "subdir")`
+- A Go dependency on the component definitions package so task code can call typed functions.
+- A runtime manifest entry in `components.txt` so Strata knows which component module to build and launch.
 
-Example:
+From your app directory:
 
-```go
-rt := strata.NewRuntime(
-	[]strata.Task{
-		strata.NewPublicRouteTask(sayHello),
-	},
-	strata.Import(
-		strata.ImportModule("github.com/you/my-component"),
-	),
-)
+```bash
+strata add github.com/you/my-component
 ```
 
-`ImportModule` uses the version already selected by your app's `go.mod`, including `replace` directives. That keeps the runtime component binary aligned with the definitions package your app compiled against.
+This runs `go get github.com/you/my-component`, appends the module path to `components.txt`, and lets the runtime build the selected module version when the app starts. `go.mod` still controls the version, including `replace` directives, so the runtime component binary stays aligned with the definitions package your app compiled against.
 
-Once imported, your tasks can call the component through the shared typed definitions package:
+Your runtime setup does not list components in code:
+
+```go
+rt := strata.NewRuntime([]strata.Task{
+	strata.NewPublicRouteTask(sayHello),
+})
+```
+
+Once added, your tasks can call the component through the shared typed definitions package:
 
 ```go
 res, ok := definitions.Echo.Execute(ctx.Container, definitions.EchoRequest{

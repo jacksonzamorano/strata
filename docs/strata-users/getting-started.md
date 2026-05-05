@@ -28,7 +28,7 @@ The template creates a normal Go module. By default, `strata new` infers the mod
 From inside the app directory:
 
 ```bash
-strata run . --cli
+strata run .
 ```
 
 The CLI builds the app, starts it, connects as the host, and prints runtime events. On a fresh database, Strata creates an initial authorization token and prints it through the host.
